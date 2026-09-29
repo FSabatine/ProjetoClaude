@@ -1,0 +1,449 @@
+@page "/pessoas/novo"
+@page "/pessoas/{Id:guid}/editar"
+@inject PessoaApiClient Api
+@inject NavigationManager Nav
+
+<PageTitle>@(IsNew ? "Nova pessoa" : "Editar pessoa")</PageTitle>
+
+<div class="page-header">
+    <h1>@(IsNew ? "Nova pessoa" : "Editar pessoa")</h1>
+    <a class="btn btn-secondary" href="/pessoas">Voltar para a lista</a>
+</div>
+
+@if (_errorMessage is not null)
+{
+    <div class="alert-error">@_errorMessage</div>
+}
+
+<div class="card">
+    <h2>Dados básicos</h2>
+    <div class="form-grid">
+        <div class="form-field">
+            <label>Tipo de pessoa</label>
+            <div>
+                <label>
+                    <input type="radio" name="tipoPessoa" checked="@(_tipoPessoa == TipoPessoa.Fisica)" disabled="@(!IsNew)"
+                           @onchange="() => _tipoPessoa = TipoPessoa.Fisica" />
+                    Física
+                </label>
+                &nbsp;&nbsp;
+                <label>
+                    <input type="radio" name="tipoPessoa" checked="@(_tipoPessoa == TipoPessoa.Juridica)" disabled="@(!IsNew)"
+                           @onchange="() => _tipoPessoa = TipoPessoa.Juridica" />
+                    Jurídica
+                </label>
+            </div>
+        </div>
+        <div class="form-field">
+            <label>@(_tipoPessoa == TipoPessoa.Fisica ? "CPF" : "CNPJ")</label>
+            <input @bind="_cpfCnpj" disabled="@(!IsNew)" placeholder="Somente números ou com máscara" />
+        </div>
+        <div class="form-field">
+            <label>Nome</label>
+            <input @bind="_nome" />
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Perfis</h2>
+    <div class="checkbox-grid">
+        @foreach (var perfil in _perfisDisponiveis)
+        {
+            <label>
+                <input type="checkbox" checked="@_perfisSelecionados.Contains(perfil.Id)"
+                       @onchange="e => AlternarPerfil(perfil.Id, (bool)e.Value!)" />
+                @perfil.Nome
+            </label>
+        }
+    </div>
+</div>
+
+<div class="card">
+    <h2>Informações pessoais</h2>
+    <div class="form-grid">
+        <div class="form-field">
+            <label>Data de nascimento</label>
+            <input type="date" @bind="_dataNascimento" />
+        </div>
+        <div class="form-field">
+            <label>RG</label>
+            <input @bind="_rg" />
+        </div>
+        <div class="form-field">
+            <label>Órgão emissor</label>
+            <input @bind="_orgaoEmissorRg" />
+        </div>
+        <div class="form-field">
+            <label>UF do RG</label>
+            <input @bind="_ufRg" maxlength="2" />
+        </div>
+        <div class="form-field">
+            <label>Data de emissão do RG</label>
+            <input type="date" @bind="_dataEmissaoRg" />
+        </div>
+        <div class="form-field">
+            <label>WhatsApp</label>
+            <input @bind="_whatsApp" />
+        </div>
+        <div class="form-field">
+            <label>Nome da mãe</label>
+            <input @bind="_nomeMae" />
+        </div>
+        <div class="form-field">
+            <label>Nome do pai</label>
+            <input @bind="_nomePai" />
+        </div>
+    </div>
+</div>
+
+<div class="actions-row" style="margin-bottom:1.25rem">
+    <button class="btn" @onclick="SalvarAsync">Salvar</button>
+</div>
+
+@if (!IsNew)
+{
+    <div class="card">
+        <h2>Endereços</h2>
+        @if (_enderecos.Count > 0)
+        {
+            <table>
+                <thead>
+                    <tr>
+                        <th>Logradouro</th>
+                        <th>Cidade/UF</th>
+                        <th>CEP</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var endereco in _enderecos)
+                    {
+                        <tr>
+                            <td>@endereco.Logradouro, @endereco.Numero</td>
+                            <td>@endereco.Cidade/@endereco.UF</td>
+                            <td>@endereco.CEP</td>
+                            <td>
+                                @if (endereco.IsPrincipal)
+                                {
+                                    <span class="badge badge-principal">Principal</span>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-secondary btn-sm" @onclick="() => TornarEnderecoPrincipalAsync(endereco.Id)">Tornar principal</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <p class="muted">Nenhum endereço cadastrado.</p>
+        }
+
+        <h3>Adicionar endereço</h3>
+        <div class="form-grid">
+            <div class="form-field"><label>Logradouro</label><input @bind="_novoEndereco.Logradouro" /></div>
+            <div class="form-field"><label>Número</label><input @bind="_novoEndereco.Numero" /></div>
+            <div class="form-field"><label>Complemento</label><input @bind="_novoEndereco.Complemento" /></div>
+            <div class="form-field"><label>Bairro</label><input @bind="_novoEndereco.Bairro" /></div>
+            <div class="form-field"><label>Cidade</label><input @bind="_novoEndereco.Cidade" /></div>
+            <div class="form-field"><label>UF</label><input @bind="_novoEndereco.UF" maxlength="2" /></div>
+            <div class="form-field"><label>CEP</label><input @bind="_novoEndereco.CEP" /></div>
+            <div class="form-field">
+                <label>&nbsp;</label>
+                <label><input type="checkbox" @bind="_novoEndereco.IsPrincipal" /> Definir como principal</label>
+            </div>
+        </div>
+        <div class="actions-row">
+            <button class="btn btn-secondary" @onclick="AdicionarEnderecoAsync">Adicionar endereço</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Contas bancárias</h2>
+        @if (_contas.Count > 0)
+        {
+            <table>
+                <thead>
+                    <tr>
+                        <th>Banco</th>
+                        <th>Agência/Conta</th>
+                        <th>Tipo</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var conta in _contas)
+                    {
+                        <tr>
+                            <td>@conta.Banco</td>
+                            <td>@conta.Agencia / @conta.Conta@(string.IsNullOrEmpty(conta.DigitoConta) ? "" : $"-{conta.DigitoConta}")</td>
+                            <td>@conta.TipoConta</td>
+                            <td>
+                                @if (conta.IsPrincipal)
+                                {
+                                    <span class="badge badge-principal">Principal</span>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-secondary btn-sm" @onclick="() => TornarContaPrincipalAsync(conta.Id)">Tornar principal</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <p class="muted">Nenhuma conta cadastrada.</p>
+        }
+
+        <h3>Adicionar conta bancária</h3>
+        <div class="form-grid">
+            <div class="form-field"><label>Banco</label><input @bind="_novaConta.Banco" /></div>
+            <div class="form-field"><label>Agência</label><input @bind="_novaConta.Agencia" /></div>
+            <div class="form-field"><label>Conta</label><input @bind="_novaConta.Conta" /></div>
+            <div class="form-field"><label>Dígito</label><input @bind="_novaConta.DigitoConta" /></div>
+            <div class="form-field"><label>Tipo de conta</label><input @bind="_novaConta.TipoConta" placeholder="Corrente / Poupança" /></div>
+            <div class="form-field">
+                <label>&nbsp;</label>
+                <label><input type="checkbox" @bind="_novaConta.IsPrincipal" /> Definir como principal</label>
+            </div>
+        </div>
+        <div class="actions-row">
+            <button class="btn btn-secondary" @onclick="AdicionarContaAsync">Adicionar conta</button>
+        </div>
+    </div>
+}
+else
+{
+    <p class="muted">Salve a pessoa primeiro para poder cadastrar endereços e contas bancárias.</p>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private bool IsNew => _pessoaId == Guid.Empty;
+
+    private Guid? _loadedForId;
+    private Guid _pessoaId;
+    private string? _errorMessage;
+
+    private TipoPessoa _tipoPessoa = TipoPessoa.Fisica;
+    private string _cpfCnpj = string.Empty;
+    private string _nome = string.Empty;
+    private DateTime? _dataNascimento;
+    private string? _rg;
+    private string? _orgaoEmissorRg;
+    private string? _ufRg;
+    private DateTime? _dataEmissaoRg;
+    private string? _nomeMae;
+    private string? _nomePai;
+    private string? _whatsApp;
+
+    private IReadOnlyList<PerfilDto> _perfisDisponiveis = Array.Empty<PerfilDto>();
+    private readonly HashSet<int> _perfisSelecionados = new();
+
+    private List<EnderecoDto> _enderecos = new();
+    private List<ContaBancariaDto> _contas = new();
+
+    private NovoEnderecoModel _novoEndereco = new();
+    private NovaContaModel _novaConta = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_perfisDisponiveis.Count == 0)
+        {
+            try
+            {
+                _perfisDisponiveis = await Api.ListPerfisAsync();
+            }
+            catch (ApiException ex)
+            {
+                _errorMessage = ex.Message;
+            }
+        }
+
+        if (_loadedForId == Id)
+            return;
+        _loadedForId = Id;
+
+        if (Id == Guid.Empty)
+        {
+            ResetFormParaNovo();
+            return;
+        }
+
+        await CarregarPessoaAsync(Id);
+    }
+
+    private void ResetFormParaNovo()
+    {
+        _pessoaId = Guid.Empty;
+        _tipoPessoa = TipoPessoa.Fisica;
+        _cpfCnpj = string.Empty;
+        _nome = string.Empty;
+        _dataNascimento = null;
+        _rg = _orgaoEmissorRg = _ufRg = _nomeMae = _nomePai = _whatsApp = null;
+        _dataEmissaoRg = null;
+        _perfisSelecionados.Clear();
+        _enderecos = new();
+        _contas = new();
+    }
+
+    private async Task CarregarPessoaAsync(Guid id)
+    {
+        try
+        {
+            var pessoa = await Api.GetByIdAsync(id);
+            _pessoaId = pessoa.Id;
+            _tipoPessoa = pessoa.TipoPessoa;
+            _cpfCnpj = pessoa.CpfCnpj;
+            _nome = pessoa.Nome;
+            _dataNascimento = pessoa.DataNascimento;
+            _rg = pessoa.RG;
+            _orgaoEmissorRg = pessoa.OrgaoEmissorRG;
+            _ufRg = pessoa.UFRG;
+            _dataEmissaoRg = pessoa.DataEmissaoRG;
+            _nomeMae = pessoa.NomeMae;
+            _nomePai = pessoa.NomePai;
+            _whatsApp = pessoa.WhatsApp;
+
+            _perfisSelecionados.Clear();
+            foreach (var perfil in pessoa.Perfis)
+                _perfisSelecionados.Add(perfil.Id);
+
+            _enderecos = pessoa.Enderecos.ToList();
+            _contas = pessoa.ContasBancarias.ToList();
+        }
+        catch (ApiException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+
+    private void AlternarPerfil(int perfilId, bool selecionado)
+    {
+        if (selecionado)
+            _perfisSelecionados.Add(perfilId);
+        else
+            _perfisSelecionados.Remove(perfilId);
+    }
+
+    private async Task SalvarAsync()
+    {
+        _errorMessage = null;
+        try
+        {
+            if (IsNew)
+            {
+                var criarDto = new PessoaCreateDto(
+                    _tipoPessoa, _cpfCnpj, _nome, _dataNascimento, _rg, _orgaoEmissorRg, _ufRg,
+                    _dataEmissaoRg, _nomeMae, _nomePai, _whatsApp, _perfisSelecionados.ToList());
+
+                var criada = await Api.CreateAsync(criarDto);
+                Nav.NavigateTo($"/pessoas/{criada.Id}/editar");
+                return;
+            }
+
+            var atualizarDto = new PessoaUpdateDto(
+                _nome, _dataNascimento, _rg, _orgaoEmissorRg, _ufRg, _dataEmissaoRg, _nomeMae, _nomePai, _whatsApp);
+            await Api.UpdateAsync(_pessoaId, atualizarDto);
+            await Api.SetPerfisAsync(_pessoaId, _perfisSelecionados.ToList());
+        }
+        catch (ApiException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+
+    private async Task AdicionarEnderecoAsync()
+    {
+        _errorMessage = null;
+        try
+        {
+            await Api.AddEnderecoAsync(_pessoaId, new EnderecoCreateDto(
+                _novoEndereco.Logradouro, _novoEndereco.Numero, _novoEndereco.Complemento, _novoEndereco.Bairro,
+                _novoEndereco.Cidade, _novoEndereco.UF, _novoEndereco.CEP, "Brasil", _novoEndereco.IsPrincipal));
+
+            _novoEndereco = new NovoEnderecoModel();
+            await CarregarPessoaAsync(_pessoaId);
+        }
+        catch (ApiException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+
+    private async Task TornarEnderecoPrincipalAsync(Guid enderecoId)
+    {
+        _errorMessage = null;
+        try
+        {
+            await Api.SetEnderecoPrincipalAsync(_pessoaId, enderecoId);
+            await CarregarPessoaAsync(_pessoaId);
+        }
+        catch (ApiException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+
+    private async Task AdicionarContaAsync()
+    {
+        _errorMessage = null;
+        try
+        {
+            await Api.AddContaBancariaAsync(_pessoaId, new ContaBancariaCreateDto(
+                _novaConta.Banco, _novaConta.Agencia, _novaConta.Conta, _novaConta.DigitoConta,
+                _novaConta.TipoConta, _novaConta.IsPrincipal));
+
+            _novaConta = new NovaContaModel();
+            await CarregarPessoaAsync(_pessoaId);
+        }
+        catch (ApiException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+
+    private async Task TornarContaPrincipalAsync(Guid contaId)
+    {
+        _errorMessage = null;
+        try
+        {
+            await Api.SetContaPrincipalAsync(_pessoaId, contaId);
+            await CarregarPessoaAsync(_pessoaId);
+        }
+        catch (ApiException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+
+    private class NovoEnderecoModel
+    {
+        public string Logradouro { get; set; } = string.Empty;
+        public string Numero { get; set; } = string.Empty;
+        public string? Complemento { get; set; }
+        public string Bairro { get; set; } = string.Empty;
+        public string Cidade { get; set; } = string.Empty;
+        public string UF { get; set; } = string.Empty;
+        public string CEP { get; set; } = string.Empty;
+        public bool IsPrincipal { get; set; }
+    }
+
+    private class NovaContaModel
+    {
+        public string Banco { get; set; } = string.Empty;
+        public string Agencia { get; set; } = string.Empty;
+        public string Conta { get; set; } = string.Empty;
+        public string? DigitoConta { get; set; }
+        public string TipoConta { get; set; } = string.Empty;
+        public bool IsPrincipal { get; set; }
+    }
+}

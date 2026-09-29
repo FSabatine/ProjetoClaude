@@ -1,0 +1,102 @@
+@page "/"
+@page "/pessoas"
+@inject PessoaApiClient Api
+@inject NavigationManager Nav
+
+<PageTitle>Pessoas</PageTitle>
+
+<div class="page-header">
+    <h1>Pessoas</h1>
+    <a class="btn" href="/pessoas/novo">+ Nova pessoa</a>
+</div>
+
+@if (_errorMessage is not null)
+{
+    <div class="alert-error">@_errorMessage</div>
+}
+
+@if (_pessoas is null)
+{
+    <p class="muted">Carregando...</p>
+}
+else if (_pessoas.Count == 0)
+{
+    <p class="muted">Nenhuma pessoa cadastrada ainda.</p>
+}
+else
+{
+    <table>
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Documento</th>
+                <th>Tipo</th>
+                <th>Perfis</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var pessoa in _pessoas)
+            {
+                <tr>
+                    <td>@pessoa.Nome</td>
+                    <td>@pessoa.CpfCnpj</td>
+                    <td>@(pessoa.TipoPessoa == TipoPessoa.Fisica ? "Física" : "Jurídica")</td>
+                    <td>@string.Join(", ", pessoa.Perfis.Select(p => p.Nome))</td>
+                    <td>
+                        <div class="actions-row">
+                            <a class="btn btn-secondary btn-sm" href="@($"/pessoas/{pessoa.Id}/editar")">Editar</a>
+                            @if (_confirmandoInativacaoId == pessoa.Id)
+                            {
+                                <span class="muted">Confirmar?</span>
+                                <button class="btn btn-danger btn-sm" @onclick="() => InativarAsync(pessoa)">Sim</button>
+                                <button class="btn btn-secondary btn-sm" @onclick="() => _confirmandoInativacaoId = null">Não</button>
+                            }
+                            else
+                            {
+                                <button class="btn btn-danger btn-sm" @onclick="() => _confirmandoInativacaoId = pessoa.Id">Inativar</button>
+                            }
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private IReadOnlyList<PessoaDto>? _pessoas;
+    private string? _errorMessage;
+    private Guid? _confirmandoInativacaoId;
+
+    protected override Task OnInitializedAsync() => CarregarAsync();
+
+    private async Task CarregarAsync()
+    {
+        _errorMessage = null;
+        try
+        {
+            var resultado = await Api.ListAsync();
+            _pessoas = resultado.Items;
+        }
+        catch (ApiException ex)
+        {
+            _errorMessage = ex.Message;
+            _pessoas = Array.Empty<PessoaDto>();
+        }
+    }
+
+    private async Task InativarAsync(PessoaDto pessoa)
+    {
+        _confirmandoInativacaoId = null;
+        try
+        {
+            await Api.SoftDeleteAsync(pessoa.Id);
+            await CarregarAsync();
+        }
+        catch (ApiException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+}

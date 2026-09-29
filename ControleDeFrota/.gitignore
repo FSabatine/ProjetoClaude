@@ -1,0 +1,20 @@
+# .NET
+bin/
+obj/
+*.user
+[Tt]est[Rr]esult*/
+appsettings.*.local.json
+
+# IDE
+.vs/
+.idea/
+*.suo
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo
+
+# OS
+Thumbs.db
+.DS_Store

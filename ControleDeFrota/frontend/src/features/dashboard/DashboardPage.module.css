@@ -1,0 +1,40 @@
+.card {
+  display: block;
+  border-radius: var(--mantine-radius-md);
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.card:hover {
+  transform: translateY(-1px);
+}
+
+.card:hover > * {
+  box-shadow: var(--mantine-shadow-sm);
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+  outline-offset: 2px;
+}
+
+.alert {
+  display: block;
+  width: 100%;
+  padding: var(--mantine-spacing-sm);
+  border-radius: var(--mantine-radius-md);
+  border: 1px solid var(--mantine-color-default-border);
+}
+
+.alert:hover {
+  background: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+}
+
+.alert:focus-visible {
+  outline: 2px solid var(--mantine-primary-color-filled);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
+  }
+}

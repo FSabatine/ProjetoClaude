@@ -1,0 +1,49 @@
+{
+  "name": "controle-de-frota-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=18.16"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@mantine/core": "7.17",
+    "@mantine/dates": "7.17",
+    "@mantine/form": "7.17",
+    "@mantine/hooks": "7.17",
+    "@mantine/modals": "7.17",
+    "@mantine/notifications": "7.17",
+    "@tabler/icons-react": "3.31",
+    "@tanstack/react-query": "5.66",
+    "axios": "1.20",
+    "dayjs": "1.11",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-imask": "7.6",
+    "react-router-dom": "^7.18.4"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39",
+    "@types/react": "18.3",
+    "@types/react-dom": "18.3",
+    "@vitejs/plugin-react": "4.3",
+    "eslint": "9.39",
+    "eslint-plugin-react-hooks": "5.0",
+    "eslint-plugin-react-refresh": "^0.4.26",
+    "globals": "^15.15.0",
+    "postcss": "^8.5.28",
+    "postcss-preset-mantine": "1.17",
+    "postcss-simple-vars": "^7.0.1",
+    "typescript": "5.6",
+    "typescript-eslint": "8.15",
+    "vite": "^6.4.3",
+    "vitest": "^3.2.6"
+  }
+}

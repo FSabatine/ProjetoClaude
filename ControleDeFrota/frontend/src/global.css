@@ -1,0 +1,16 @@
+:root {
+  --app-background: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8));
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'cv11', 'tnum';
+}
+
+/* Touch targets of at least 40px on phones (UX_UI.md, responsiveness). */
+@media (max-width: 48em) {
+  .mantine-Button-root,
+  .mantine-ActionIcon-root {
+    min-height: 40px;
+  }
+}

@@ -1,4 +1,6 @@
 using Fleet.Application.Common;
+using Fleet.Domain.Common;
+using Fleet.Domain.Mileage;
 using Fleet.Domain.Vehicles;
 using FluentValidation;
 
@@ -7,8 +9,17 @@ namespace Fleet.Application.Vehicles;
 public sealed class VehicleListRequest : ListRequest
 {
     public VehicleStatus? Status { get; set; }
+    /// <summary>Derived status (ADR-018): condition + current assignment.</summary>
+    public VehicleOperationalStatus? OperationalStatus { get; set; }
     public VehicleType? Type { get; set; }
+    public Guid? DriverId { get; set; }
+    public int? MinOdometerKm { get; set; }
+    public int? MaxOdometerKm { get; set; }
+    /// <summary>Active vehicles whose odometer was not updated in the last <see cref="Fleet.Domain.Mileage.OdometerPolicy.StaleAfterDays"/> days.</summary>
+    public bool? StaleMileage { get; set; }
 }
+
+public sealed record CurrentAssignmentResponse(Guid Id, Guid DriverId, string DriverName, DateTime StartedAt);
 
 public sealed record VehicleRequest : IRegisteredAssetRequest
 {
@@ -27,6 +38,7 @@ public sealed record VehicleRequest : IRegisteredAssetRequest
     public decimal? CargoCapacityKg { get; init; }
     public decimal? TareWeightKg { get; init; }
 
+    /// <summary>Initial odometer on registration. On update it must be omitted or unchanged: mileage changes go through readings (ADR-019).</summary>
     public int? CurrentOdometerKm { get; init; }
     public decimal? HourMeter { get; init; }
     public VehicleStatus Status { get; init; } = VehicleStatus.Available;
@@ -44,7 +56,11 @@ public sealed record VehicleListItemResponse(
     short ModelYear,
     VehicleType Type,
     int CurrentOdometerKm,
-    VehicleStatus Status);
+    DateTime? OdometerUpdatedAt,
+    VehicleStatus Status,
+    VehicleOperationalStatus OperationalStatus,
+    Guid? CurrentDriverId,
+    string? CurrentDriverName);
 
 public sealed record VehicleResponse(
     Guid Id,
@@ -62,8 +78,11 @@ public sealed record VehicleResponse(
     decimal? CargoCapacityKg,
     decimal? TareWeightKg,
     int CurrentOdometerKm,
+    DateTime? OdometerUpdatedAt,
     decimal? HourMeter,
     VehicleStatus Status,
+    VehicleOperationalStatus OperationalStatus,
+    CurrentAssignmentResponse? CurrentAssignment,
     DateOnly? AcquisitionDate,
     decimal? AcquisitionValue,
     string? Notes,
@@ -72,7 +91,7 @@ public sealed record VehicleResponse(
 
 public sealed class VehicleRequestValidator : AbstractValidator<VehicleRequest>
 {
-    public const int MaxOdometerKm = 9_999_999;
+    public const int MaxOdometerKm = OdometerPolicy.MaxOdometerKm;
 
     public VehicleRequestValidator(IClock clock)
     {
@@ -84,8 +103,7 @@ public sealed class VehicleRequestValidator : AbstractValidator<VehicleRequest>
         RuleFor(x => x.CargoCapacityKg).NonNegative("Capacidade de carga");
         RuleFor(x => x.TareWeightKg).NonNegative("Tara");
         RuleFor(x => x.CurrentOdometerKm)
-            .NotNull().WithMessage("Hodômetro: campo obrigatório (informe 0 para veículo novo).")
-            .InclusiveBetween(0, MaxOdometerKm).WithMessage($"Hodômetro deve estar entre 0 e {MaxOdometerKm:N0} km.");
+            .InclusiveBetween(0, MaxOdometerKm).WithMessage($"Hodômetro deve estar entre 0 e {BrazilianFormat.Number(MaxOdometerKm)} km.");
         RuleFor(x => x.HourMeter).NonNegative("Horímetro");
         RuleFor(x => x.Status).IsInEnum().WithMessage("Situação inválida.");
         RuleFor(x => x.AcquisitionDate)

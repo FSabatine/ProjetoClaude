@@ -74,9 +74,9 @@ function DriverForm({ driver }: { driver?: Driver }) {
     mutation: save,
     successMessage: driver ? 'Motorista atualizado com sucesso.' : 'Motorista cadastrado com sucesso.',
     errorTitle: 'O motorista não foi salvo',
-    onSuccess: () => {
+    onSuccess: (saved) => {
       guard.release();
-      navigate('/motoristas');
+      navigate(`/motoristas/${saved.id}`);
     },
     toBody: (v) => ({
       ...v,
@@ -99,7 +99,9 @@ function DriverForm({ driver }: { driver?: Driver }) {
       <PageHeader
         title={driver?.fullName ?? 'Novo motorista'}
         description={readOnly ? 'Visualização — seu perfil não permite editar este motorista.' : 'Campos com * são obrigatórios.'}
-        breadcrumbs={[{ label: 'Motoristas', to: '/motoristas' }, { label: driver ? 'Editar' : 'Novo' }]}
+        breadcrumbs={driver
+          ? [{ label: 'Motoristas', to: '/motoristas' }, { label: driver.fullName, to: `/motoristas/${driver.id}` }, { label: 'Editar' }]
+          : [{ label: 'Motoristas', to: '/motoristas' }, { label: 'Novo' }]}
         action={driver && <AuditHistoryButton entity="Driver" id={driver.id} />}
       />
       <form onSubmit={handleSubmit} noValidate>
@@ -150,7 +152,7 @@ function DriverForm({ driver }: { driver?: Driver }) {
         </fieldset>
         {!readOnly && (
           <Box mt="md">
-            <FormActions saving={save.isPending} onCancel={() => navigate('/motoristas')} submitLabel={driver ? 'Salvar alterações' : 'Cadastrar motorista'} />
+            <FormActions saving={save.isPending} onCancel={() => navigate(driver ? `/motoristas/${driver.id}` : '/motoristas')} submitLabel={driver ? 'Salvar alterações' : 'Cadastrar motorista'} />
           </Box>
         )}
       </form>

@@ -2,6 +2,7 @@ using Fleet.Application.Auth;
 using Fleet.Application.Common;
 using Fleet.Infrastructure.Persistence;
 using Fleet.Infrastructure.Security;
+using Fleet.Infrastructure.Storage;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,6 +33,9 @@ public static class DependencyInjection
             .Validate(o => o.SigningKey.Length >= JwtOptions.MinimumKeyBytes, $"Jwt:SigningKey must have at least {JwtOptions.MinimumKeyBytes} characters.")
             .ValidateOnStart();
         services.AddOptions<AuthOptions>().Bind(configuration.GetSection(AuthOptions.SectionName));
+
+        services.AddOptions<FileStorageOptions>().Bind(configuration.GetSection(FileStorageOptions.SectionName));
+        services.AddSingleton<IFileStorage, LocalFileStorage>();
 
         services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<IPasswordHasher, PasswordHasher>();

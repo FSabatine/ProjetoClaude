@@ -2,6 +2,11 @@ import { Suspense } from 'react';
 import { ActionIcon, AppShell, Avatar, Burger, Divider, Group, Menu, NavLink, ScrollArea, Stack, Text, Tooltip, UnstyledButton, useMantineColorScheme } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
+  IconAlertTriangle,
+  IconChecklist,
+  IconFileText,
+  IconFiles,
+  IconListCheck,
   IconBuilding,
   IconBuildingSkyscraper,
   IconChevronDown,
@@ -34,6 +39,14 @@ const OPERATION: NavItem[] = [
   { label: 'Veículos', to: '/veiculos', icon: IconTruck, permission: PERMISSIONS.vehicles.view },
   { label: 'Implementos', to: '/implementos', icon: IconTruckLoading, permission: PERMISSIONS.implements.view },
   { label: 'Motoristas', to: '/motoristas', icon: IconSteeringWheel, permission: PERMISSIONS.drivers.view },
+  { label: 'Checklists', to: '/checklists', icon: IconChecklist, permission: PERMISSIONS.checklists.view },
+  { label: 'Ocorrências', to: '/ocorrencias', icon: IconAlertTriangle, permission: PERMISSIONS.occurrences.view },
+  { label: 'Documentos', to: '/documentos', icon: IconFileText, permission: PERMISSIONS.documents.view },
+];
+
+const SETTINGS: NavItem[] = [
+  { label: 'Modelos de checklist', to: '/configuracoes/checklists', icon: IconListCheck, permission: PERMISSIONS.operations.configure },
+  { label: 'Tipos de documento', to: '/configuracoes/tipos-de-documento', icon: IconFiles, permission: PERMISSIONS.operations.configure },
 ];
 
 const ADMINISTRATION: NavItem[] = [
@@ -68,6 +81,7 @@ export function AppLayout() {
       ));
 
   const administration = renderItems(ADMINISTRATION);
+  const settings = renderItems(SETTINGS);
   const initials = user?.name.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase();
 
   return (
@@ -139,6 +153,15 @@ export function AppLayout() {
               Operação
             </Text>
             {renderItems(OPERATION)}
+            {settings.length > 0 && (
+              <>
+                <Divider my="sm" />
+                <Text size="xs" fw={600} c="dimmed" tt="uppercase" px="sm" pb={4}>
+                  Configurações
+                </Text>
+                {settings}
+              </>
+            )}
             {administration.length > 0 && (
               <>
                 <Divider my="sm" />

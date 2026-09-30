@@ -3,15 +3,46 @@ using Fleet.Domain.Common;
 namespace Fleet.Domain.Vehicles;
 
 /// <summary>
-/// Single availability axis (ADR-009). "Active" is derived: any status other than Inactive.
-/// From Phase 2/3 on, OnTrip and UnderMaintenance will be driven by the Trips and Maintenance modules.
+/// Stored condition of the vehicle — a single axis (ADR-009, ADR-018). "Active" is derived: anything but Inactive.
+/// Who drives it is NOT a status: it comes from VehicleAssignment (see VehicleOperationalStatus).
+/// OnTrip and UnderMaintenance will be driven by the Trips and Maintenance modules in later phases.
 /// </summary>
 public enum VehicleStatus
 {
     Available,
     OnTrip,
     UnderMaintenance,
+    /// <summary>Out of use for a reason other than maintenance (blocked document, accident, waiting for paperwork…).</summary>
+    Unavailable,
     Inactive,
+}
+
+/// <summary>
+/// What the fleet manager sees (ADR-018): the stored condition combined with the current assignment.
+/// Never stored — always computed by <see cref="VehicleOperationalState"/>.
+/// </summary>
+public enum VehicleOperationalStatus
+{
+    Available,
+    /// <summary>Available condition + an active driver assignment.</summary>
+    Assigned,
+    OnTrip,
+    Unavailable,
+    UnderMaintenance,
+    Inactive,
+}
+
+public static class VehicleOperationalState
+{
+    /// <summary>The stored condition wins; only an otherwise available vehicle is shown as "Assigned".</summary>
+    public static VehicleOperationalStatus From(VehicleStatus status, bool hasActiveAssignment) => status switch
+    {
+        VehicleStatus.Inactive => VehicleOperationalStatus.Inactive,
+        VehicleStatus.UnderMaintenance => VehicleOperationalStatus.UnderMaintenance,
+        VehicleStatus.Unavailable => VehicleOperationalStatus.Unavailable,
+        VehicleStatus.OnTrip => VehicleOperationalStatus.OnTrip,
+        _ => hasActiveAssignment ? VehicleOperationalStatus.Assigned : VehicleOperationalStatus.Available,
+    };
 }
 
 public enum VehicleType
@@ -49,8 +80,8 @@ public enum FuelType
 }
 
 /// <summary>
-/// Kept lean on purpose: maintenance, fueling, tires, documents, trips, fines, accidents and costs
-/// will be separate entities referencing VehicleId.
+/// Kept lean on purpose: assignments, odometer readings, documents, checklists, occurrences (and, later,
+/// maintenance, fueling, tires, trips, costs) are separate entities referencing VehicleId.
 /// </summary>
 public class Vehicle : AuditableEntity, ITenantScoped, ISoftDeletable, IAuditable
 {
@@ -77,7 +108,10 @@ public class Vehicle : AuditableEntity, ITenantScoped, ISoftDeletable, IAuditabl
     public decimal? CargoCapacityKg { get; set; }
     public decimal? TareWeightKg { get; set; }
 
+    /// <summary>Fast read of the latest applied odometer reading. Changed only by MileageService (ADR-019).</summary>
     public int CurrentOdometerKm { get; set; }
+    /// <summary>When the current odometer value was read (null = never read since registration).</summary>
+    public DateTime? OdometerUpdatedAt { get; set; }
     public decimal? HourMeter { get; set; }
     public VehicleStatus Status { get; set; } = VehicleStatus.Available;
 

@@ -10,11 +10,22 @@ public enum LicenseAlertFilter
     ExpiringSoon,
 }
 
+public enum DriverAssignmentFilter
+{
+    WithVehicle,
+    WithoutVehicle,
+}
+
 public sealed class DriverListRequest : ListRequest
 {
     public DriverStatus? Status { get; set; }
     public LicenseAlertFilter? LicenseAlert { get; set; }
+    public LicenseCategory? LicenseCategory { get; set; }
+    public DriverAssignmentFilter? Assignment { get; set; }
+    public Guid? VehicleId { get; set; }
 }
+
+public sealed record DriverCurrentVehicleResponse(Guid AssignmentId, Guid VehicleId, string LicensePlate, string VehicleDescription, DateTime StartedAt);
 
 public sealed record DriverRequest
 {
@@ -48,7 +59,9 @@ public sealed record DriverListItemResponse(
     LicenseCategory LicenseCategory,
     DateOnly LicenseExpiresOn,
     LicenseState LicenseState,
-    DriverStatus Status);
+    DriverStatus Status,
+    Guid? CurrentVehicleId,
+    string? CurrentVehiclePlate);
 
 public sealed record DriverResponse(
     Guid Id,
@@ -65,6 +78,7 @@ public sealed record DriverResponse(
     LicenseState LicenseState,
     bool PerformsPaidActivity,
     DriverStatus Status,
+    DriverCurrentVehicleResponse? CurrentVehicle,
     string? Notes,
     DateTime CreatedAt,
     DateTime? UpdatedAt);

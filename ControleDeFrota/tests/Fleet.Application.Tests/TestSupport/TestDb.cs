@@ -28,7 +28,31 @@ public sealed class TestCurrentUser : ICurrentUser
 public sealed class FakeClock : IClock
 {
     public DateTime UtcNow { get; set; } = new(2026, 9, 29, 12, 0, 0, DateTimeKind.Utc);
-    public DateOnly Today => DateOnly.FromDateTime(UtcNow.AddHours(-3));
+    public DateOnly Today => ToBusinessDate(UtcNow);
+    public DateTime ToBusinessDateTime(DateTime utc) => DateTime.SpecifyKind(utc.AddHours(-3), DateTimeKind.Unspecified);
+    public DateOnly ToBusinessDate(DateTime utc) => DateOnly.FromDateTime(ToBusinessDateTime(utc));
+    public DateTime StartOfBusinessDayUtc(DateOnly date) => date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc).AddHours(3);
+}
+
+public sealed class InMemoryFileStorage : IFileStorage
+{
+    public Dictionary<string, byte[]> Files { get; } = [];
+
+    public async Task SaveAsync(string key, Stream content, CancellationToken ct)
+    {
+        using var buffer = new MemoryStream();
+        await content.CopyToAsync(buffer, ct);
+        Files[key] = buffer.ToArray();
+    }
+
+    public Task<Stream> OpenReadAsync(string key, CancellationToken ct) =>
+        Files.TryGetValue(key, out var bytes) ? Task.FromResult<Stream>(new MemoryStream(bytes)) : throw new FileNotFoundException(key);
+
+    public Task DeleteAsync(string key, CancellationToken ct)
+    {
+        Files.Remove(key);
+        return Task.CompletedTask;
+    }
 }
 
 /// <summary>
@@ -41,6 +65,7 @@ public sealed class TestDb : IDisposable
 
     public TestCurrentUser CurrentUser { get; } = new();
     public FakeClock Clock { get; } = new();
+    public InMemoryFileStorage Storage { get; } = new();
     public FleetDbContext Db { get; }
 
     public TestDb()

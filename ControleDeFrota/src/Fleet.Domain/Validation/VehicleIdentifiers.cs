@@ -12,8 +12,18 @@ public static partial class LicensePlate
 
     public static bool IsValid(string? value) => PlatePattern().IsMatch(Normalize(value));
 
+    /// <summary>For messages: legacy "ABC-1234"; Mercosul stays "ABC1D23", as printed on the plate (mirrors formatPlate in the UI).</summary>
+    public static string Format(string plate)
+    {
+        var normalized = Normalize(plate);
+        return LegacyPattern().IsMatch(normalized) ? $"{normalized[..3]}-{normalized[3..]}" : normalized;
+    }
+
     [GeneratedRegex("^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$")]
     private static partial Regex PlatePattern();
+
+    [GeneratedRegex("^[A-Z]{3}[0-9]{4}$")]
+    private static partial Regex LegacyPattern();
 }
 
 /// <summary>RENAVAM: 11 digits, last one is a check digit (weights 3,2,9,8,7,6,5,4,3,2).</summary>

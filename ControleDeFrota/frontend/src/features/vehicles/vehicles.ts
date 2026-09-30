@@ -1,12 +1,14 @@
 import { createResource } from '../../api/crud';
 import type { StatusOption } from '../../components/common';
 import { STATUS_COLOR } from '../../theme';
+import type { VehicleOperationalStatus } from '../operations/labels';
 
 // Labels and colors: the ONE place mapping enum values to pt-BR text (DEVELOPMENT_GUIDELINES.md).
 export const VEHICLE_STATUS = {
   Available: { label: 'Disponível', color: STATUS_COLOR.positive },
   OnTrip: { label: 'Em viagem', color: STATUS_COLOR.active },
   UnderMaintenance: { label: 'Em manutenção', color: STATUS_COLOR.warning },
+  Unavailable: { label: 'Indisponível', color: STATUS_COLOR.danger },
   Inactive: { label: 'Inativo', color: STATUS_COLOR.neutral },
 } satisfies Record<string, StatusOption>;
 export type VehicleStatus = keyof typeof VEHICLE_STATUS;
@@ -52,10 +54,22 @@ export interface VehicleListItem {
   modelYear: number;
   type: VehicleType;
   currentOdometerKm: number;
+  odometerUpdatedAt: string | null;
   status: VehicleStatus;
+  operationalStatus: VehicleOperationalStatus;
+  currentDriverId: string | null;
+  currentDriverName: string | null;
 }
 
-export interface Vehicle extends VehicleListItem {
+export interface CurrentAssignment {
+  id: string;
+  driverId: string;
+  driverName: string;
+  startedAt: string;
+}
+
+export interface Vehicle extends Omit<VehicleListItem, 'currentDriverId' | 'currentDriverName'> {
+  currentAssignment: CurrentAssignment | null;
   renavam: string;
   chassis: string;
   manufacturingYear: number;

@@ -10,10 +10,10 @@ import { notifyError, notifySuccess } from '../../components/notify';
 import { PageHeader } from '../../components/PageHeader';
 import { EmptyState } from '../../components/States';
 import { useListParams } from '../../hooks/useListParams';
-import { formatCpf, formatDate, formatPhone } from '../../lib/format';
-import { DRIVER_STATUS, LICENSE_ALERT_FILTER, LICENSE_STATE, driversApi, type DriverListItem } from './drivers';
+import { formatCpf, formatDate, formatPhone, formatPlate } from '../../lib/format';
+import { DRIVER_ASSIGNMENT_FILTER, DRIVER_STATUS, LICENSE_ALERT_FILTER, LICENSE_CATEGORIES, LICENSE_STATE, driversApi, type DriverListItem } from './drivers';
 
-const FILTERS = ['status', 'licenseAlert'] as const;
+const FILTERS = ['status', 'licenseAlert', 'licenseCategory', 'assignment'] as const;
 
 export function DriverListPage() {
   const navigate = useNavigate();
@@ -52,6 +52,7 @@ export function DriverListPage() {
     { key: 'phone', header: 'Telefone', secondary: true, render: (d) => formatPhone(d.phone) },
     { key: 'category', header: 'Categoria', sortKey: 'licenseCategory', render: (d) => d.licenseCategory },
     { key: 'license', header: 'Validade da CNH', sortKey: 'licenseExpiresOn', render: license },
+    { key: 'vehicle', header: 'Veículo', render: (d) => <Text size="sm" ff="monospace" c={d.currentVehiclePlate ? undefined : 'dimmed'}>{d.currentVehiclePlate ? formatPlate(d.currentVehiclePlate) : '—'}</Text> },
     { key: 'status', header: 'Situação', sortKey: 'status', render: (d) => <StatusBadge value={d.status} map={DRIVER_STATUS} /> },
   ];
 
@@ -61,10 +62,12 @@ export function DriverListPage() {
       <ListToolbar
         search={list.search}
         onSearch={list.setSearch}
-        searchPlaceholder="Buscar por nome, CPF ou número da CNH"
+        searchPlaceholder="Buscar por nome, CPF, CNH ou placa do veículo"
         filters={[
           { key: 'status', placeholder: 'Situação', data: toSelectData(DRIVER_STATUS), value: list.filters.status, onChange: (v) => list.setFilter('status', v) },
           { key: 'licenseAlert', placeholder: 'Alerta de CNH', data: toSelectData(LICENSE_ALERT_FILTER), value: list.filters.licenseAlert, onChange: (v) => list.setFilter('licenseAlert', v) },
+          { key: 'licenseCategory', placeholder: 'Categoria', data: LICENSE_CATEGORIES.map((c) => ({ value: c, label: `Categoria ${c}` })), value: list.filters.licenseCategory, onChange: (v) => list.setFilter('licenseCategory', v) },
+          { key: 'assignment', placeholder: 'Veículo', data: toSelectData(DRIVER_ASSIGNMENT_FILTER), value: list.filters.assignment, onChange: (v) => list.setFilter('assignment', v) },
         ]}
       />
       <DataTable
@@ -80,7 +83,7 @@ export function DriverListPage() {
         onRowClick={(d) => navigate(`/motoristas/${d.id}`)}
         rowActions={(d) => (
           <RowActions
-            onEdit={can(PERMISSIONS.drivers.update) ? () => navigate(`/motoristas/${d.id}`) : undefined}
+            onEdit={can(PERMISSIONS.drivers.update) ? () => navigate(`/motoristas/${d.id}/editar`) : undefined}
             onDelete={can(PERMISSIONS.drivers.delete) ? () => handleDelete(d) : undefined}
           />
         )}
@@ -90,7 +93,7 @@ export function DriverListPage() {
               <Text fw={700} truncate>{d.fullName}</Text>
               <StatusBadge value={d.status} map={DRIVER_STATUS} />
             </Group>
-            <Text size="sm" c="dimmed">CNH {d.licenseCategory} · {formatPhone(d.phone)}</Text>
+            <Text size="sm" c="dimmed">CNH {d.licenseCategory} · {formatPhone(d.phone)}{d.currentVehiclePlate ? ` · ${formatPlate(d.currentVehiclePlate)}` : ''}</Text>
             {license(d)}
           </Stack>
         )}

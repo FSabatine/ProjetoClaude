@@ -102,7 +102,11 @@ public sealed class DashboardController(DashboardService service) : ControllerBa
 [Route("api/v1/audit")]
 public sealed class AuditController(AuditService service) : ControllerBase
 {
-    private static readonly HashSet<string> AuditedEntities = ["Company", "User", "Driver", "Vehicle", "Implement"];
+    private static readonly HashSet<string> AuditedEntities =
+    [
+        "Company", "User", "Driver", "Vehicle", "Implement",
+        "VehicleAssignment", "OdometerReading", "DocumentType", "Document", "StoredFile", "ChecklistTemplate", "ChecklistExecution", "Occurrence",
+    ];
 
     [HttpGet("{entityName}/{entityId:guid}"), HasPermission(Permissions.Audit.View)]
     public async Task<ActionResult<IReadOnlyList<AuditEntryResponse>>> GetHistory(string entityName, Guid entityId, CancellationToken ct)

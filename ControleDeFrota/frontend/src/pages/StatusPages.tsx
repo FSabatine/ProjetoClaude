@@ -1,5 +1,5 @@
 import { Button } from '@mantine/core';
-import { IconLock, IconMapOff } from '@tabler/icons-react';
+import { IconAlertTriangle, IconLock, IconMapOff } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 import { EmptyState } from '../components/States';
 
@@ -29,6 +29,18 @@ export function NotFoundPage() {
           Voltar ao painel
         </Button>
       }
+    />
+  );
+}
+
+/** Route error boundary: an unexpected rendering failure, with a way out instead of a blank or technical screen. */
+export function UnexpectedErrorPage() {
+  return (
+    <EmptyState
+      icon={<IconAlertTriangle size={28} />}
+      title="Algo deu errado nesta tela"
+      description="Não foi possível exibir esta página. Recarregue para tentar de novo; se persistir, informe o suporte."
+      action={<Button onClick={() => window.location.reload()}>Recarregar a página</Button>}
     />
   );
 }

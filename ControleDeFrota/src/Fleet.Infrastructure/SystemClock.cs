@@ -9,5 +9,12 @@ public sealed class SystemClock : IClock
 
     public DateTime UtcNow => DateTime.UtcNow;
 
-    public DateOnly Today => DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(UtcNow, BusinessTimeZone));
+    public DateOnly Today => ToBusinessDate(UtcNow);
+
+    public DateTime ToBusinessDateTime(DateTime utc) => TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), BusinessTimeZone);
+
+    public DateOnly ToBusinessDate(DateTime utc) => DateOnly.FromDateTime(ToBusinessDateTime(utc));
+
+    public DateTime StartOfBusinessDayUtc(DateOnly date) =>
+        TimeZoneInfo.ConvertTimeToUtc(date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified), BusinessTimeZone);
 }

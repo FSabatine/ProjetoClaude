@@ -72,7 +72,10 @@ Isolamento **lógico** por `CompanyId` num banco compartilhado (ADR-003).
 | Policy-based authorization | Api | autorização por permissão, nunca por nome de papel |
 | Global query filters | Infrastructure | tenant + soft delete aplicados sempre |
 | ProblemDetails (RFC 9457) | Api | contrato de erro único, com mensagens amigáveis em PT-BR |
-| Options pattern | Api/Infrastructure | configuração tipada (`JwtOptions`, `AuthOptions`) |
+| Options pattern | Api/Infrastructure | configuração tipada (`JwtOptions`, `AuthOptions`, `FileStorageOptions`, `DocumentExpirationJobOptions`) |
+| Outbox / event log | `OperationalEvents` (Fase 2) | histórico operacional e base das notificações, gravados na mesma transação da mudança (ADR-025) |
+| Strategy (storage) | `IFileStorage` → `LocalFileStorage` | trocar o disco por object/cloud storage sem tocar nos módulos (ADR-022) |
+| Policy objects no Domain | `VehicleOperationalState`, `OdometerPolicy`, `DocumentExpiryPolicy`, `OccurrenceWorkflow`, `AssignmentRules`, `ChecklistSchedule` | regras puras, testáveis sem banco; os serviços só orquestram |
 
 ## Tratamento de erros
 
@@ -101,6 +104,7 @@ Toda resposta de erro inclui `traceId`, que também aparece no log, para cruzar 
 - A API é **stateless**: JWT curto e refresh token persistido no banco. Escala horizontalmente atrás de um balanceador.
 - Paginação obrigatória em todas as listagens, com `pageSize` máximo de 100.
 - Índices compostos começando por `CompanyId` em todas as tabelas de tenant.
+- As listas operacionais (leituras, eventos, execuções, ocorrências) crescem sem limite: todas são paginadas e indexadas por `(CompanyId, dono, data)`.
 - Módulos futuros (manutenção, abastecimento, rastreamento) entram como novas pastas em Application/Domain. Se algum precisar de escala própria (telemetria/GPS), pode virar um serviço separado alimentando o mesmo banco ou uma fila, sem reescrever o núcleo.
 
 ## Integrações futuras (preparação)
@@ -143,6 +147,69 @@ GET    /audit/{entity}/{id}           [audit.view]  (entity: Company|User|Driver
 GET    /health                        anônimo
 ```
 
+### Fase 2 — controle operacional
+
+```
+GET  /vehicles?operationalStatus&driverId&minOdometerKm&maxOdometerKm&staleMileage&…   [vehicles.view]
+GET  /drivers?licenseCategory&assignment=WithVehicle|WithoutVehicle&vehicleId&…        [drivers.view]
+
+GET  /vehicles/{id}/assignments                                                  [assignments.view]
+POST /vehicles/{id}/assignments (driverId, startedAt?, endCurrent, notes)         [assignments.manage]
+GET  /drivers/{id}/assignments                                                   [assignments.view]
+POST /assignments/{id}/end (endedAt?, reason)                                     [assignments.manage]
+
+GET  /vehicles/{id}/odometer-readings?status                                     [vehicles.view]
+POST /vehicles/{id}/odometer-readings (odometerKm, readAt?, notes, isCorrection)  [mileage.record | mileage.manage]  (correção exige mileage.manage, checado no serviço)
+POST /odometer-readings/{id}/approve | /reject (notes)                           [mileage.manage]
+
+GET  /document-types?ownerType&includeInactive                                   [documents.view | operations.configure]
+POST /document-types, PUT|DELETE /document-types/{id}                            [operations.configure]
+GET  /documents?ownerType&vehicleId&driverId&implementId&documentTypeId&status&alertsOnly&expiresFrom&expiresTo&includeReplaced   [documents.view]
+GET  /documents/{id}                                                             [documents.view]
+POST /documents (…, fileIds, replacesDocumentId), PUT /documents/{id}            [documents.manage]
+DELETE /documents/{id}                                                           [documents.delete]
+
+POST   /files (multipart "file", até 10 MB)   [documents.manage | checklists.execute | occurrences.create | occurrences.manage]
+GET    /files/{id}                            [permissões operacionais] + permissão do registro dono, checada no serviço
+DELETE /files/{id}                            [documents.manage | occurrences.manage | …] + regra do dono, checada no serviço
+
+GET  /checklist-templates, /checklist-templates/{id}                              [checklists.view | checklists.execute | operations.configure]
+POST /checklist-templates, PUT|DELETE /checklist-templates/{id}                   [operations.configure]
+GET  /checklists?vehicleId&driverId&templateId&result&from&to, /checklists/{id}   [checklists.view]
+GET  /checklists/pending                                                         [checklists.view | checklists.execute]
+POST /checklists (vehicleId, templateId, templateVersion, driverId?, odometerKm?, answers[])   [checklists.execute]
+
+GET  /occurrences?vehicleId&driverId&implementId&type&severity&status&openOnly&from&to, /occurrences/{id}   [occurrences.view]
+POST /occurrences                                                                [occurrences.create]
+PUT  /occurrences/{id}, POST /occurrences/{id}/status (status, resolution)        [occurrences.manage]
+
+GET  /vehicles/{id}/history?from&to&type                                         [vehicles.view]
+GET  /drivers/{id}/history?from&to&type                                          [drivers.view]
+GET  /audit/{entity}/{id}  + VehicleAssignment, OdometerReading, DocumentType, Document, StoredFile, ChecklistTemplate, ChecklistExecution, Occurrence   [audit.view]
+```
+
+Os erros dos itens do checklist voltam como `errors["answers.{templateItemId}"]`. O conflito de alocação volta como 409, com a explicação no `title`.
+
+## Eventos operacionais e notificações (ADR-025)
+
+```
+Serviço (Assignment, Mileage, Document, Checklist, Occurrence, Vehicle)
+   └── OperationalEventLog.Record(tipo, sujeito, resumo, dados)    ← adiciona ao unit of work
+         └── SaveChangesAsync: mudança + evento na MESMA transação
+DocumentExpirationJob (BackgroundService, a cada Jobs:DocumentExpirationScan:IntervalMinutes)
+   └── DocumentExpirationScanner: emite DocumentExpiring/DocumentExpired uma vez por mudança de estado
+NotificationDispatcher futuro (Fase 9): lê OperationalEvents com PublishedAt IS NULL → e-mail/push/WhatsApp → preenche PublishedAt
+```
+
+- Produtores não conhecem consumidores. Um módulo novo acrescenta valores a `OperationalEventType`.
+- O job roda dentro da API e é idempotente (`Document.LastAlertedStatus`): com várias instâncias, cada estado continua anunciado uma vez. Como não tem usuário nem tenant, ele ignora os filtros globais e grava o `CompanyId` explícito em cada evento (comentado no código).
+- Configuração: `Jobs:DocumentExpirationScan:Enabled` (padrão `true`; desligado nos testes de integração) e `IntervalMinutes` (padrão 360).
+
+## Arquivos (ADR-022)
+
+- O `FileService` valida o tamanho (cópia limitada a 10 MB + 1 byte) e o formato pela assinatura, gera a chave `{companyId}/{aaaa}/{mm}/{guid}` e grava os bytes via `IFileStorage`. Os metadados ficam em `StoredFiles`.
+- O `LocalFileStorage` confina todo caminho à raiz `Storage:LocalRootPath`, relativa ao content root da API (padrão `App_Data/files`, ignorada pelo Git). Produção com mais de uma instância precisa de um storage compartilhado, ou seja, uma nova implementação de `IFileStorage`.
+
 As listagens retornam `{ items, page, pageSize, totalCount, totalPages }` e ordenam apenas por colunas da whitelist de cada serviço (`SortMap`).
 
 ## Frontend
@@ -152,9 +219,11 @@ frontend/src/
 ├── api/           client.ts (axios + refresh single-flight), crud.ts (createResource: list/get/save/remove com React Query), errors.ts (ProblemDetails → mensagem + erros por campo)
 ├── auth/          AuthContext (sessão, can()), guards (RequireAuth, RequirePermission, Can), permissions.ts (espelho do catálogo)
 ├── components/    AppLayout, PageHeader, DataTable, States (vazio/erro/sem resultado), forms (MaskedInput, FormSection, FormActions, guarda de alterações, confirmDelete), AddressFields, common (StatusBadge, ListToolbar, RowActions)
-├── features/<m>/  <m>.ts (tipos + mapas de rótulos/cores + resource), <M>ListPage.tsx, <M>FormPage.tsx
+├── features/<m>/  <m>.ts (tipos + mapas de rótulos/cores + resource), <M>ListPage.tsx, <M>FormPage.tsx, <M>DetailPage.tsx (hub com abas)
+├── features/operations/  labels.ts (rótulos/cores dos enums da Fase 2) e api.ts (tipos + hooks: alocação, hodômetro, documentos, arquivos, checklists, ocorrências, histórico)
+├── features/{assignments,mileage,documents,checklists,occurrences,history}/  painéis reutilizados nos hubs + páginas próprias
 ├── hooks/         useListParams (busca/filtros/ordem/página na URL)
-├── lib/           validators.ts (espelho do Domain), format.ts
+├── lib/           validators.ts (espelho do Domain), format.ts, mileage.ts (espelho do OdometerPolicy para feedback imediato), images.ts (redução das fotos antes do upload)
 └── theme.ts       tema Mantine (única fonte de cores)
 ```
 

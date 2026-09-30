@@ -22,7 +22,14 @@ Princípio: **UX > quantidade de funcionalidades**. Uma tela simples e impecáve
 - Cada página segue a mesma estrutura: **título + descrição curta + ação principal à direita** (`PageHeader`).
 - Só existe **uma** ação primária (botão preenchido) por tela. As secundárias ficam em `default`/`subtle` e as destrutivas em vermelho, dentro de menus ou confirmações.
 - Em listas, o identificador forte (placa, nome) vem em negrito e os dados auxiliares em `dimmed`.
-- O status é sempre um `Badge` colorido e consistente: verde = disponível/ativo, azul = em viagem/em uso, laranja = manutenção/afastado, cinza = inativo, vermelho = alerta.
+- O status é sempre um `Badge` colorido **com texto** e consistente em todo o sistema (`STATUS_COLOR` em `theme.ts`):
+  - verde = disponível, ativo, válido, conforme, aprovado, resolvida;
+  - ciano = alocado;
+  - azul = em viagem, em uso, em análise;
+  - amarelo/laranja = vencendo, em manutenção, afastado, gravidade média/alta, leitura em revisão;
+  - vermelho = vencido, indisponível, não conforme, ocorrência aberta, gravidade crítica;
+  - cinza = inativo, sem validade, substituído, cancelada, não se aplica.
+- Os rótulos e cores dos enums da Fase 2 ficam em `features/operations/labels.ts`.
 
 ## Feedback
 
@@ -81,3 +88,54 @@ Alvos de toque de no mínimo 40px. O motorista vai usar o celular nas fases futu
 - Português do Brasil, tom profissional e direto, na segunda pessoa ("Cadastre", "Verifique").
 - Botões com verbo + objeto ("Salvar veículo", "Novo motorista"), nunca apenas "OK".
 - Datas em `dd/mm/aaaa`, números em `pt-BR` (`1.234,56`) e moeda em `R$`.
+
+
+## Fase 2 — padrões operacionais
+
+### Página "hub" do registro (veículo e motorista)
+- `/veiculos/:id` e `/motoristas/:id` são o **centro** do registro. A edição do cadastro foi para `/…/:id/editar`, e salvar volta ao hub.
+- Estrutura: `PageHeader` (título, breadcrumb, Histórico de auditoria, Editar e **uma** ação primária, como "Realizar checklist") → **cabeçalho operacional** (situação, placa, hodômetro com a data e motorista atual) → **abas** (`DetailTabs`).
+- Abas do veículo: Visão geral (alertas do veículo + dados gerais), Motorista, Quilometragem, Documentos, Checklists, Ocorrências (com contador das abertas) e Histórico. Abas do motorista: Visão geral, Veículos, Documentos, Checklists, Ocorrências e Histórico. Cada aba só aparece com a permissão do módulo.
+- A aba ativa fica na URL (`?aba=documentos`): os alertas do dashboard levam direto à seção certa e o botão voltar funciona.
+- Não há abas de módulos futuros (manutenção, combustível, pneus…): elas entram quando existirem.
+
+### Confirmações e ações de risco
+- A troca de motorista pede confirmação com a frase do servidor ("o veículo está com Maria…"). Nada é encerrado em silêncio.
+- Encerrar uma alocação, resolver ou cancelar uma ocorrência e excluir um documento pedem confirmação. Encerrar uma ocorrência avisa que a ação é final.
+- As ações possíveis de uma ocorrência vêm da API (`nextStatuses`): a tela nunca oferece uma transição proibida.
+
+### Feedback imediato (sem esperar o servidor)
+- No registro de hodômetro e no checklist, a tela avisa **enquanto se digita**: "menor que a última leitura", "+470 km desde a última leitura" ou "aumento suspeito: ficará em revisão" (`lib/mileage.ts`, espelho da regra do servidor).
+- Leitura aceita como suspeita: notificação explicando que um gestor precisa confirmar.
+- O seletor de motorista mostra quem já tem veículo e desabilita quem está afastado, desligado ou com a CNH vencida, com o motivo no próprio item.
+
+### Checklist no celular (prioridade da fase)
+- Fluxo: abrir o veículo → "Realizar checklist" → responder → fotografar o problema → enviar. Com um único modelo ativo, ele é escolhido sozinho.
+- Cada item tem **três botões grandes** (48px de altura, largura total dividida em três): Conforme, Não conforme e N/A. Não há texto obrigatório para responder.
+- **"Marcar restantes como conforme"** responde de uma vez o que ficou sem resposta; a pessoa só toca nos itens com problema.
+- Ao marcar "Não conforme", abrem a gravidade (chips, já com o padrão do item), a descrição opcional e o botão **Tirar foto**, que abre a câmera traseira (`capture="environment"`). "(obrigatória)" aparece quando o modelo exige foto.
+- As fotos são reduzidas no aparelho para no máximo 1600px antes do envio (`lib/images.ts`), o que economiza dados móveis.
+- Progresso visível ("8 de 11 respondidos") e **barra de envio fixa** no rodapé, com a contagem de não conformes.
+- Se o envio falhar, os erros aparecem no item (borda vermelha) e a tela rola até o primeiro.
+- Tela final: aprovado, ou "N ocorrência(s) aberta(s)", com os atalhos "Ver checklist", "Novo checklist" e "Voltar ao veículo".
+- Sair com respostas preenchidas pede confirmação (guarda de alterações não salvas).
+
+### Anexos
+- `UploadButton` ("Anexar arquivo" ou "Tirar foto") envia na hora e mostra o arquivo; ele só é vinculado ao salvar.
+- As fotos aparecem como miniaturas (toque para ampliar) e os PDFs como link que abre em nova aba. Como a API exige o token, o arquivo é baixado como blob.
+
+### Listas operacionais e filtros
+- Os filtros de todas as listas ficam na URL e são aplicados no servidor. Cada KPI do dashboard é um link para a lista já filtrada.
+- Veículos: situação operacional, tipo, motorista, faixa de km e "sem leitura há 7 dias"; a coluna Motorista foi incluída.
+- Motoristas: situação, alerta de CNH, categoria e com/sem veículo; a coluna Veículo foi incluída. A busca aceita a placa do veículo atual.
+- Documentos: situação, dono, tipo e período de vencimento.
+- Ocorrências: situação, gravidade, tipo, veículo, motorista e período.
+- Checklists: resultado, modelo, veículo e período, com os **pendentes de hoje** em cards no topo e o botão "Iniciar".
+- Veículo e motorista são escolhidos com `VehiclePicker`/`DriverPicker`, com busca no servidor (a frota pode ter milhares de registros).
+
+### Dashboard
+- Três blocos, sem gráficos: **Frota** (6 cards por situação operacional), **Atenção** (documentos vencidos e vencendo, checklists pendentes, ocorrências abertas e sem leitura recente de km) e **Quilometragem do mês** (total, média e maior hodômetro). Abaixo, **Alertas**, com os críticos primeiro.
+- Cards sem permissão do módulo não aparecem (não se mostra "0" enganoso).
+
+### Erros inesperados
+- Uma falha de renderização mostra "Algo deu errado nesta tela" com o botão "Recarregar a página" (`UnexpectedErrorPage` como `errorElement` da rota raiz), nunca a página técnica do roteador.

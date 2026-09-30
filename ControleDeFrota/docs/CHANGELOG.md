@@ -2,6 +2,44 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Datas no padrão AAAA-MM-DD.
 
+## [0.2.0] — 2026-09-30 — Fase 2: Controle operacional
+
+### Adicionado
+- **Situação operacional do veículo** (ADR-018): nova condição `Indisponível` e situação derivada `Alocado` (disponível + motorista), exibida em listas, hub e dashboard, sem gravar dois conceitos no mesmo campo.
+- **Alocação motorista ↔ veículo** (ADR-020): histórico com vigência, um veículo por motorista e um motorista por veículo (índices únicos filtrados), bloqueio de veículo inativo, motorista desligado/afastado e CNH vencida, e troca com confirmação feita em uma transação.
+- **Histórico de hodômetro** (ADR-019): leitura inicial no cadastro, regra "não retroceder", salto suspeito (> 1.500 km/dia) pendente de revisão sem alterar o hodômetro, aprovação/rejeição e correção auditada com motivo.
+- **Documentos** (ADR-021): tipos configuráveis por empresa (16 padrões), documentos de veículo, motorista, implemento e empresa, status calculado com antecedência de alerta por tipo, renovação e exclusão auditada.
+- **Arquivos** (ADR-022): upload de PDF/JPG/PNG validado pelo conteúdo (10 MB), armazenamento fora do banco atrás de `IFileStorage` e download com permissão do dono. Fotos reduzidas no celular antes do envio.
+- **Checklists** (ADR-024): modelos versionados com seções e três tipos de resposta, execução com snapshot imutável, foto obrigatória configurável, hodômetro opcional, item reprovado → ocorrência e checklists pendentes do dia.
+- **Ocorrências** (ADR-023): tipos, gravidade, fotos e fluxo `Aberta → Em análise → Resolvida | Cancelada`, com texto obrigatório no encerramento.
+- **Histórico operacional e eventos** (ADR-025): tabela `OperationalEvents` (linha do tempo + outbox) com 16 tipos de evento e job `DocumentExpirationJob` que emite `DocumentExpiring`/`DocumentExpired` uma vez por mudança de estado.
+- **Dashboard operacional**: frota por situação, documentos vencidos e vencendo, checklists pendentes, ocorrências abertas e críticas, veículos sem leitura recente, quilometragem do mês e alertas combinados, cada um levando à aba certa.
+- **Permissões**: 13 novas (`assignments.*`, `mileage.*`, `documents.*`, `checklists.*`, `occurrences.*`, `operations.configure`), com a matriz dos papéis atualizada. O papel Motorista continua sem acesso (decisão do usuário).
+- **API**: 30 endpoints novos (ver ARCHITECTURE.md), filtros no servidor para veículos (situação operacional, motorista, faixa de km, sem leitura recente), motoristas (categoria, com/sem veículo), documentos, ocorrências e checklists, e auditoria das novas entidades.
+- **Frontend**:
+  - hubs com abas para veículo e motorista (edição em `/editar`);
+  - páginas de Documentos, Ocorrências (lista e detalhe), Checklists (pendentes, histórico e detalhe) e Realizar checklist (mobile-first);
+  - configuração de Modelos de checklist e Tipos de documento;
+  - seletores com busca no servidor, anexos com câmera, feedback de hodômetro enquanto se digita e tela amigável para erro inesperado.
+- **Banco**: migration `OperationalControl`, somente aditiva (11 tabelas, `Vehicles.OdometerUpdatedAt`, índices por `(CompanyId, dono, data)`, check constraint de dono do documento).
+- **Seed de desenvolvimento**: idempotente, com os usuários `operacao@frota.local` e `manutencao@frota.local`, o modelo "Inspeção diária", alocações, leituras (uma suspeita), documentos em todos os estados e uma ocorrência.
+- **Testes**: 148 novos no backend (62 de domínio, 79 de serviços, 7 de integração HTTP), totalizando 324, e 5 no frontend (40 no total). Os fluxos 1 a 4 da especificação foram verificados de ponta a ponta na interface, em viewport de celular.
+
+### Alterado
+- O hodômetro deixou de ser editável no cadastro do veículo depois de criado: muda só por leituras (a API recusa a alteração com uma mensagem orientando).
+- Veículo e motorista com histórico operacional não podem mais ser excluídos (inativar/desligar); os documentos são excluídos junto quando a exclusão é permitida. Implemento com ocorrências também não pode ser excluído.
+- `IClock` ganhou `ToBusinessDateTime`, `ToBusinessDate` e `StartOfBusinessDayUtc`, a fonte única de fuso para "hoje" e "este mês".
+- `IFleetDbContext.InTransactionAsync` para operações com vários `SaveChanges` atômicos.
+
+### Corrigido
+- `NumberInput` com `thousandSeparator="."` sem `decimalSeparator=","` derrubava a tela (inclusive o hodômetro do cadastro de veículo, desde a Fase 1).
+
+### Segurança
+- Upload validado por magic bytes, tamanho limitado em duas camadas, nome sanitizado, chave gerada pelo servidor e caminho confinado à raiz do storage. Anexos só podem ser vinculados pelo autor do upload.
+- Nome do motorista no contexto do veículo limitado ao nome (demais dados pessoais exigem `drivers.view`).
+- Risco registrado: o rate limit compartilhado entre login e `/auth/refresh` pode gerar 429 em recarregamentos seguidos ou atrás de NAT (recomendação em DECISIONS).
+- Dependências sem vulnerabilidades conhecidas: `dotnet list package --vulnerable` e `npm audit --omit=dev`.
+
 ## [0.1.0] — 2026-09-29 — Fase 1: Fundação
 
 ### Adicionado

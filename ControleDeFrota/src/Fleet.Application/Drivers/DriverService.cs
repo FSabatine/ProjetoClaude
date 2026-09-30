@@ -1,3 +1,4 @@
+using Fleet.Application.Assignments;
 using Fleet.Application.Common;
 using Fleet.Domain.Drivers;
 using Fleet.Domain.Validation;
@@ -22,8 +23,17 @@ public sealed class DriverService(IFleetDbContext db, IClock clock, IValidator<D
         var today = clock.Today;
         var alertLimit = today.AddDays(Driver.LicenseExpiryAlertDays);
         var query = db.Drivers.AsQueryable();
+        var active = AssignmentService.Active(db);
 
         if (request.Status is { } status) query = query.Where(d => d.Status == status);
+        if (request.LicenseCategory is { } category) query = query.Where(d => d.LicenseCategory == category);
+        query = request.Assignment switch
+        {
+            DriverAssignmentFilter.WithVehicle => query.Where(d => active.Any(a => a.DriverId == d.Id)),
+            DriverAssignmentFilter.WithoutVehicle => query.Where(d => !active.Any(a => a.DriverId == d.Id)),
+            _ => query,
+        };
+        if (request.VehicleId is { } vehicleId) query = query.Where(d => active.Any(a => a.DriverId == d.Id && a.VehicleId == vehicleId));
         query = request.LicenseAlert switch
         {
             LicenseAlertFilter.Expired => query.Where(d => d.LicenseExpiresOn < today),
@@ -34,8 +44,10 @@ public sealed class DriverService(IFleetDbContext db, IClock clock, IValidator<D
         {
             var digits = Cpf.Normalize(term);
             var searchDocuments = digits.Length >= 3 && DocumentText.IsAllDigits(digits);
+            var plate = LicensePlate.Normalize(term);
             query = query.Where(d => d.FullName.Contains(term) ||
-                                     (searchDocuments && (d.Cpf.Contains(digits) || d.LicenseNumber.Contains(digits))));
+                                     (searchDocuments && (d.Cpf.Contains(digits) || d.LicenseNumber.Contains(digits))) ||
+                                     active.Any(a => a.DriverId == d.Id && a.Vehicle.LicensePlate.Contains(plate)));
         }
 
         return await Sorts.Apply(query, request.SortBy, request.SortDirection).ToPagedResultAsync(request, d =>
@@ -43,10 +55,12 @@ public sealed class DriverService(IFleetDbContext db, IClock clock, IValidator<D
                 d.Id, d.FullName, d.Cpf, d.Phone, d.LicenseCategory, d.LicenseExpiresOn,
                 d.LicenseExpiresOn < today ? LicenseState.Expired
                     : d.LicenseExpiresOn <= alertLimit ? LicenseState.ExpiringSoon : LicenseState.Valid,
-                d.Status), ct);
+                d.Status,
+                active.Where(a => a.DriverId == d.Id).Select(a => (Guid?)a.VehicleId).FirstOrDefault(),
+                active.Where(a => a.DriverId == d.Id).Select(a => a.Vehicle.LicensePlate).FirstOrDefault()), ct);
     }
 
-    public async Task<DriverResponse> GetAsync(Guid id, CancellationToken ct) => ToResponse(await LoadAsync(id, ct));
+    public async Task<DriverResponse> GetAsync(Guid id, CancellationToken ct) => await ToResponseAsync(await LoadAsync(id, ct), ct);
 
     public async Task<DriverResponse> CreateAsync(DriverRequest request, CancellationToken ct)
     {
@@ -55,21 +69,30 @@ public sealed class DriverService(IFleetDbContext db, IClock clock, IValidator<D
         await ApplyAsync(request, driver, ct);
         db.Drivers.Add(driver);
         await db.SaveChangesAsync(ct);
-        return ToResponse(driver);
+        return await ToResponseAsync(driver, ct);
     }
 
     public async Task<DriverResponse> UpdateAsync(Guid id, DriverRequest request, CancellationToken ct)
     {
         await validator.ValidateAndThrowAsync(request, ct);
         var driver = await LoadAsync(id, ct);
+        // A driver on leave keeps the vehicle reserved; a dismissed one must hand it over first (ADR-020).
+        if (request.Status == DriverStatus.Inactive && driver.Status != DriverStatus.Inactive &&
+            await AssignmentService.Active(db).AnyAsync(a => a.DriverId == id, ct))
+            throw new BusinessRuleException("Este motorista está alocado a um veículo. Encerre a alocação antes de desligá-lo.");
         await ApplyAsync(request, driver, ct);
         await db.SaveChangesAsync(ct);
-        return ToResponse(driver);
+        return await ToResponseAsync(driver, ct);
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct)
     {
         var driver = await LoadAsync(id, ct);
+        if (await db.VehicleAssignments.AnyAsync(a => a.DriverId == id, ct) ||
+            await db.ChecklistExecutions.AnyAsync(e => e.DriverId == id, ct) ||
+            await db.Occurrences.AnyAsync(o => o.DriverId == id, ct))
+            throw new BusinessRuleException("Este motorista tem histórico operacional (alocações, checklists ou ocorrências) e não pode ser excluído. Altere a situação para Desligado.");
+        foreach (var document in await db.Documents.Where(d => d.DriverId == id).ToListAsync(ct)) db.Documents.Remove(document);
         db.Drivers.Remove(driver);
         await db.SaveChangesAsync(ct);
     }
@@ -103,14 +126,17 @@ public sealed class DriverService(IFleetDbContext db, IClock clock, IValidator<D
         driver.Notes = request.Notes.TrimToNull();
     }
 
-    private DriverResponse ToResponse(Driver d)
+    private async Task<DriverResponse> ToResponseAsync(Driver d, CancellationToken ct)
     {
         var today = clock.Today;
+        var vehicle = await AssignmentService.Active(db).Where(a => a.DriverId == d.Id)
+            .Select(a => new DriverCurrentVehicleResponse(a.Id, a.VehicleId, a.Vehicle.LicensePlate, a.Vehicle.Manufacturer + " " + a.Vehicle.Model, a.StartedAt))
+            .FirstOrDefaultAsync(ct);
         var state = d.IsLicenseExpired(today) ? LicenseState.Expired
             : d.IsLicenseExpiringSoon(today) ? LicenseState.ExpiringSoon : LicenseState.Valid;
         return new DriverResponse(
             d.Id, d.FullName, d.Cpf, d.Rg, d.BirthDate, d.Phone, d.Email, AddressDto.From(d.Address),
             d.LicenseNumber, d.LicenseCategory, d.LicenseExpiresOn, state, d.PerformsPaidActivity,
-            d.Status, d.Notes, d.CreatedAt, d.UpdatedAt);
+            d.Status, vehicle, d.Notes, d.CreatedAt, d.UpdatedAt);
     }
 }

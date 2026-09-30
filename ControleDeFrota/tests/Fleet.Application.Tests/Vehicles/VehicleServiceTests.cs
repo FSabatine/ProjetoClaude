@@ -142,15 +142,15 @@ public class VehicleServiceTests : IDisposable
         var service = await SignedInServiceAsync();
         var created = await service.CreateAsync(Requests.Vehicle(), default);
 
-        await service.UpdateAsync(created.Id, Requests.Vehicle() with { CurrentOdometerKm = 1500, Status = VehicleStatus.UnderMaintenance }, default);
+        await service.UpdateAsync(created.Id, Requests.Vehicle() with { Color = "Azul", Status = VehicleStatus.UnderMaintenance }, default);
 
         var logs = await _t.NewContext().AuditLogs.Where(a => a.EntityId == created.Id.ToString()).OrderBy(a => a.Id).ToListAsync();
         logs.Select(l => l.Action).Should().Equal(AuditAction.Created, AuditAction.Updated);
         var changes = JsonDocument.Parse(logs[1].Changes).RootElement;
-        changes.GetProperty("CurrentOdometerKm").GetProperty("old").GetInt32().Should().Be(1000);
-        changes.GetProperty("CurrentOdometerKm").GetProperty("new").GetInt32().Should().Be(1500);
+        changes.GetProperty("Color").GetProperty("new").GetString().Should().Be("Azul");
+        changes.GetProperty("Status").GetProperty("old").GetString().Should().Be("Available");
         changes.GetProperty("Status").GetProperty("new").GetString().Should().Be("UnderMaintenance");
-        changes.EnumerateObject().Select(p => p.Name).Should().BeEquivalentTo(["CurrentOdometerKm", "Status"]);
+        changes.EnumerateObject().Select(p => p.Name).Should().BeEquivalentTo(["Color", "Status"]);
         logs[1].UserId.Should().Be(_t.CurrentUser.UserId);
         logs[1].CompanyId.Should().Be(_t.CurrentUser.CompanyId);
     }
@@ -164,7 +164,7 @@ public class VehicleServiceTests : IDisposable
         var updated = await service.UpdateAsync(created.Id, Requests.Vehicle(), default);
 
         updated.UpdatedAt.Should().BeNull();
-        (await _t.NewContext().AuditLogs.CountAsync()).Should().Be(2); // company + vehicle creation
+        (await _t.NewContext().AuditLogs.CountAsync()).Should().Be(3); // company + vehicle + initial odometer reading
     }
 
     [Fact]

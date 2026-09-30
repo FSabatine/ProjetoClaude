@@ -22,6 +22,66 @@ namespace Fleet.Infrastructure.Persistence.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("Fleet.Domain.Assignments.VehicleAssignment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("DriverId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("EndReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("EndedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("VehicleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DriverId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_VehicleAssignments_ActiveDriver")
+                        .HasFilter("[EndedAt] IS NULL");
+
+                    b.HasIndex("VehicleId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_VehicleAssignments_ActiveVehicle")
+                        .HasFilter("[EndedAt] IS NULL");
+
+                    b.HasIndex("CompanyId", "DriverId", "StartedAt");
+
+                    b.HasIndex("CompanyId", "VehicleId", "StartedAt");
+
+                    b.ToTable("VehicleAssignments", (string)null);
+                });
+
             modelBuilder.Entity("Fleet.Domain.Auditing.AuditLog", b =>
                 {
                     b.Property<long>("Id")
@@ -72,6 +132,270 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                     b.HasIndex("EntityName", "EntityId", "OccurredAt");
 
                     b.ToTable("AuditLogs", (string)null);
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Checklists.ChecklistAnswer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Choice")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid>("ExecutionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsRequired")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<decimal?>("NumberValue")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("decimal(12,2)");
+
+                    b.Property<Guid?>("OccurrenceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ResponseType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Section")
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<string>("Severity")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid>("TemplateItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("TextValue")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Unit")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OccurrenceId");
+
+                    b.HasIndex("ExecutionId", "Position");
+
+                    b.ToTable("ChecklistAnswers", (string)null);
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Checklists.ChecklistExecution", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("DriverId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("FailedItems")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Frequency")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Location")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int?>("OdometerKm")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("PerformedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateOnly>("PerformedOn")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Result")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid>("TemplateId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("TemplateName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("TemplateVersion")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("VehicleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DriverId");
+
+                    b.HasIndex("TemplateId");
+
+                    b.HasIndex("VehicleId");
+
+                    b.HasIndex("CompanyId", "PerformedAt");
+
+                    b.HasIndex("CompanyId", "DriverId", "PerformedAt");
+
+                    b.HasIndex("CompanyId", "TemplateId", "PerformedOn");
+
+                    b.HasIndex("CompanyId", "VehicleId", "PerformedAt");
+
+                    b.ToTable("ChecklistExecutions", (string)null);
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Checklists.ChecklistTemplate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Frequency")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId", "Name")
+                        .IsUnique()
+                        .HasFilter("[DeletedAt] IS NULL");
+
+                    b.ToTable("ChecklistTemplates", (string)null);
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Checklists.ChecklistTemplateItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("FailureOccurrenceType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("FailureSeverity")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<bool>("IsRequired")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("RequiresPhotoOnFail")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ResponseType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Section")
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<Guid>("TemplateId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Unit")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TemplateId", "Position");
+
+                    b.ToTable("ChecklistTemplateItems", (string)null);
                 });
 
             modelBuilder.Entity("Fleet.Domain.Companies.Company", b =>
@@ -137,6 +461,160 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         .HasFilter("[DeletedAt] IS NULL");
 
                     b.ToTable("Companies", (string)null);
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Documents.Document", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateOnly?>("AlertStartsOn")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("DocumentTypeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("DriverId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateOnly?>("ExpiresOn")
+                        .HasColumnType("date");
+
+                    b.Property<Guid?>("ImplementId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateOnly?>("IssuedOn")
+                        .HasColumnType("date");
+
+                    b.Property<string>("LastAlertedStatus")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Number")
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<string>("OwnerType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime?>("ReplacedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ReplacedByDocumentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("VehicleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentTypeId");
+
+                    b.HasIndex("DriverId");
+
+                    b.HasIndex("ImplementId");
+
+                    b.HasIndex("VehicleId");
+
+                    b.HasIndex("CompanyId", "AlertStartsOn");
+
+                    b.HasIndex("CompanyId", "DocumentTypeId");
+
+                    b.HasIndex("CompanyId", "DriverId");
+
+                    b.HasIndex("CompanyId", "ExpiresOn");
+
+                    b.HasIndex("CompanyId", "ImplementId");
+
+                    b.HasIndex("CompanyId", "VehicleId");
+
+                    b.ToTable("Documents", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Documents_Owner", "([OwnerType] = 'Vehicle' AND [VehicleId] IS NOT NULL AND [DriverId] IS NULL AND [ImplementId] IS NULL) OR ([OwnerType] = 'Driver' AND [DriverId] IS NOT NULL AND [VehicleId] IS NULL AND [ImplementId] IS NULL) OR ([OwnerType] = 'Implement' AND [ImplementId] IS NOT NULL AND [VehicleId] IS NULL AND [DriverId] IS NULL) OR ([OwnerType] = 'Company' AND [VehicleId] IS NULL AND [DriverId] IS NULL AND [ImplementId] IS NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Documents.DocumentType", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("AlertDaysBefore")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("HasExpiration")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<string>("OwnerType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId", "OwnerType", "Name")
+                        .IsUnique()
+                        .HasFilter("[DeletedAt] IS NULL");
+
+                    b.ToTable("DocumentTypes", (string)null);
                 });
 
             modelBuilder.Entity("Fleet.Domain.Drivers.Driver", b =>
@@ -236,6 +714,70 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                     b.HasIndex("CompanyId", "Status");
 
                     b.ToTable("Drivers", (string)null);
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Files.StoredFile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid?>("OwnerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("OwnerType")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StorageKey")
+                        .IsUnique();
+
+                    b.HasIndex("CompanyId", "OwnerType", "OwnerId");
+
+                    b.ToTable("StoredFiles", (string)null);
                 });
 
             modelBuilder.Entity("Fleet.Domain.Implements.Implement", b =>
@@ -344,6 +886,243 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                     b.HasIndex("CompanyId", "Status");
 
                     b.ToTable("Implements", (string)null);
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Mileage.OdometerReading", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Anomaly")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<Guid?>("ChecklistExecutionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("OdometerKm")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ReadAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ReviewNotes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ReviewedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("VehicleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChecklistExecutionId");
+
+                    b.HasIndex("VehicleId");
+
+                    b.HasIndex("CompanyId", "Status");
+
+                    b.HasIndex("CompanyId", "VehicleId", "ReadAt");
+
+                    b.ToTable("OdometerReadings", (string)null);
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Occurrences.Occurrence", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ChecklistExecutionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ClosedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<Guid?>("DriverId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ImplementId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Location")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Resolution")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("VehicleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChecklistExecutionId");
+
+                    b.HasIndex("DriverId");
+
+                    b.HasIndex("ImplementId");
+
+                    b.HasIndex("VehicleId");
+
+                    b.HasIndex("CompanyId", "OccurredAt");
+
+                    b.HasIndex("CompanyId", "DriverId", "OccurredAt");
+
+                    b.HasIndex("CompanyId", "Status", "OccurredAt");
+
+                    b.HasIndex("CompanyId", "VehicleId", "OccurredAt");
+
+                    b.ToTable("Occurrences", (string)null);
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Operations.OperationalEvent", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Data")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("DriverId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ImplementId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SubjectType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Summary")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("VehicleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Id")
+                        .HasDatabaseName("IX_OperationalEvents_Unpublished")
+                        .HasFilter("[PublishedAt] IS NULL");
+
+                    b.HasIndex("CompanyId", "DriverId", "OccurredAt");
+
+                    b.HasIndex("CompanyId", "Type", "OccurredAt");
+
+                    b.HasIndex("CompanyId", "VehicleId", "OccurredAt");
+
+                    b.ToTable("OperationalEvents", (string)null);
                 });
 
             modelBuilder.Entity("Fleet.Domain.Users.Permission", b =>
@@ -515,6 +1294,97 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                             Description = "Visualizar histórico de alterações",
                             Key = "audit.view",
                             Module = "audit"
+                        },
+                        new
+                        {
+                            Id = 100,
+                            Description = "Visualizar alocações de motoristas",
+                            Key = "assignments.view",
+                            Module = "assignments"
+                        },
+                        new
+                        {
+                            Id = 101,
+                            Description = "Alocar, trocar e encerrar motoristas de veículos",
+                            Key = "assignments.manage",
+                            Module = "assignments"
+                        },
+                        new
+                        {
+                            Id = 110,
+                            Description = "Registrar leituras de hodômetro",
+                            Key = "mileage.record",
+                            Module = "mileage"
+                        },
+                        new
+                        {
+                            Id = 111,
+                            Description = "Revisar leituras suspeitas e corrigir hodômetro",
+                            Key = "mileage.manage",
+                            Module = "mileage"
+                        },
+                        new
+                        {
+                            Id = 120,
+                            Description = "Visualizar documentos",
+                            Key = "documents.view",
+                            Module = "documents"
+                        },
+                        new
+                        {
+                            Id = 121,
+                            Description = "Cadastrar, editar e renovar documentos",
+                            Key = "documents.manage",
+                            Module = "documents"
+                        },
+                        new
+                        {
+                            Id = 122,
+                            Description = "Excluir documentos",
+                            Key = "documents.delete",
+                            Module = "documents"
+                        },
+                        new
+                        {
+                            Id = 130,
+                            Description = "Visualizar checklists realizados",
+                            Key = "checklists.view",
+                            Module = "checklists"
+                        },
+                        new
+                        {
+                            Id = 131,
+                            Description = "Realizar checklists",
+                            Key = "checklists.execute",
+                            Module = "checklists"
+                        },
+                        new
+                        {
+                            Id = 140,
+                            Description = "Visualizar ocorrências",
+                            Key = "occurrences.view",
+                            Module = "occurrences"
+                        },
+                        new
+                        {
+                            Id = 141,
+                            Description = "Registrar ocorrências",
+                            Key = "occurrences.create",
+                            Module = "occurrences"
+                        },
+                        new
+                        {
+                            Id = 142,
+                            Description = "Analisar, resolver e cancelar ocorrências",
+                            Key = "occurrences.manage",
+                            Module = "occurrences"
+                        },
+                        new
+                        {
+                            Id = 150,
+                            Description = "Configurar tipos de documento e modelos de checklist",
+                            Key = "operations.configure",
+                            Module = "operations"
                         });
                 });
 
@@ -618,7 +1488,7 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = 3,
-                            Description = "Gerencia motoristas, veículos e implementos.",
+                            Description = "Gerencia a frota e a operação: cadastros, alocações, hodômetro, documentos, checklists e ocorrências.",
                             IsSystem = true,
                             Key = "FleetManager",
                             Name = "Gestor de frota"
@@ -626,7 +1496,7 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = 4,
-                            Description = "Operação diária: cadastra e atualiza motoristas, atualiza veículos e implementos.",
+                            Description = "Operação diária: motoristas, alocações, hodômetro, documentos, checklists e ocorrências.",
                             IsSystem = true,
                             Key = "Operations",
                             Name = "Operações"
@@ -634,7 +1504,7 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = 5,
-                            Description = "Atualiza a situação de veículos e implementos.",
+                            Description = "Atualiza a situação de veículos e implementos e acompanha as ocorrências operacionais.",
                             IsSystem = true,
                             Key = "Maintenance",
                             Name = "Manutenção"
@@ -782,6 +1652,71 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         },
                         new
                         {
+                            RoleId = 1,
+                            PermissionId = 100
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 101
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 110
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 111
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 120
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 121
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 122
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 130
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 131
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 140
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 141
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 142
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 150
+                        },
+                        new
+                        {
                             RoleId = 2,
                             PermissionId = 1
                         },
@@ -877,6 +1812,71 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         },
                         new
                         {
+                            RoleId = 2,
+                            PermissionId = 100
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 101
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 110
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 111
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 120
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 121
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 122
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 130
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 131
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 140
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 141
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 142
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 150
+                        },
+                        new
+                        {
                             RoleId = 3,
                             PermissionId = 1
                         },
@@ -962,6 +1962,71 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         },
                         new
                         {
+                            RoleId = 3,
+                            PermissionId = 100
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 101
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 110
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 111
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 120
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 121
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 122
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 130
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 131
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 140
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 141
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 142
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 150
+                        },
+                        new
+                        {
                             RoleId = 4,
                             PermissionId = 1
                         },
@@ -1002,6 +2067,56 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         },
                         new
                         {
+                            RoleId = 4,
+                            PermissionId = 100
+                        },
+                        new
+                        {
+                            RoleId = 4,
+                            PermissionId = 101
+                        },
+                        new
+                        {
+                            RoleId = 4,
+                            PermissionId = 110
+                        },
+                        new
+                        {
+                            RoleId = 4,
+                            PermissionId = 120
+                        },
+                        new
+                        {
+                            RoleId = 4,
+                            PermissionId = 121
+                        },
+                        new
+                        {
+                            RoleId = 4,
+                            PermissionId = 130
+                        },
+                        new
+                        {
+                            RoleId = 4,
+                            PermissionId = 131
+                        },
+                        new
+                        {
+                            RoleId = 4,
+                            PermissionId = 140
+                        },
+                        new
+                        {
+                            RoleId = 4,
+                            PermissionId = 141
+                        },
+                        new
+                        {
+                            RoleId = 4,
+                            PermissionId = 142
+                        },
+                        new
+                        {
                             RoleId = 5,
                             PermissionId = 1
                         },
@@ -1024,6 +2139,11 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         {
                             RoleId = 5,
                             PermissionId = 62
+                        },
+                        new
+                        {
+                            RoleId = 5,
+                            PermissionId = 140
                         },
                         new
                         {
@@ -1069,6 +2189,26 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         {
                             RoleId = 8,
                             PermissionId = 60
+                        },
+                        new
+                        {
+                            RoleId = 8,
+                            PermissionId = 100
+                        },
+                        new
+                        {
+                            RoleId = 8,
+                            PermissionId = 120
+                        },
+                        new
+                        {
+                            RoleId = 8,
+                            PermissionId = 130
+                        },
+                        new
+                        {
+                            RoleId = 8,
+                            PermissionId = 140
                         });
                 });
 
@@ -1242,6 +2382,9 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
+                    b.Property<DateTime?>("OdometerUpdatedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Renavam")
                         .IsRequired()
                         .HasMaxLength(11)
@@ -1279,6 +2422,8 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasFilter("[DeletedAt] IS NULL");
 
+                    b.HasIndex("CompanyId", "OdometerUpdatedAt");
+
                     b.HasIndex("CompanyId", "Renavam")
                         .IsUnique()
                         .HasFilter("[DeletedAt] IS NULL");
@@ -1286,6 +2431,93 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                     b.HasIndex("CompanyId", "Status");
 
                     b.ToTable("Vehicles", (string)null);
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Assignments.VehicleAssignment", b =>
+                {
+                    b.HasOne("Fleet.Domain.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Fleet.Domain.Drivers.Driver", "Driver")
+                        .WithMany()
+                        .HasForeignKey("DriverId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Fleet.Domain.Vehicles.Vehicle", "Vehicle")
+                        .WithMany()
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Driver");
+
+                    b.Navigation("Vehicle");
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Checklists.ChecklistAnswer", b =>
+                {
+                    b.HasOne("Fleet.Domain.Checklists.ChecklistExecution", null)
+                        .WithMany("Answers")
+                        .HasForeignKey("ExecutionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Fleet.Domain.Occurrences.Occurrence", null)
+                        .WithMany()
+                        .HasForeignKey("OccurrenceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Checklists.ChecklistExecution", b =>
+                {
+                    b.HasOne("Fleet.Domain.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Fleet.Domain.Drivers.Driver", "Driver")
+                        .WithMany()
+                        .HasForeignKey("DriverId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Fleet.Domain.Checklists.ChecklistTemplate", null)
+                        .WithMany()
+                        .HasForeignKey("TemplateId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Fleet.Domain.Vehicles.Vehicle", "Vehicle")
+                        .WithMany()
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Driver");
+
+                    b.Navigation("Vehicle");
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Checklists.ChecklistTemplate", b =>
+                {
+                    b.HasOne("Fleet.Domain.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Checklists.ChecklistTemplateItem", b =>
+                {
+                    b.HasOne("Fleet.Domain.Checklists.ChecklistTemplate", null)
+                        .WithMany("Items")
+                        .HasForeignKey("TemplateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Fleet.Domain.Companies.Company", b =>
@@ -1343,6 +2575,53 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         });
 
                     b.Navigation("Address")
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Documents.Document", b =>
+                {
+                    b.HasOne("Fleet.Domain.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Fleet.Domain.Documents.DocumentType", "DocumentType")
+                        .WithMany()
+                        .HasForeignKey("DocumentTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Fleet.Domain.Drivers.Driver", "Driver")
+                        .WithMany()
+                        .HasForeignKey("DriverId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Fleet.Domain.Implements.Implement", "Implement")
+                        .WithMany()
+                        .HasForeignKey("ImplementId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Fleet.Domain.Vehicles.Vehicle", "Vehicle")
+                        .WithMany()
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("DocumentType");
+
+                    b.Navigation("Driver");
+
+                    b.Navigation("Implement");
+
+                    b.Navigation("Vehicle");
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Documents.DocumentType", b =>
+                {
+                    b.HasOne("Fleet.Domain.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 
@@ -1410,6 +2689,15 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Fleet.Domain.Files.StoredFile", b =>
+                {
+                    b.HasOne("Fleet.Domain.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Fleet.Domain.Implements.Implement", b =>
                 {
                     b.HasOne("Fleet.Domain.Companies.Company", null)
@@ -1417,6 +2705,63 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         .HasForeignKey("CompanyId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Mileage.OdometerReading", b =>
+                {
+                    b.HasOne("Fleet.Domain.Checklists.ChecklistExecution", null)
+                        .WithMany()
+                        .HasForeignKey("ChecklistExecutionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Fleet.Domain.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Fleet.Domain.Vehicles.Vehicle", "Vehicle")
+                        .WithMany()
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Vehicle");
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Occurrences.Occurrence", b =>
+                {
+                    b.HasOne("Fleet.Domain.Checklists.ChecklistExecution", null)
+                        .WithMany()
+                        .HasForeignKey("ChecklistExecutionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Fleet.Domain.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Fleet.Domain.Drivers.Driver", "Driver")
+                        .WithMany()
+                        .HasForeignKey("DriverId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Fleet.Domain.Implements.Implement", "Implement")
+                        .WithMany()
+                        .HasForeignKey("ImplementId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Fleet.Domain.Vehicles.Vehicle", "Vehicle")
+                        .WithMany()
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Driver");
+
+                    b.Navigation("Implement");
+
+                    b.Navigation("Vehicle");
                 });
 
             modelBuilder.Entity("Fleet.Domain.Users.RefreshToken", b =>
@@ -1486,6 +2831,16 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         .HasForeignKey("CompanyId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Checklists.ChecklistExecution", b =>
+                {
+                    b.Navigation("Answers");
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Checklists.ChecklistTemplate", b =>
+                {
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("Fleet.Domain.Users.Role", b =>

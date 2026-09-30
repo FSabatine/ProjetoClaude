@@ -1,4 +1,5 @@
 using Fleet.Application.Common;
+using Fleet.Application.Documents;
 using Fleet.Domain.Authorization;
 using Fleet.Domain.Companies;
 using Fleet.Domain.Users;
@@ -54,6 +55,7 @@ public sealed class CompanyService(IFleetDbContext db, ICurrentUser currentUser,
         var company = new Company();
         await ApplyAsync(request, company, ct);
         db.Companies.Add(company);
+        db.DocumentTypes.AddRange(DocumentTypeService.CreateDefaults(company.Id));
         await db.SaveChangesAsync(ct);
         return ToResponse(company);
     }

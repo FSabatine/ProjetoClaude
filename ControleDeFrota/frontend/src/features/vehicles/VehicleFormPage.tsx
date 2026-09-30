@@ -90,9 +90,9 @@ function VehicleForm({ vehicle }: { vehicle?: Vehicle }) {
     mutation: save,
     successMessage: vehicle ? 'Veículo atualizado com sucesso.' : 'Veículo cadastrado com sucesso.',
     errorTitle: 'O veículo não foi salvo',
-    onSuccess: () => {
+    onSuccess: (saved) => {
       guard.release();
-      navigate('/veiculos');
+      navigate(`/veiculos/${saved.id}`);
     },
     toBody: (v) => ({
       ...v,
@@ -101,7 +101,8 @@ function VehicleForm({ vehicle }: { vehicle?: Vehicle }) {
       color: v.color || null,
       cargoCapacityKg: toNumber(v.cargoCapacityKg),
       tareWeightKg: toNumber(v.tareWeightKg),
-      currentOdometerKm: toNumber(v.currentOdometerKm),
+      // ADR-019: after registration the odometer only changes through readings (Quilometragem tab).
+      currentOdometerKm: vehicle ? null : toNumber(v.currentOdometerKm),
       hourMeter: toNumber(v.hourMeter),
       acquisitionDate: toApiDate(v.acquisitionDate),
       acquisitionValue: toNumber(v.acquisitionValue),
@@ -116,7 +117,9 @@ function VehicleForm({ vehicle }: { vehicle?: Vehicle }) {
       <PageHeader
         title={title}
         description={readOnly ? 'Visualização — seu perfil não permite editar este veículo.' : 'Campos com * são obrigatórios.'}
-        breadcrumbs={[{ label: 'Veículos', to: '/veiculos' }, { label: vehicle ? 'Editar' : 'Novo' }]}
+        breadcrumbs={vehicle
+          ? [{ label: 'Veículos', to: '/veiculos' }, { label: formatPlate(vehicle.licensePlate), to: `/veiculos/${vehicle.id}` }, { label: 'Editar' }]
+          : [{ label: 'Veículos', to: '/veiculos' }, { label: 'Novo' }]}
         action={vehicle && <AuditHistoryButton entity="Vehicle" id={vehicle.id} />}
       />
       <form onSubmit={handleSubmit} noValidate>
@@ -142,9 +145,13 @@ function VehicleForm({ vehicle }: { vehicle?: Vehicle }) {
             </FormSection>
 
             <FormSection title="Controle" cols={3}>
-              <NumberInput label="Hodômetro atual" withAsterisk suffix=" km" thousandSeparator="." allowDecimal={false} allowNegative={false} {...form.getInputProps('currentOdometerKm')} />
+              <NumberInput label={vehicle ? 'Hodômetro atual' : 'Hodômetro inicial'} withAsterisk={!vehicle} suffix=" km" thousandSeparator="." decimalSeparator="," allowDecimal={false} allowNegative={false}
+                inputMode="numeric" disabled={!!vehicle}
+                description={vehicle ? 'Atualize pela aba Quilometragem, que valida e guarda o histórico.' : 'Primeira leitura do histórico do veículo.'}
+                {...form.getInputProps('currentOdometerKm')} />
               <NumberInput label="Horímetro" suffix=" h" thousandSeparator="." decimalSeparator="," decimalScale={1} allowNegative={false} {...form.getInputProps('hourMeter')} />
-              <Select label="Situação" withAsterisk data={toSelectData(VEHICLE_STATUS)} {...form.getInputProps('status')} />
+              <Select label="Situação" withAsterisk data={toSelectData(VEHICLE_STATUS)}
+                description="Indisponível: fora de uso por outro motivo que não manutenção (documento, sinistro…)." {...form.getInputProps('status')} />
             </FormSection>
 
             <FormSection title="Aquisição">
@@ -159,7 +166,7 @@ function VehicleForm({ vehicle }: { vehicle?: Vehicle }) {
         </fieldset>
         {!readOnly && (
           <Box mt="md">
-            <FormActions saving={save.isPending} onCancel={() => navigate('/veiculos')} submitLabel={vehicle ? 'Salvar alterações' : 'Cadastrar veículo'} />
+            <FormActions saving={save.isPending} onCancel={() => navigate(vehicle ? `/veiculos/${vehicle.id}` : '/veiculos')} submitLabel={vehicle ? 'Salvar alterações' : 'Cadastrar veículo'} />
           </Box>
         )}
       </form>

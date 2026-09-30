@@ -1,4 +1,4 @@
-import { Box, Stack, Switch, TextInput } from '@mantine/core';
+import { Box, Stack, Switch, TextInput, Title } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
@@ -11,6 +11,7 @@ import { submitWithFeedback } from '../../components/useApiForm';
 import { formatCnpj, formatPhone, formatZipCode } from '../../lib/format';
 import { combine, optional, required, rules } from '../../lib/validators';
 import { AuditHistoryButton } from '../audit/AuditHistoryButton';
+import { DocumentsPanel } from '../documents/DocumentsPanel';
 import { companiesApi, useCurrentCompany, type Company } from './companies';
 
 /** Platform admin: create/edit any company. */
@@ -23,7 +24,22 @@ export function CompanyFormPage() {
 /** Any user with companies.view: their own company (editable with companies.update). */
 export function MyCompanyPage() {
   const current = useCurrentCompany();
-  return <EntityFormPage id="current" detail={current}>{(company) => <CompanyForm company={company} backTo="/" isOwn />}</EntityFormPage>;
+  const { can } = useAuth();
+  return (
+    <EntityFormPage id="current" detail={current}>
+      {(company) => (
+        <>
+          <CompanyForm company={company} backTo="/" isOwn />
+          {can(PERMISSIONS.documents.view) && (
+            <Box mt="xl">
+              <Title order={3} fz="lg" mb="sm">Documentos da empresa</Title>
+              <DocumentsPanel ownerType="Company" ownerId={null} />
+            </Box>
+          )}
+        </>
+      )}
+    </EntityFormPage>
+  );
 }
 
 function CompanyForm({ company, backTo, isOwn = false }: { company?: Company; backTo: string; isOwn?: boolean }) {

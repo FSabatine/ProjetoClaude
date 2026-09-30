@@ -23,6 +23,10 @@ Prioridades: Clareza > Esperteza · Manutenibilidade > Complexidade · UX > Nº 
 - Controllers finos: recebem o DTO, chamam o serviço e devolvem o resultado. Toda regra fica no serviço.
 - Serviço novo: registre em `Fleet.Application/DependencyInjection.cs`.
 - Entidade nova ligada ao veículo (manutenção, abastecimento…) é **uma entidade própria com `VehicleId`**, nunca colunas extras em `Vehicle`.
+- Regra de negócio pura vai para um *policy object* no Domain (`OdometerPolicy`, `DocumentExpiryPolicy`, `OccurrenceWorkflow`…). O serviço orquestra e o controller só traduz HTTP.
+- Fato operacional novo (ex.: "manutenção aberta", "abastecimento registrado"): acrescente um valor a `OperationalEventType` e chame `OperationalEventLog.Record(...)` no serviço, antes do `SaveChangesAsync` (ADR-025). Isso alimenta o histórico do veículo e as notificações futuras sem acoplar módulos.
+- Histórico nunca é sobrescrito nem apagado: use vigência (`StartedAt/EndedAt`), estados finais (cancelado/rejeitado) ou snapshots. Status que depende de data é **calculado** (não gravado).
+- Arquivos: `FileService` + `IFileStorage`; nunca `byte[]` em entidade.
 
 ## Código
 
@@ -50,12 +54,14 @@ Prioridades: Clareza > Esperteza · Manutenibilidade > Complexidade · UX > Nº 
 - Nunca aceite `CompanyId`, `UserId` ou permissões vindos do cliente como verdade. Use `ICurrentUser`.
 - Valide toda entrada no backend (FluentValidation + `Fleet.Domain/Validation`). Ordenação apenas por uma whitelist de colunas.
 - Anti-escalonamento: não se concede permissão que o próprio usuário não tem.
+- Regra que depende do **alvo** (ex.: correção só com `mileage.manage`, download conforme o dono do arquivo) é checada no serviço com `ICurrentUser.HasPermission`, além do `[HasPermission]` da rota.
 
 ## Testes
 
 - Toda regra de negócio nova tem teste. Nome no formato `Metodo_Cenario_Resultado`, estrutura AAA.
 - Validação de documento: `tests/Fleet.Domain.Tests`. Serviço (duplicidade, tenant, soft delete, auditoria, permissões): `tests/Fleet.Application.Tests` com `TestDb` (SQLite em memória). HTTP (401/403/404, contrato de erro): `tests/Fleet.Api.Tests` com `FleetApiFactory`.
 - Sempre inclua um teste de **isolamento de tenant** para uma entidade nova de tenant.
+- Cenários operacionais: use `Scenario.SignedInAsync/VehicleAsync/DriverAsync` (`tests/Fleet.Application.Tests/TestSupport/Scenario.cs`) e `Services.<Modulo>(t)`. Arquivos em teste usam `InMemoryFileStorage`.
 - Frontend: Vitest para funções puras (`src/lib`).
 
 ## UX/UI
@@ -69,6 +75,9 @@ Detalhes em `docs/UX_UI.md`. O mínimo obrigatório de toda tela:
 - Feedback: botão em `loading` ao salvar, notificação de sucesso ("… salvo com sucesso."), erro amigável com instrução (use `notifyError`). Nunca exiba "Error 500".
 - Exclusão sempre com modal de confirmação que nomeia o registro.
 - Responsivo (desktop, tablet, 375px), alvos de toque ≥ 40px, cores apenas do `theme.ts` e badges de status com texto.
+- Registro com vida operacional ganha uma página **hub** com `DetailTabs` (aba na URL `?aba=`) e cabeçalho com `HeaderFact`; a edição do cadastro fica em `/:id/editar`.
+- Seleção de veículo/motorista: `VehiclePicker`/`DriverPicker` (busca no servidor). Anexos: `UploadButton` (com `camera` no celular) + `AttachmentList`.
+- Telas usadas em campo (checklist) são mobile-first: botões ≥ 48px, "marcar todos", foto pela câmera, barra de envio fixa e erro rolando até o item.
 
 ## Quality gates (antes de dizer "pronto")
 

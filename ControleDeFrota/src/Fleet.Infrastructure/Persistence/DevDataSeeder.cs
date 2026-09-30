@@ -1,4 +1,10 @@
 using Fleet.Application.Common;
+using Fleet.Application.Documents;
+using Fleet.Domain.Assignments;
+using Fleet.Domain.Checklists;
+using Fleet.Domain.Documents;
+using Fleet.Domain.Mileage;
+using Fleet.Domain.Occurrences;
 using Fleet.Domain.Authorization;
 using Fleet.Domain.Common;
 using Fleet.Domain.Companies;
@@ -21,7 +27,12 @@ public sealed class DevDataSeeder(FleetDbContext db, IPasswordHasher passwordHas
 
     public async Task SeedAsync(bool includeSampleData, CancellationToken ct = default)
     {
-        if (await db.Companies.IgnoreQueryFilters().AnyAsync(ct)) return;
+        if (await db.Companies.IgnoreQueryFilters().AnyAsync(ct))
+        {
+            // Databases created in Phase 1 get the Phase 2 samples once.
+            if (includeSampleData) await SeedOperationsAsync(ct);
+            return;
+        }
 
         var main = NewCompany("Rodoxisto Transportes Ltda (Dev)", "Rodoxisto (Dev)", "11222333000181", "Curitiba", "PR", "80010000");
         var other = NewCompany("Transportadora Exemplo Ltda", "Exemplo Transportes", "12ABC34501DE35", "São Paulo", "SP", "01001000");
@@ -37,7 +48,149 @@ public sealed class DevDataSeeder(FleetDbContext db, IPasswordHasher passwordHas
 
         await db.SaveChangesAsync(ct);
         logger.LogWarning("Development data seeded (demo users with password documented in docs/README.md)");
+        if (includeSampleData) await SeedOperationsAsync(ct);
     }
+
+    private const string MainCnpj = "11222333000181";
+
+    /// <summary>
+    /// Phase 2 samples on the main demo company: operation users, document types, a daily checklist, assignments,
+    /// odometer history, documents in every state and an open occurrence. Idempotent (skips when templates exist).
+    /// Seeding runs at startup without a signed-in user: filters are bypassed and every tenant row gets its CompanyId explicitly.
+    /// </summary>
+    private async Task SeedOperationsAsync(CancellationToken ct)
+    {
+        var main = await db.Companies.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Cnpj == MainCnpj, ct);
+        if (main is null || await db.ChecklistTemplates.IgnoreQueryFilters().AnyAsync(t => t.CompanyId == main.Id, ct)) return;
+
+        var today = clock.Today;
+        var now = clock.UtcNow;
+        foreach (var (name, email, role) in new[]
+                 {
+                     ("Operação Diária", "operacao@frota.local", SystemRoles.Operations),
+                     ("Equipe de Manutenção", "manutencao@frota.local", SystemRoles.Maintenance),
+                 })
+        {
+            if (!await db.Users.IgnoreQueryFilters().AnyAsync(u => u.Email == email, ct)) db.Users.Add(NewUser(main, name, email, role));
+        }
+
+        var types = await db.DocumentTypes.IgnoreQueryFilters().Where(t => t.CompanyId == main.Id).ToListAsync(ct);
+        if (types.Count == 0)
+        {
+            types = DocumentTypeService.CreateDefaults(main.Id).ToList();
+            db.DocumentTypes.AddRange(types);
+        }
+
+        db.ChecklistTemplates.Add(NewDailyChecklist(main.Id));
+
+        var vehicles = await db.Vehicles.IgnoreQueryFilters().Where(v => v.CompanyId == main.Id && v.DeletedAt == null).ToListAsync(ct);
+        var drivers = await db.Drivers.IgnoreQueryFilters().Where(d => d.CompanyId == main.Id && d.DeletedAt == null).ToListAsync(ct);
+        var scania = vehicles.FirstOrDefault(v => v.LicensePlate == "RDX1A23");
+        var amarok = vehicles.FirstOrDefault(v => v.LicensePlate == "ABC1234");
+        var volvo = vehicles.FirstOrDefault(v => v.LicensePlate == "RDX3C45");
+        var joao = drivers.FirstOrDefault(d => d.FullName.StartsWith("João"));
+        var maria = drivers.FirstOrDefault(d => d.FullName.StartsWith("Maria"));
+
+        if (scania is not null)
+        {
+            // Two weeks of history ending with the current odometer.
+            var km = scania.CurrentOdometerKm - 1_950;
+            foreach (var (daysAgo, step) in new[] { (14, 0), (10, 480), (6, 650), (2, 820) })
+            {
+                km += step;
+                db.OdometerReadings.Add(new OdometerReading
+                {
+                    CompanyId = main.Id, VehicleId = scania.Id, OdometerKm = km, ReadAt = now.AddDays(-daysAgo), Source = OdometerReadingSource.Manual,
+                });
+            }
+            scania.CurrentOdometerKm = km;
+            scania.OdometerUpdatedAt = now.AddDays(-2);
+
+            // A typo (extra digit) waiting for review.
+            var typo = km * 10;
+            db.OdometerReadings.Add(new OdometerReading
+            {
+                CompanyId = main.Id, VehicleId = scania.Id, OdometerKm = typo, ReadAt = now.AddDays(-1), Source = OdometerReadingSource.Manual,
+                Status = OdometerReadingStatus.PendingReview,
+                Anomaly = OdometerPolicy.Evaluate(typo, now.AddDays(-1), new OdometerBaseline(km, now.AddDays(-2))).Anomaly,
+            });
+
+            if (joao is not null)
+                db.VehicleAssignments.Add(new VehicleAssignment { CompanyId = main.Id, VehicleId = scania.Id, DriverId = joao.Id, StartedAt = now.AddDays(-20) });
+            AddDocument(main.Id, types, "Seguro", DocumentOwnerType.Vehicle, vehicleId: scania.Id, expiresOn: today.AddDays(20));
+            AddDocument(main.Id, types, "CRLV / Licenciamento anual", DocumentOwnerType.Vehicle, vehicleId: scania.Id, expiresOn: today.AddMonths(8));
+            db.Occurrences.Add(new Occurrence
+            {
+                CompanyId = main.Id, VehicleId = scania.Id, DriverId = joao?.Id, Type = OccurrenceType.TireProblem,
+                Severity = OccurrenceSeverity.Medium, OccurredAt = now.AddDays(-1), Location = "Pátio Curitiba",
+                Description = "Pressão baixa no pneu traseiro direito.",
+            });
+        }
+        if (amarok is not null && maria is not null)
+            db.VehicleAssignments.Add(new VehicleAssignment { CompanyId = main.Id, VehicleId = amarok.Id, DriverId = maria.Id, StartedAt = now.AddDays(-5) });
+        if (volvo is not null)
+            AddDocument(main.Id, types, "CRLV / Licenciamento anual", DocumentOwnerType.Vehicle, vehicleId: volvo.Id, expiresOn: today.AddDays(-4));
+        if (maria is not null)
+            AddDocument(main.Id, types, "Exame toxicológico", DocumentOwnerType.Driver, driverId: maria.Id, expiresOn: today.AddDays(8));
+        AddDocument(main.Id, types, "RNTRC (ANTT)", DocumentOwnerType.Company, expiresOn: today.AddYears(2));
+
+        await db.SaveChangesAsync(ct);
+        logger.LogWarning("Development operational samples seeded (Phase 2)");
+    }
+
+    private void AddDocument(Guid companyId, List<DocumentType> types, string typeName, DocumentOwnerType owner,
+        Guid? vehicleId = null, Guid? driverId = null, DateOnly? expiresOn = null)
+    {
+        var type = types.FirstOrDefault(t => t.Name == typeName && t.OwnerType == owner);
+        if (type is null) return;
+        db.Documents.Add(new Document
+        {
+            CompanyId = companyId, DocumentType = type, OwnerType = owner, VehicleId = vehicleId, DriverId = driverId,
+            Number = "DEMO-2026", ExpiresOn = expiresOn,
+            AlertStartsOn = DocumentExpiryPolicy.AlertStartsOn(expiresOn, type.HasExpiration, type.AlertDaysBefore),
+        });
+    }
+
+    private static ChecklistTemplate NewDailyChecklist(Guid companyId)
+    {
+        (string Section, string Label, OccurrenceType Type, bool Photo)[] items =
+        [
+            ("Pneus", "Pneus: calibragem e desgaste", OccurrenceType.TireProblem, true),
+            ("Freios", "Freios e freio de estacionamento", OccurrenceType.MechanicalIssue, false),
+            ("Iluminação", "Faróis e lanternas", OccurrenceType.MechanicalIssue, false),
+            ("Iluminação", "Setas e pisca-alerta", OccurrenceType.MechanicalIssue, false),
+            ("Motor", "Nível do óleo do motor", OccurrenceType.MechanicalIssue, false),
+            ("Motor", "Nível do líquido de arrefecimento", OccurrenceType.MechanicalIssue, false),
+            ("Cabine", "Para-brisa e limpadores", OccurrenceType.VehicleDamage, true),
+            ("Cabine", "Retrovisores", OccurrenceType.VehicleDamage, true),
+            ("Segurança", "Extintor, triângulo e macaco", OccurrenceType.MissingEquipment, false),
+            ("Documentação", "CRLV e documentos do veículo a bordo", OccurrenceType.DocumentationProblem, false),
+        ];
+        var templateItems = items.Select((item, i) => new ChecklistTemplateItem
+        {
+            Position = i + 1,
+            Section = item.Section,
+            Label = item.Label,
+            FailureOccurrenceType = item.Type,
+            RequiresPhotoOnFail = item.Photo,
+            FailureSeverity = item.Type == OccurrenceType.MechanicalIssue ? OccurrenceSeverity.High : OccurrenceSeverity.Medium,
+        }).ToList();
+        templateItems.Add(new ChecklistTemplateItem
+        {
+            Position = items.Length + 1, Section = "Observações", Label = "Observações do motorista",
+            ResponseType = ChecklistResponseType.Text, IsRequired = false,
+        });
+
+        return new ChecklistTemplate
+        {
+            CompanyId = companyId,
+            Name = "Inspeção diária",
+            Description = "Verificação antes do primeiro uso do dia.",
+            Frequency = ChecklistFrequency.Daily,
+            Items = templateItems,
+        };
+    }
+
 
     private void AddSampleFleet(Company company)
     {

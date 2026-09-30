@@ -1,4 +1,11 @@
+using Fleet.Application.Assignments;
 using Fleet.Application.Auth;
+using Fleet.Application.Checklists;
+using Fleet.Application.Documents;
+using Fleet.Application.Files;
+using Fleet.Application.Mileage;
+using Fleet.Application.Occurrences;
+using Fleet.Application.Operations;
 using Fleet.Application.Companies;
 using Fleet.Application.Dashboard;
 using Fleet.Application.Drivers;
@@ -16,11 +23,31 @@ public static class Services
 {
     public static readonly PasswordHasher Hasher = new();
 
-    public static VehicleService Vehicles(TestDb t) => new(t.Db, new VehicleRequestValidator(t.Clock));
+    public static VehicleService Vehicles(TestDb t) => new(t.Db, t.Clock, Events(t), new VehicleRequestValidator(t.Clock));
     public static ImplementService Implements(TestDb t) => new(t.Db, new ImplementRequestValidator(t.Clock));
     public static DriverService Drivers(TestDb t) => new(t.Db, t.Clock, new DriverRequestValidator(t.Clock));
     public static CompanyService Companies(TestDb t) => new(t.Db, t.CurrentUser, new CompanyRequestValidator());
-    public static DashboardService Dashboard(TestDb t) => new(t.Db, t.Clock, t.CurrentUser);
+    public static DashboardService Dashboard(TestDb t) => new(t.Db, t.Clock, t.CurrentUser, Checklists(t));
+
+    // Phase 2
+    public static OperationalEventLog Events(TestDb t) => new(t.Db, t.Clock, t.CurrentUser);
+    public static OperationalHistoryService History(TestDb t) => new(t.Db, t.Clock, new HistoryRequestValidator());
+    public static AssignmentService Assignments(TestDb t) => new(
+        t.Db, t.Clock, Events(t), new AssignmentCreateRequestValidator(t.Clock), new AssignmentEndRequestValidator(t.Clock));
+    public static MileageService Mileage(TestDb t) => new(
+        t.Db, t.Clock, t.CurrentUser, Events(t), new OdometerReadingRequestValidator(t.Clock), new OdometerReviewRequestValidator());
+    public static FileService Files(TestDb t) => new(t.Db, t.Storage, t.CurrentUser, t.Clock);
+    public static DocumentTypeService DocumentTypes(TestDb t) => new(t.Db, t.CurrentUser, new DocumentTypeRequestValidator());
+    public static DocumentService Documents(TestDb t) => new(
+        t.Db, t.Clock, t.CurrentUser, Files(t), Events(t), new DocumentListRequestValidator(),
+        new DocumentCreateRequestValidator(t.Clock), new DocumentUpdateRequestValidator(t.Clock));
+    public static DocumentExpirationScanner DocumentScanner(TestDb t) => new(t.Db, t.Clock);
+    public static ChecklistTemplateService ChecklistTemplates(TestDb t) => new(t.Db, new ChecklistTemplateRequestValidator());
+    public static OccurrenceService Occurrences(TestDb t) => new(
+        t.Db, t.Clock, t.CurrentUser, Files(t), Events(t), new OccurrenceListRequestValidator(),
+        new OccurrenceRequestValidator(t.Clock), new OccurrenceStatusRequestValidator());
+    public static ChecklistService Checklists(TestDb t) => new(
+        t.Db, t.Clock, Files(t), Mileage(t), Occurrences(t), Events(t), new ChecklistListRequestValidator(), new ChecklistExecutionRequestValidator());
 
     public static UserService Users(TestDb t) => new(
         t.Db, t.CurrentUser, Hasher, t.Clock, new UserCreateRequestValidator(), new UserUpdateRequestValidator());

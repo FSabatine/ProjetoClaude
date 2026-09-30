@@ -43,9 +43,25 @@ export interface DriverListItem {
   licenseExpiresOn: string;
   licenseState: LicenseState;
   status: DriverStatus;
+  currentVehicleId: string | null;
+  currentVehiclePlate: string | null;
 }
 
-export interface Driver extends DriverListItem {
+export interface DriverCurrentVehicle {
+  assignmentId: string;
+  vehicleId: string;
+  licensePlate: string;
+  vehicleDescription: string;
+  startedAt: string;
+}
+
+export const DRIVER_ASSIGNMENT_FILTER = {
+  WithVehicle: { label: 'Com veículo' },
+  WithoutVehicle: { label: 'Sem veículo' },
+};
+
+export interface Driver extends Omit<DriverListItem, 'currentVehicleId' | 'currentVehiclePlate'> {
+  currentVehicle: DriverCurrentVehicle | null;
   rg: string | null;
   birthDate: string;
   email: string | null;

@@ -29,6 +29,29 @@ public static class SystemRoles
     private static readonly string[] FleetRegistryRead =
         [Permissions.Drivers.View, Permissions.Vehicles.View, Permissions.Implements.View];
 
+    private static readonly string[] OperationsFull =
+    [
+        Permissions.Assignments.View, Permissions.Assignments.Manage,
+        Permissions.Mileage.Record, Permissions.Mileage.Manage,
+        Permissions.Documents.View, Permissions.Documents.Manage, Permissions.Documents.Delete,
+        Permissions.Checklists.View, Permissions.Checklists.Execute,
+        Permissions.Occurrences.View, Permissions.Occurrences.Create, Permissions.Occurrences.Manage,
+        Permissions.Operations.Configure,
+    ];
+
+    /// <summary>Day-to-day operation: create and edit, but no deletion, corrections or configuration.</summary>
+    private static readonly string[] OperationsDaily =
+    [
+        Permissions.Assignments.View, Permissions.Assignments.Manage,
+        Permissions.Mileage.Record,
+        Permissions.Documents.View, Permissions.Documents.Manage,
+        Permissions.Checklists.View, Permissions.Checklists.Execute,
+        Permissions.Occurrences.View, Permissions.Occurrences.Create, Permissions.Occurrences.Manage,
+    ];
+
+    private static readonly string[] OperationsRead =
+        [Permissions.Assignments.View, Permissions.Documents.View, Permissions.Checklists.View, Permissions.Occurrences.View];
+
     public static readonly IReadOnlyList<RoleDefinition> All =
     [
         new(1, PlatformAdministrator, "Administrador da plataforma",
@@ -37,17 +60,18 @@ public static class SystemRoles
             "Acesso total à própria empresa.",
             AllPermissions.Where(p => p != Permissions.Companies.Manage).ToArray()),
         new(3, FleetManager, "Gestor de frota",
-            "Gerencia motoristas, veículos e implementos.",
+            "Gerencia a frota e a operação: cadastros, alocações, hodômetro, documentos, checklists e ocorrências.",
             [Permissions.Dashboard.View, Permissions.Companies.View, Permissions.Users.View, Permissions.Roles.View,
-             Permissions.Audit.View, .. FleetRegistryFull]),
+             Permissions.Audit.View, .. FleetRegistryFull, .. OperationsFull]),
         new(4, Operations, "Operações",
-            "Operação diária: cadastra e atualiza motoristas, atualiza veículos e implementos.",
+            "Operação diária: motoristas, alocações, hodômetro, documentos, checklists e ocorrências.",
             [Permissions.Dashboard.View, Permissions.Drivers.View, Permissions.Drivers.Create, Permissions.Drivers.Update,
-             Permissions.Vehicles.View, Permissions.Vehicles.Update, Permissions.Implements.View, Permissions.Implements.Update]),
+             Permissions.Vehicles.View, Permissions.Vehicles.Update, Permissions.Implements.View, Permissions.Implements.Update,
+             .. OperationsDaily]),
         new(5, Maintenance, "Manutenção",
-            "Atualiza a situação de veículos e implementos.",
+            "Atualiza a situação de veículos e implementos e acompanha as ocorrências operacionais.",
             [Permissions.Dashboard.View, Permissions.Vehicles.View, Permissions.Vehicles.Update,
-             Permissions.Implements.View, Permissions.Implements.Update]),
+             Permissions.Implements.View, Permissions.Implements.Update, Permissions.Occurrences.View]),
         new(6, Finance, "Financeiro",
             "Consulta a frota para fins financeiros.",
             [Permissions.Dashboard.View, .. FleetRegistryRead]),
@@ -55,6 +79,6 @@ public static class SystemRoles
             "Reservado para o app do motorista (fases futuras).", []),
         new(8, Viewer, "Visualizador",
             "Somente leitura.",
-            [Permissions.Dashboard.View, Permissions.Companies.View, .. FleetRegistryRead]),
+            [Permissions.Dashboard.View, Permissions.Companies.View, .. FleetRegistryRead, .. OperationsRead]),
     ];
 }

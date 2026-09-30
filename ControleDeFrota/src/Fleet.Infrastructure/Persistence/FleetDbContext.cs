@@ -1,11 +1,18 @@
 using System.Linq.Expressions;
 using System.Reflection;
 using Fleet.Application.Common;
+using Fleet.Domain.Assignments;
 using Fleet.Domain.Auditing;
+using Fleet.Domain.Checklists;
 using Fleet.Domain.Common;
 using Fleet.Domain.Companies;
+using Fleet.Domain.Documents;
 using Fleet.Domain.Drivers;
+using Fleet.Domain.Files;
 using Fleet.Domain.Implements;
+using Fleet.Domain.Mileage;
+using Fleet.Domain.Occurrences;
+using Fleet.Domain.Operations;
 using Fleet.Domain.Users;
 using Fleet.Domain.Vehicles;
 using Microsoft.EntityFrameworkCore;
@@ -37,6 +44,15 @@ public sealed class FleetDbContext : DbContext, IFleetDbContext
     public DbSet<Driver> Drivers => Set<Driver>();
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
     public DbSet<Implement> Implements => Set<Implement>();
+    public DbSet<VehicleAssignment> VehicleAssignments => Set<VehicleAssignment>();
+    public DbSet<OdometerReading> OdometerReadings => Set<OdometerReading>();
+    public DbSet<DocumentType> DocumentTypes => Set<DocumentType>();
+    public DbSet<Document> Documents => Set<Document>();
+    public DbSet<StoredFile> StoredFiles => Set<StoredFile>();
+    public DbSet<ChecklistTemplate> ChecklistTemplates => Set<ChecklistTemplate>();
+    public DbSet<ChecklistExecution> ChecklistExecutions => Set<ChecklistExecution>();
+    public DbSet<Occurrence> Occurrences => Set<Occurrence>();
+    public DbSet<OperationalEvent> OperationalEvents => Set<OperationalEvent>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     /// <summary>Read by the tenant query filter on every query (EF parameterizes this per context instance).</summary>
@@ -77,6 +93,18 @@ public sealed class FleetDbContext : DbContext, IFleetDbContext
             _ => e => EF.Property<Guid>(e, nameof(ITenantScoped.CompanyId)) == CurrentCompanyId,
         };
         modelBuilder.Entity<T>().HasQueryFilter(filter);
+    }
+
+    public async Task InTransactionAsync(Func<Task> work, CancellationToken ct)
+    {
+        // A user transaction must run inside the execution strategy when retry-on-failure is enabled (SQL Server).
+        var strategy = Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await Database.BeginTransactionAsync(ct);
+            await work();
+            await transaction.CommitAsync(ct);
+        });
     }
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess) =>

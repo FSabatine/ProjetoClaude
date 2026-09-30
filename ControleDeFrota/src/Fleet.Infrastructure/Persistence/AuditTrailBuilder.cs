@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Fleet.Domain.Auditing;
 using Fleet.Domain.Common;
 using Fleet.Domain.Companies;
+using Fleet.Domain.Documents;
 using Fleet.Domain.Users;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
@@ -25,6 +26,8 @@ internal sealed class AuditTrailBuilder(ChangeTracker changeTracker, DateTime no
         nameof(AuditableEntity.UpdatedAt), nameof(AuditableEntity.UpdatedBy),
         nameof(ISoftDeletable.DeletedBy),
         nameof(User.FailedLoginCount), nameof(User.LockoutEndAt), nameof(User.LastLoginAt),
+        // Derived from ExpiresOn/the type, and bookkeeping of the expiration scanner.
+        nameof(Document.AlertStartsOn), nameof(Document.LastAlertedStatus),
     ];
 
     private static readonly HashSet<string> SensitiveProperties = [nameof(User.PasswordHash)];

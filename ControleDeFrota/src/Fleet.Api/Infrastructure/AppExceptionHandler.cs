@@ -26,6 +26,8 @@ public sealed class AppExceptionHandler(ILogger<AppExceptionHandler> logger, IPr
             BusinessRuleException ex => Problem(StatusCodes.Status422UnprocessableEntity, ex.Message),
             ForbiddenException ex => Problem(StatusCodes.Status403Forbidden, ex.Message),
             AuthenticationFailedException ex => Problem(StatusCodes.Status401Unauthorized, ex.Message),
+            // Metadata exists but the bytes are gone from the storage (e.g. restored database without the files).
+            FileNotFoundException => Problem(StatusCodes.Status404NotFound, "O arquivo não está mais disponível no armazenamento. Envie-o novamente."),
             // Unique index hit by a concurrent request that passed the service-level duplicate check.
             DbUpdateException { InnerException: not null } ex when IsUniqueViolation(ex) =>
                 Problem(StatusCodes.Status409Conflict, "Já existe um registro com estes dados. Atualize a página e confira as informações."),

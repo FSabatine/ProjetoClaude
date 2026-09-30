@@ -106,5 +106,62 @@ Formato: **Problema · Alternativas · Decisão · Motivo · Impacto**. Um ADR n
 - **Implemento sem placa**: hoje placa, RENAVAM e chassi são obrigatórios (reboques são veículos registrados). Se existirem implementos não emplacados, esses campos passam a ser opcionais.
 - **Capacidade de veículo** em kg; **capacidade de implemento** com unidade escolhida.
 - **Exclusão de empresa** exige que ela não tenha usuários ativos.
-- **Troca de empresa ativa** para o super-admin (hoje ele opera a frota apenas da própria empresa e administra as demais): prevista para a Fase 2.
+- **Troca de empresa ativa** para o super-admin (hoje ele opera a frota apenas da própria empresa e administra as demais): não entrou no escopo da Fase 2 (redefinido pelo usuário); continua no backlog.
 - **Histórico de auditoria**: os nomes dos campos aparecem como estão gravados (`CurrentOdometerKm`). Um mapa de rótulos pt-BR por módulo é o próximo refinamento.
+
+---
+
+# Fase 2 — Controle operacional (2026-09-30)
+
+## ADR-018 — Situação operacional derivada; "Alocado" não é gravado
+- **Status**: aceito (decisão do usuário, 2026-09-30). Complementa o ADR-009.
+- **Problema**: a Fase 2 pede os status Available, Assigned, OnTrip, Unavailable, UnderMaintenance e Inactive. "Assigned" (tem motorista) é um eixo diferente da condição do veículo: um veículo alocado entra em manutenção e continua com o motorista. Gravar Assigned no campo de status perderia uma das informações ou exigiria regras para restaurá-la.
+- **Alternativas**: (a) gravar Assigned no enum, alterado pelo serviço de alocação; (b) manter a condição gravada e **derivar** a situação operacional.
+- **Decisão**: (b). A condição gravada ganha `Unavailable`. A situação operacional é calculada por `VehicleOperationalState.From(status, temAlocaçãoAtiva)` (Domain), e o filtro SQL equivalente fica em `VehicleService.WhereOperationalStatus`.
+- **Impacto**: não existem combinações inválidas; o dashboard e a lista mostram "Alocado" sem nenhum gatilho de sincronização. Motorista e implemento mantêm os status da Fase 1.
+
+## ADR-019 — Histórico de hodômetro; leitura suspeita fica pendente
+- **Status**: aceito (decisão do usuário sobre o salto suspeito).
+- **Decisão**: tabela `OdometerReadings` (append-only). `Vehicle.CurrentOdometerKm`/`OdometerUpdatedAt` continuam como leitura rápida e só o `MileageService` os altera. A edição do veículo recusa mudar o hodômetro. As regras ficam em `OdometerPolicy`: não retroceder e salto > 1.500 km/dia = suspeito. A leitura suspeita é gravada como `PendingReview` e **não é aplicada** até ser aprovada; a correção exige `mileage.manage` e motivo.
+- **Alternativa rejeitada**: aplicar a leitura suspeita e só sinalizar. Um erro de digitação (um dígito a mais) faria todas as leituras seguintes, corretas, serem recusadas por "retroceder".
+- **Impacto**: nenhuma migração de dados. Veículos sem histórico usam o hodômetro cadastrado como linha de base.
+
+## ADR-020 — Alocação motorista ↔ veículo com vigência
+- **Status**: aceito (regras confirmadas pelo usuário).
+- **Decisão**: entidade `VehicleAssignment` (`StartedAt`/`EndedAt`), com índices únicos filtrados para **uma alocação ativa por veículo e por motorista**. Bloqueios: veículo inativo, motorista desligado/afastado e CNH vencida. A troca exige confirmação (409 → `endCurrent`). Encerrar e abrir acontecem na mesma transação (`IFleetDbContext.InTransactionAsync`), porque o EF não ordena os comandos por índices filtrados.
+- **Impacto**: o histórico nunca é sobrescrito. Motorista secundário e alocação agendada ficam fora desta fase.
+
+## ADR-021 — Documentos com catálogo configurável e status calculado
+- **Decisão**: `DocumentType` por empresa (dono, validade, antecedência do alerta) + `Document` com FKs opcionais por dono (`VehicleId`/`DriverId`/`ImplementId`) e check constraint `CK_Documents_Owner`. O status nunca é gravado: `DocumentExpiryPolicy` é o único lugar da regra. O início da janela de alerta (`AlertStartsOn`) é gravado para as consultas compararem só datas (indexável e sem aritmética de data específica de provedor). Renovar marca o anterior como substituído.
+- **Alternativas**: dono polimórfico sem FK (perde integridade); status gravado (fica errado no dia seguinte); cálculo por `DATEADD` no SQL (a tradução varia entre SQL Server e SQLite).
+- **Decisão sobre a CNH**: ela **não** é um tipo de documento. A validade continua no cadastro do motorista, para evitar duas fontes para a mesma data.
+
+## ADR-022 — Arquivos fora do banco, atrás de `IFileStorage`
+- **Decisão**: `StoredFile` guarda só os metadados e os bytes ficam no `IFileStorage` (`LocalFileStorage` em disco, fora do web root, em `Storage:LocalRootPath`). A chave do storage é gerada pelo servidor. O formato é validado por *magic bytes* (PDF/JPG/PNG, 10 MB). O fluxo é upload → arquivo sem dono (só o autor vê) → vínculo ao salvar o registro. O download passa pela API, com permissão do dono; o frontend baixa como blob porque o `<img>` não envia o Bearer.
+- **Motivo**: o banco não cresce com binários e o backup fica leve. Trocar para object/cloud storage é só outra implementação da interface.
+- **Impacto**: arquivos órfãos (enviados e nunca vinculados) ainda não são limpos (ver "Pontos em aberto"). O frontend reduz as fotos para no máximo 1600px antes do envio.
+
+## ADR-023 — Ocorrência operacional genérica com máquina de estados explícita
+- **Decisão**: `Occurrence` com tipo, gravidade e `Open → InAnalysis → Resolved | Cancelled`. Os estados finais exigem texto; não há reabertura nem exclusão. As transições ficam em `OccurrenceWorkflow`, e a API devolve `nextStatuses` para a UI não decidir regras.
+- **Motivo**: é uma porta de entrada simples para os futuros módulos de Manutenção e Sinistros, sem implementá-los agora.
+
+## ADR-024 — Checklists versionados com snapshot na execução
+- **Decisão**: `ChecklistTemplate` + itens. Alterar os itens incrementa `Version`. A `ChecklistExecution` copia cada pergunta para `ChecklistAnswer` (snapshot), e um envio com versão antiga é recusado (409). Cada item "Não conforme" abre uma `Occurrence` na mesma transação. O hodômetro do checklist reutiliza o `MileageService.AddReadingAsync`, sem duplicar regras.
+- **Alternativa rejeitada**: execuções apontando para os itens vivos do modelo. Uma edição do modelo reescreveria o passado.
+- **"Pendente"**: modelos diários/semanais × veículos em operação (com motorista e condição Disponível/Em viagem). Sem módulo de viagens, não há como saber se um veículo de pool foi usado.
+
+## ADR-025 — Eventos operacionais: histórico e outbox na mesma tabela
+- **Problema**: a Fase 2 pede histórico por veículo e a base das notificações futuras (DocumentExpiring, ChecklistFailed…), sem acoplar os módulos.
+- **Alternativas**: (a) montar o histórico juntando as tabelas de cada módulo na leitura; (b) MediatR/eventos de domínio em memória; (c) uma tabela `OperationalEvents` gravada na mesma transação da mudança.
+- **Decisão**: (c). `OperationalEventLog.Record(...)` adiciona o evento ao unit of work. A tabela é a linha do tempo (índices por veículo/motorista + data) e o outbox (`PublishedAt` nulo). Eventos baseados em tempo (vencimento de documento) vêm de `DocumentExpirationScanner`, executado por um `BackgroundService` na API (`Jobs:DocumentExpirationScan`), idempotente via `Document.LastAlertedStatus`.
+- **Motivo**: (a) acopla o histórico a todo módulo novo e pagina mal; (b) perde eventos se o processo cair e contraria o ADR-005. Com (c), um módulo novo só acrescenta valores ao enum.
+- **Impacto**: o resumo do evento é uma frase pt-BR congelada (o histórico não muda depois). Um dispatcher de notificações futuro lê `PublishedAt IS NULL` (índice filtrado já criado).
+
+## Pontos em aberto da Fase 2
+- **Acesso do motorista** (app/"Meu veículo"): adiado por decisão do usuário. O papel Motorista continua sem permissões.
+- **Motorista secundário / revezamento** e **alocação agendada**: não suportados; a regra atual é um responsável por vez.
+- **Categoria da CNH × tipo de veículo** (ex.: cavalo mecânico exige E): não validado; hoje só a CNH vencida bloqueia a alocação.
+- **Limite de 1.500 km/dia**: constante de domínio. Pode virar configuração por empresa ou por tipo de veículo.
+- **Horímetro**: continua editável no cadastro, sem histórico (máquinas e implementos com horímetro ficam para a manutenção preventiva).
+- **Arquivos órfãos**: uploads nunca vinculados e arquivos removidos (soft delete) permanecem no storage até existir um job de limpeza.
+- **Rate limit do `/auth/refresh`** (Fase 1: 10 por minuto por IP, junto com o login): recarregar a página várias vezes seguidas, ou vários usuários atrás do mesmo NAT, pode gerar 429 e forçar novo login. Recomendação: política própria e mais generosa para o refresh (o token tem 64 bytes aleatórios; força bruta é inviável).

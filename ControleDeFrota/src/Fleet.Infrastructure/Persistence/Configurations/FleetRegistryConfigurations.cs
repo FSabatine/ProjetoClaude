@@ -55,6 +55,7 @@ internal sealed class VehicleConfiguration : IEntityTypeConfiguration<Vehicle>
         builder.HasIndex(v => new { v.CompanyId, v.Renavam }).IsUnique().HasFilter(ConfigurationExtensions.NotDeletedFilter);
         builder.HasIndex(v => new { v.CompanyId, v.Chassis }).IsUnique().HasFilter(ConfigurationExtensions.NotDeletedFilter);
         builder.HasIndex(v => new { v.CompanyId, v.Status });
+        builder.HasIndex(v => new { v.CompanyId, v.OdometerUpdatedAt });
     }
 }
 

@@ -60,7 +60,7 @@ Entidades com soft delete (`ISoftDeletable`) têm também `DeletedAt` e `Deleted
 - Um `Remove()` em entidade `ISoftDeletable` é convertido em `UPDATE` pelo `SaveChanges`. **Nenhum código de módulo seta `DeletedAt` à mão.**
 - Um filtro global do EF oculta os excluídos em todas as consultas. `IgnoreQueryFilters()` só pode ser usado em código administrativo/auditoria, com comentário explicando o motivo.
 - Os **índices únicos são filtrados** (`WHERE [DeletedAt] IS NULL`). Assim, uma placa ou CPF de um registro excluído pode ser cadastrado de novo.
-- Aplicado a: `Companies`, `Users`, `Drivers`, `Vehicles`, `Implements`. Não se aplica a catálogos, `RefreshTokens` e `AuditLogs`.
+- Aplicado a: `Companies`, `Users`, `Drivers`, `Vehicles`, `Implements` e, na Fase 2, `DocumentTypes`, `Documents`, `StoredFiles` e `ChecklistTemplates`. Não se aplica a catálogos, `RefreshTokens`, `AuditLogs` nem aos **registros históricos** (alocações, leituras, execuções de checklist, ocorrências, eventos), que nunca são excluídos: são encerrados, rejeitados ou cancelados.
 - Excluir ≠ inativar. **Inativar** (status) é o fluxo normal de negócio: o registro continua visível e reportável. **Excluir** é para cadastro indevido ou duplicado.
 
 ## Auditoria
@@ -83,8 +83,9 @@ Responde a *quem, o quê, quando, valor anterior e valor novo*. Campos sensívei
 
 ## Histórico de dados
 
-- Nesta fase, o histórico de alterações é o próprio `AuditLogs`.
-- Histórico **de negócio** (leituras de hodômetro, vínculos veículo-implemento, alocação motorista-veículo) virá em tabelas próprias, com vigência (`StartedAt`/`EndedAt`), nas fases seguintes. O valor atual (`Vehicle.CurrentOdometerKm`) continua em `Vehicles` como leitura rápida.
+- `AuditLogs` guarda o histórico técnico de alterações (quem mudou qual campo).
+- O histórico **de negócio** vive em tabelas próprias desde a Fase 2: `VehicleAssignments` (vigência `StartedAt`/`EndedAt`), `OdometerReadings`, `ChecklistExecutions` e `Occurrences`. A linha do tempo consolidada é a tabela `OperationalEvents` (ADR-025). O valor atual (`Vehicle.CurrentOdometerKm`) continua em `Vehicles` como leitura rápida.
+- O vínculo veículo ↔ implemento com vigência continua planejado para uma fase futura.
 
 ## Entidades e relacionamentos (Fase 1)
 
@@ -200,3 +201,109 @@ Como `Vehicles` (placa, RENAVAM, chassi, fabricante, modelo, anos), com:
 
 - **No banco**: integridade estrutural, ou seja, PK, FK, NOT NULL, tamanho de colunas e unicidade (última linha de defesa contra concorrência).
 - **No código (Application)**: regras de negócio, como formatos e dígitos verificadores, faixas de datas, transições de status, "placa não pode existir em outro veículo nem implemento" e permissões. O serviço também checa duplicidade antes de gravar para devolver uma mensagem amigável (409). O índice único cobre a corrida entre duas requisições simultâneas.
+
+
+## Entidades e relacionamentos (Fase 2 — migration `OperationalControl`)
+
+```
+Vehicles 1───N VehicleAssignments N───1 Drivers      (índice único filtrado: 1 ativa por veículo e por motorista)
+Vehicles 1───N OdometerReadings N───0..1 ChecklistExecutions
+Companies 1───N DocumentTypes 1───N Documents ──0..1 Vehicles | Drivers | Implements   (CK_Documents_Owner)
+Companies 1───N ChecklistTemplates 1───N ChecklistTemplateItems (cascade)
+Vehicles 1───N ChecklistExecutions 1───N ChecklistAnswers (cascade, snapshot) ──0..1 Occurrences
+Vehicles/Drivers/Implements 1───N Occurrences N───0..1 ChecklistExecutions
+StoredFiles (OwnerType + OwnerId → Document | Occurrence | ChecklistAnswer; sem FK polimórfica)
+OperationalEvents (sem FKs, como AuditLogs)
+```
+
+Todas as tabelas novas (salvo itens de modelo e respostas, que pertencem ao pai) têm `CompanyId` com FK `Restrict` para `Companies`, filtro global de tenant e índices começando por `CompanyId`. As FKs para veículo, motorista e implemento são `Restrict`: histórico nunca some em cascata.
+
+### Vehicles (alterações)
+| Coluna | Tipo | Regras |
+|---|---|---|
+| Status | nvarchar(30) | + `Unavailable` (ADR-018) |
+| OdometerUpdatedAt | datetime2 NULL | data da última leitura aplicada (ADR-019). Índice `(CompanyId, OdometerUpdatedAt)` para "sem leitura recente" |
+
+### VehicleAssignments
+| Coluna | Tipo | Regras |
+|---|---|---|
+| VehicleId, DriverId | FK Restrict | |
+| StartedAt | datetime2 | não futura |
+| EndedAt | datetime2 NULL | nulo = ativa; ≥ StartedAt |
+| Notes, EndReason | nvarchar(500) NULL | |
+| auditoria | | sem soft delete (alocação errada é encerrada) |
+
+Índices: `UX_VehicleAssignments_ActiveVehicle (VehicleId) WHERE EndedAt IS NULL` e `UX_VehicleAssignments_ActiveDriver (DriverId) WHERE EndedAt IS NULL` (únicos); `(CompanyId, VehicleId, StartedAt)` e `(CompanyId, DriverId, StartedAt)` para o histórico.
+
+### OdometerReadings
+| Coluna | Tipo | Regras |
+|---|---|---|
+| VehicleId | FK Restrict | |
+| OdometerKm | int | 0 a 9.999.999 |
+| ReadAt | datetime2 | não futura; ≥ última leitura (exceto correção) |
+| Source | nvarchar(20) | `Registration, Manual, Checklist, Correction` |
+| Status | nvarchar(20) | `Valid, PendingReview, Rejected` |
+| Anomaly | nvarchar(300) NULL | motivo da suspeita |
+| Notes, ReviewNotes | nvarchar(500) NULL | motivo da correção / justificativa da revisão |
+| ReviewedAt, ReviewedBy | NULL | |
+| ChecklistExecutionId | FK NULL | leitura feita no checklist |
+
+Índices: `(CompanyId, VehicleId, ReadAt)` (histórico e linha de base), `(CompanyId, Status)` (pendentes de revisão). Append-only: nunca editada nem excluída.
+
+### DocumentTypes
+`Name nvarchar(80)`, `OwnerType nvarchar(20)`, `HasExpiration bit`, `AlertDaysBefore int (0–365)`, `IsActive bit`, auditoria + soft delete. Único filtrado `(CompanyId, OwnerType, Name)`.
+
+### Documents
+| Coluna | Tipo | Regras |
+|---|---|---|
+| DocumentTypeId | FK Restrict | |
+| OwnerType | nvarchar(20) | `Vehicle, Driver, Implement, Company` |
+| VehicleId / DriverId / ImplementId | FK NULL Restrict | exatamente a do `OwnerType` (check `CK_Documents_Owner`); nenhuma para `Company` |
+| Number | nvarchar(60) NULL | |
+| IssuedOn, ExpiresOn | date NULL | ver regras em DOMAIN.md |
+| AlertStartsOn | date NULL | `ExpiresOn − AlertDaysBefore` do tipo (derivado, fora da auditoria) |
+| Notes | nvarchar(1000) NULL | |
+| ReplacedAt, ReplacedByDocumentId | NULL | renovação |
+| LastAlertedStatus | nvarchar(20) NULL | controle do job de vencimentos (fora da auditoria) |
+| auditoria + soft delete | | |
+
+Índices: `(CompanyId, AlertStartsOn)` (alertas), `(CompanyId, ExpiresOn)` (ordenação), `(CompanyId, VehicleId|DriverId|ImplementId|DocumentTypeId)`.
+
+### StoredFiles
+`FileName nvarchar(200)` (sanitizado), `ContentType varchar(100)` (detectado pelo conteúdo), `SizeBytes bigint`, `StorageKey varchar(200)` único (gerado pelo servidor), `OwnerType nvarchar(30) NULL`, `OwnerId uniqueidentifier NULL`, auditoria + soft delete. Índice `(CompanyId, OwnerType, OwnerId)`. **Os bytes não ficam no banco** (ADR-022).
+
+### ChecklistTemplates / ChecklistTemplateItems
+- Templates: `Name nvarchar(100)` (único filtrado por empresa), `Description`, `Frequency`, `IsActive`, `Version int`, auditoria + soft delete.
+- Itens: `TemplateId` (cascade), `Position`, `Section nvarchar(60)`, `Label nvarchar(200)`, `ResponseType`, `IsRequired`, `Unit nvarchar(20)`, `RequiresPhotoOnFail`, `FailureOccurrenceType`, `FailureSeverity`. A mudança nos itens aparece na auditoria como a nova `Version` do modelo.
+
+### ChecklistExecutions / ChecklistAnswers
+- Execuções: `VehicleId`, `DriverId NULL`, `TemplateId` (FK Restrict) + snapshot `TemplateName`, `TemplateVersion`, `Frequency`; `PerformedAt` (UTC) e `PerformedOn` (data de negócio, para "feito hoje?" sem conta de fuso na consulta), `OdometerKm NULL`, `Result`, `FailedItems`, `Location`, `Notes`, auditoria. Imutáveis.
+- Respostas: `ExecutionId` (cascade), `TemplateItemId` + **snapshot** (`Position, Section, Label, ResponseType, IsRequired, Unit`), `Choice`, `NumberValue decimal(12,2)`, `TextValue nvarchar(500)`, `Comment`, `Severity`, `OccurrenceId` (FK NULL).
+- Índices: `(CompanyId, VehicleId, PerformedAt)`, `(CompanyId, DriverId, PerformedAt)`, `(CompanyId, TemplateId, PerformedOn)` (pendentes), `(CompanyId, PerformedAt)`.
+
+### Occurrences
+`VehicleId/DriverId/ImplementId` (FK NULL, ao menos um), `Type`, `Severity`, `OccurredAt`, `Location nvarchar(200)`, `Description nvarchar(2000)`, `Status`, `Resolution nvarchar(2000)`, `ClosedAt/ClosedBy`, `Source` (`Manual`/`Checklist`), `ChecklistExecutionId` (FK NULL), auditoria. Sem soft delete (registro indevido é cancelado). Índices: `(CompanyId, Status, OccurredAt)`, `(CompanyId, VehicleId, OccurredAt)`, `(CompanyId, DriverId, OccurredAt)`, `(CompanyId, OccurredAt)`.
+
+### OperationalEvents (ADR-025)
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| Id | bigint identity | ordem de inserção (outbox) |
+| CompanyId | uniqueidentifier | tenant |
+| Type | nvarchar(40) | catálogo em DOMAIN.md |
+| OccurredAt | datetime2 | UTC |
+| UserId | NULL | nulo = sistema (job) |
+| VehicleId, DriverId, ImplementId | NULL | timelines onde o evento aparece |
+| SubjectType, SubjectId | varchar(50), uniqueidentifier | registro de origem |
+| Summary | nvarchar(300) | frase pt-BR congelada |
+| Data | nvarchar(max) | JSON (ids e valores, sem dados pessoais além de ids) |
+| PublishedAt | datetime2 NULL | outbox das notificações futuras |
+
+Sem FKs (o histórico sobrevive a qualquer limpeza). Índices: `(CompanyId, VehicleId, OccurredAt)`, `(CompanyId, DriverId, OccurredAt)`, `(CompanyId, Type, OccurredAt)` e `IX_OperationalEvents_Unpublished (Id) WHERE PublishedAt IS NULL`.
+
+### Seed
+- Permissões 100–150 e o mapeamento dos papéis via `HasData` (a migration faz `InsertData` em `Permissions`/`RolePermissions` e atualiza as descrições dos papéis).
+- Tipos de documento padrão: criados com cada empresa nova (`CompanyService`) e, para empresas antigas, na primeira leitura (`DocumentTypeService.EnsureDefaultsAsync`). Não há `InsertData` por empresa na migration.
+- Desenvolvimento: `DevDataSeeder.SeedOperationsAsync` (idempotente) adiciona usuários de operação e manutenção, o modelo "Inspeção diária", alocações, leituras (uma delas suspeita), documentos em todos os estados e uma ocorrência aberta.
+
+### Revisão da migration `OperationalControl`
+O `Up` é **somente aditivo**: 11 tabelas novas, a coluna `Vehicles.OdometerUpdatedAt` (nullable), um índice em `Vehicles` e o seed de permissões. Não há alteração nem remoção de coluna existente. O aviso "may result in the loss of data" do `dotnet ef` refere-se ao `Down`, que remove as tabelas novas.

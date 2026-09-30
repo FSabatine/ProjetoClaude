@@ -1,4 +1,4 @@
-import { Button, Group, Stack, Text } from '@mantine/core';
+import { Button, Checkbox, Group, NumberInput, Stack, Text } from '@mantine/core';
 import { IconPlus, IconTruck } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
@@ -11,9 +11,11 @@ import { PageHeader } from '../../components/PageHeader';
 import { EmptyState } from '../../components/States';
 import { useListParams } from '../../hooks/useListParams';
 import { formatNumber, formatPlate } from '../../lib/format';
-import { VEHICLE_STATUS, VEHICLE_TYPE, vehiclesApi, type VehicleListItem } from './vehicles';
+import { DriverPicker } from '../../components/EntityPickers';
+import { VEHICLE_OPERATIONAL_STATUS } from '../operations/labels';
+import { VEHICLE_TYPE, vehiclesApi, type VehicleListItem } from './vehicles';
 
-const FILTERS = ['status', 'type'] as const;
+const FILTERS = ['operationalStatus', 'type', 'driverId', 'minOdometerKm', 'maxOdometerKm', 'staleMileage'] as const;
 
 export function VehicleListPage() {
   const navigate = useNavigate();
@@ -58,22 +60,32 @@ export function VehicleListPage() {
     },
     { key: 'type', header: 'Tipo', sortKey: 'type', secondary: true, render: (v) => VEHICLE_TYPE[v.type].label },
     { key: 'year', header: 'Ano', sortKey: 'modelYear', secondary: true, render: (v) => v.modelYear },
+    { key: 'driver', header: 'Motorista', render: (v) => <Text size="sm" c={v.currentDriverName ? undefined : 'dimmed'}>{v.currentDriverName ?? '—'}</Text> },
     { key: 'odometer', header: 'Hodômetro', sortKey: 'currentOdometerKm', align: 'right', render: (v) => `${formatNumber(v.currentOdometerKm)} km` },
-    { key: 'status', header: 'Situação', sortKey: 'status', render: (v) => <StatusBadge value={v.status} map={VEHICLE_STATUS} /> },
+    { key: 'status', header: 'Situação', sortKey: 'status', render: (v) => <StatusBadge value={v.operationalStatus} map={VEHICLE_OPERATIONAL_STATUS} /> },
   ];
 
   return (
     <>
-      <PageHeader title="Veículos" description="Frota de veículos da empresa: identificação, características e situação." action={newButton} />
+      <PageHeader title="Veículos" description="A frota e a situação operacional de cada veículo: quem dirige, hodômetro e disponibilidade." action={newButton} />
       <ListToolbar
         search={list.search}
         onSearch={list.setSearch}
-        searchPlaceholder="Buscar por placa, modelo, fabricante, RENAVAM ou chassi"
+        searchPlaceholder="Buscar por placa, modelo, motorista, RENAVAM ou chassi"
         filters={[
-          { key: 'status', placeholder: 'Situação', data: toSelectData(VEHICLE_STATUS), value: list.filters.status, onChange: (v) => list.setFilter('status', v) },
+          { key: 'operationalStatus', placeholder: 'Situação', data: toSelectData(VEHICLE_OPERATIONAL_STATUS), value: list.filters.operationalStatus, onChange: (v) => list.setFilter('operationalStatus', v) },
           { key: 'type', placeholder: 'Tipo', data: toSelectData(VEHICLE_TYPE), value: list.filters.type, onChange: (v) => list.setFilter('type', v) },
         ]}
       />
+      <Group gap="sm" mb="md" mt={-8} align="flex-end" wrap="wrap">
+        <DriverPicker size="xs" label="Motorista" excludeInactive={false} value={list.filters.driverId} onChange={(v) => list.setFilter('driverId', v)} w={220} />
+        <NumberInput size="xs" label="Km mínimo" w={130} thousandSeparator="." decimalSeparator="," allowDecimal={false} allowNegative={false}
+          value={list.filters.minOdometerKm ?? ''} onChange={(v) => list.setFilter('minOdometerKm', v === '' ? null : String(v))} />
+        <NumberInput size="xs" label="Km máximo" w={130} thousandSeparator="." decimalSeparator="," allowDecimal={false} allowNegative={false}
+          value={list.filters.maxOdometerKm ?? ''} onChange={(v) => list.setFilter('maxOdometerKm', v === '' ? null : String(v))} />
+        <Checkbox size="xs" mb={6} label="Sem leitura de hodômetro há 7 dias" checked={list.filters.staleMileage === 'true'}
+          onChange={(e) => list.setFilter('staleMileage', e.currentTarget.checked ? 'true' : null)} />
+      </Group>
       <DataTable
         columns={columns}
         data={query.data}
@@ -86,15 +98,16 @@ export function VehicleListPage() {
         onPageChange={list.setPage}
         onRowClick={(v) => navigate(`/veiculos/${v.id}`)}
         rowActions={(v) => (
-          <RowActions onEdit={canEdit ? () => navigate(`/veiculos/${v.id}`) : undefined} onDelete={canDelete ? () => handleDelete(v) : undefined} />
+          <RowActions onEdit={canEdit ? () => navigate(`/veiculos/${v.id}/editar`) : undefined} onDelete={canDelete ? () => handleDelete(v) : undefined} />
         )}
         renderCard={(v) => (
           <Stack gap={4}>
             <Group justify="space-between" gap="xs">
               <Text fw={700} ff="monospace">{formatPlate(v.licensePlate)}</Text>
-              <StatusBadge value={v.status} map={VEHICLE_STATUS} />
+              <StatusBadge value={v.operationalStatus} map={VEHICLE_OPERATIONAL_STATUS} />
             </Group>
             <Text size="sm">{v.manufacturer} {v.model} · {v.modelYear}</Text>
+            {v.currentDriverName && <Text size="xs">{v.currentDriverName}</Text>}
             <Text size="xs" c="dimmed">{VEHICLE_TYPE[v.type].label} · {formatNumber(v.currentOdometerKm)} km</Text>
           </Stack>
         )}

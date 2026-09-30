@@ -57,6 +57,50 @@ public static class Permissions
         public const string Delete = "implements.delete";
     }
 
+    public static class Assignments
+    {
+        public const string View = "assignments.view";
+        /// <summary>Assign, change and end the driver of a vehicle.</summary>
+        public const string Manage = "assignments.manage";
+    }
+
+    public static class Mileage
+    {
+        /// <summary>Record a new odometer reading.</summary>
+        public const string Record = "mileage.record";
+        /// <summary>Review suspicious readings and register audited corrections.</summary>
+        public const string Manage = "mileage.manage";
+    }
+
+    public static class Documents
+    {
+        public const string View = "documents.view";
+        /// <summary>Create, edit and renew documents and their files.</summary>
+        public const string Manage = "documents.manage";
+        public const string Delete = "documents.delete";
+    }
+
+    public static class Checklists
+    {
+        /// <summary>See executed checklists.</summary>
+        public const string View = "checklists.view";
+        public const string Execute = "checklists.execute";
+    }
+
+    public static class Occurrences
+    {
+        public const string View = "occurrences.view";
+        public const string Create = "occurrences.create";
+        /// <summary>Edit, analyse, resolve and cancel occurrences.</summary>
+        public const string Manage = "occurrences.manage";
+    }
+
+    public static class Operations
+    {
+        /// <summary>Configure document types and checklist templates of the company.</summary>
+        public const string Configure = "operations.configure";
+    }
+
     public static class Audit
     {
         public const string View = "audit.view";
@@ -93,6 +137,19 @@ public static class PermissionCatalog
         new(62, Permissions.Implements.Update, "Editar implementos"),
         new(63, Permissions.Implements.Delete, "Excluir implementos"),
         new(90, Permissions.Audit.View, "Visualizar histórico de alterações"),
+        new(100, Permissions.Assignments.View, "Visualizar alocações de motoristas"),
+        new(101, Permissions.Assignments.Manage, "Alocar, trocar e encerrar motoristas de veículos"),
+        new(110, Permissions.Mileage.Record, "Registrar leituras de hodômetro"),
+        new(111, Permissions.Mileage.Manage, "Revisar leituras suspeitas e corrigir hodômetro"),
+        new(120, Permissions.Documents.View, "Visualizar documentos"),
+        new(121, Permissions.Documents.Manage, "Cadastrar, editar e renovar documentos"),
+        new(122, Permissions.Documents.Delete, "Excluir documentos"),
+        new(130, Permissions.Checklists.View, "Visualizar checklists realizados"),
+        new(131, Permissions.Checklists.Execute, "Realizar checklists"),
+        new(140, Permissions.Occurrences.View, "Visualizar ocorrências"),
+        new(141, Permissions.Occurrences.Create, "Registrar ocorrências"),
+        new(142, Permissions.Occurrences.Manage, "Analisar, resolver e cancelar ocorrências"),
+        new(150, Permissions.Operations.Configure, "Configurar tipos de documento e modelos de checklist"),
     ];
 
     public static PermissionDefinition Get(string key) => All.Single(p => p.Key == key);

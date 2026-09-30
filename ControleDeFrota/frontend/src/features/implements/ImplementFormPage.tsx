@@ -1,4 +1,4 @@
-import { Box, NumberInput, Select, Stack, TextInput, Textarea } from '@mantine/core';
+import { Box, NumberInput, Select, Stack, TextInput, Textarea, Title } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
@@ -11,6 +11,7 @@ import { submitWithFeedback } from '../../components/useApiForm';
 import { formatPlate } from '../../lib/format';
 import { combine, required, rules } from '../../lib/validators';
 import { AuditHistoryButton } from '../audit/AuditHistoryButton';
+import { DocumentsPanel } from '../documents/DocumentsPanel';
 import {
   CAPACITY_UNIT,
   IMPLEMENT_STATUS,
@@ -142,6 +143,12 @@ function ImplementForm({ implement }: { implement?: Implement }) {
           </Box>
         )}
       </form>
+      {implement && can(PERMISSIONS.documents.view) && (
+        <Box mt="xl">
+          <Title order={3} fz="lg" mb="sm">Documentos do implemento</Title>
+          <DocumentsPanel ownerType="Implement" ownerId={implement.id} />
+        </Box>
+      )}
     </>
   );
 }

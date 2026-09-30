@@ -1,6 +1,6 @@
 # Controle de Frota
 
-Plataforma de **gestão e controle de frotas** multiempresa: veículos, implementos, motoristas e, nas próximas fases, operação, manutenção, combustível, pneus, custos, rastreamento e relatórios.
+Plataforma de **gestão e controle de frotas** multiempresa: veículos, implementos, motoristas, controle operacional (alocação, hodômetro, documentos, checklists, ocorrências e histórico) e, nas próximas fases, viagens, manutenção, combustível, pneus, custos, rastreamento e relatórios.
 
 ## Objetivos
 
@@ -22,6 +22,11 @@ Plataforma de **gestão e controle de frotas** multiempresa: veículos, implemen
 | Implementos / reboques | Fase 1 |
 | Dashboard inicial + alertas de CNH | Fase 1 |
 | Auditoria (base) | Fase 1 |
+| Situação operacional, alocação motorista ↔ veículo | Fase 2 |
+| Histórico de hodômetro (revisão de suspeitas, correção auditada) | Fase 2 |
+| Documentos com vencimento e arquivos | Fase 2 |
+| Checklists configuráveis (celular) e ocorrências operacionais | Fase 2 |
+| Histórico operacional, eventos para notificações, dashboard operacional | Fase 2 |
 | Operação, manutenção, combustível, pneus, financeiro, rastreamento, relatórios, automação, integrações | ver [ROADMAP.md](ROADMAP.md) |
 
 ## Stack
@@ -55,12 +60,14 @@ dotnet build Fleet.sln -warnaserror && dotnet test Fleet.sln
 cd frontend && npm run lint && npm test && npm run build
 ```
 
-Em Development, a API aplica as migrations e cria o banco `ControleDeFrota` no LocalDB na primeira execução, com duas empresas de demonstração (uma com CNPJ alfanumérico), uma frota de exemplo (4 veículos, 2 implementos e 4 motoristas, sendo um com a CNH vencida e outro com a CNH vencendo) e estes usuários, todos com a senha **`FrotaDev!2026`**:
+Em Development, a API aplica as migrations e cria o banco `ControleDeFrota` no LocalDB na primeira execução, com duas empresas de demonstração (uma com CNPJ alfanumérico), uma frota de exemplo (4 veículos, 2 implementos e 4 motoristas, sendo um com a CNH vencida e outro com a CNH vencendo), dados operacionais de exemplo (modelo "Inspeção diária", dois veículos alocados, histórico de hodômetro com uma leitura suspeita, documentos vencidos e vencendo e uma ocorrência aberta) e estes usuários, todos com a senha **`FrotaDev!2026`**:
 
 | E-mail | Empresa | Papel | Para testar |
 |---|---|---|---|
 | admin@frota.local | Rodoxisto (Dev) | Administrador da plataforma | tudo, inclusive a gestão de empresas |
-| gestor@frota.local | Rodoxisto (Dev) | Gestor de frota | cadastros da frota e histórico |
+| gestor@frota.local | Rodoxisto (Dev) | Gestor de frota | cadastros, operação completa (alocação, revisão de hodômetro, configuração de checklists e tipos de documento) |
+| operacao@frota.local | Rodoxisto (Dev) | Operações | operação diária sem correção de hodômetro, exclusão de documento nem configuração (Fase 2) |
+| manutencao@frota.local | Rodoxisto (Dev) | Manutenção | acompanhamento das ocorrências, somente leitura (Fase 2) |
 | consulta@frota.local | Rodoxisto (Dev) | Visualizador | telas somente leitura e 403 |
 | operacao@exemplo.local | Exemplo Transportes | Administrador | isolamento entre empresas e estados vazios |
 
@@ -78,6 +85,8 @@ Para recomeçar do zero, apague o banco (`sqllocaldb` / SSMS: `DROP DATABASE Con
 | `Jwt:AccessTokenMinutes`, `Jwt:RefreshTokenDays` | appsettings | 15 / 7 |
 | `Auth:MaxFailedAttempts`, `Auth:LockoutMinutes` | appsettings | 5 / 15 |
 | `Database:MigrateOnStartup`, `Database:SeedDevelopmentData`, `Database:SeedSampleData` | somente Development | |
+| `Storage:LocalRootPath` | appsettings | pasta dos arquivos enviados (padrão `App_Data/files`, relativa ao content root; ignorada pelo Git). Com várias instâncias, use um storage compartilhado |
+| `Jobs:DocumentExpirationScan:Enabled`, `IntervalMinutes` | appsettings | job que emite os eventos de vencimento de documentos (padrão: ligado, a cada 360 min) |
 | `Auth:RequestsPerMinutePerIp` | appsettings | limite de login/refresh por IP (10) |
 | `Auth:RefreshCookie:Secure` | appsettings | `true` sempre; `false` só nos testes automatizados |
 | `Cors:AllowedOrigins` | appsettings | origens da SPA em produção |

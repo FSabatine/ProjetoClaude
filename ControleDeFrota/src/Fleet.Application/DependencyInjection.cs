@@ -1,6 +1,13 @@
 using System.Globalization;
+using Fleet.Application.Assignments;
 using Fleet.Application.Audit;
 using Fleet.Application.Auth;
+using Fleet.Application.Checklists;
+using Fleet.Application.Documents;
+using Fleet.Application.Files;
+using Fleet.Application.Mileage;
+using Fleet.Application.Occurrences;
+using Fleet.Application.Operations;
 using Fleet.Application.Companies;
 using Fleet.Application.Dashboard;
 using Fleet.Application.Drivers;
@@ -32,6 +39,19 @@ public static class DependencyInjection
         services.AddScoped<ImplementService>();
         services.AddScoped<DashboardService>();
         services.AddScoped<AuditService>();
+
+        // Phase 2 — operational control
+        services.AddScoped<OperationalEventLog>();
+        services.AddScoped<OperationalHistoryService>();
+        services.AddScoped<AssignmentService>();
+        services.AddScoped<MileageService>();
+        services.AddScoped<FileService>();
+        services.AddScoped<DocumentTypeService>();
+        services.AddScoped<DocumentService>();
+        services.AddScoped<DocumentExpirationScanner>();
+        services.AddScoped<ChecklistTemplateService>();
+        services.AddScoped<ChecklistService>();
+        services.AddScoped<OccurrenceService>();
         return services;
     }
 }

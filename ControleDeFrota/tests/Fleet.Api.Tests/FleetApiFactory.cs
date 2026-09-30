@@ -22,6 +22,9 @@ public sealed class FleetApiFactory : WebApplicationFactory<Program>
     public const string AdminA = "admin@a.com";
     public const string ViewerA = "viewer@a.com";
     public const string AdminB = "admin@b.com";
+    public const string OperationsA = "operacoes@a.com";
+    public const string MaintenanceA = "manutencao@a.com";
+    public const string DriverA = "motorista@a.com";
 
     private readonly SqliteConnection _connection = new("DataSource=:memory:");
 
@@ -34,6 +37,8 @@ public sealed class FleetApiFactory : WebApplicationFactory<Program>
         // TestServer speaks plain http, where browsers/HttpClient would drop a Secure cookie.
         builder.UseSetting("Auth:RefreshCookie:Secure", "false");
         builder.UseSetting("Auth:RequestsPerMinutePerIp", "10000");
+        builder.UseSetting("Jobs:DocumentExpirationScan:Enabled", "false");
+        builder.UseSetting("Storage:LocalRootPath", Path.Combine(Path.GetTempPath(), "fleet-api-tests", Guid.NewGuid().ToString("N")));
 
         builder.ConfigureServices(services =>
         {
@@ -55,6 +60,9 @@ public sealed class FleetApiFactory : WebApplicationFactory<Program>
         db.Users.AddRange(
             NewUser(companyA, AdminA, SystemRoles.Administrator, hasher),
             NewUser(companyA, ViewerA, SystemRoles.Viewer, hasher),
+            NewUser(companyA, OperationsA, SystemRoles.Operations, hasher),
+            NewUser(companyA, MaintenanceA, SystemRoles.Maintenance, hasher),
+            NewUser(companyA, DriverA, SystemRoles.Driver, hasher),
             NewUser(companyB, AdminB, SystemRoles.Administrator, hasher));
         db.SaveChangesAsync().GetAwaiter().GetResult();
     }

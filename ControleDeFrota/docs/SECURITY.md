@@ -21,6 +21,7 @@ Princípio: **Segurança > Conveniência**. O backend é a única autoridade. Es
 - Mensagem de login genérica ("E-mail ou senha inválidos"), para não revelar se o e-mail existe.
 - **Bloqueio**: 5 falhas consecutivas bloqueiam a conta por 15 minutos (`Auth:MaxFailedAttempts`, `Auth:LockoutMinutes`).
 - **Rate limiting**: `POST /auth/login` e `/auth/refresh` aceitam até 10 requisições por minuto por IP. Acima disso, a resposta é 429.
+  - **Risco identificado na Fase 2**: como o refresh divide o limite com o login, vários recarregamentos seguidos (ou vários usuários atrás do mesmo NAT) podem receber 429 e perder a sessão. Recomendação: uma política separada e mais generosa para o refresh, que usa um token aleatório de 64 bytes e não é atacável por força bruta (ver DECISIONS, pontos em aberto).
 - Não há "esqueci minha senha" nesta fase. O administrador redefine a senha pela tela de usuários. O reset por e-mail depende de um serviço de e-mail (fase de integrações).
 
 ## Autorização
@@ -34,17 +35,38 @@ Princípio: **Segurança > Conveniência**. O backend é a única autoridade. Es
   3. um ID de outra empresa responde 404.
 - **Anti-escalonamento**: um usuário só atribui papéis cujas permissões ele próprio tem. Ninguém altera os próprios papéis nem o próprio status.
 
+### Autorização na Fase 2
+
+- Permissões novas: `assignments.*`, `mileage.record/manage`, `documents.view/manage/delete`, `checklists.view/execute`, `occurrences.view/create/manage` e `operations.configure` (matriz por papel em DOMAIN.md).
+- Todo endpoint novo tem `[HasPermission]`. As regras que dependem do alvo são checadas **no serviço**, não na rota:
+  - a correção de hodômetro exige `mileage.manage`, mesmo que a rota aceite `mileage.record`;
+  - baixar um arquivo exige a permissão de visualização do registro dono (documento, ocorrência ou checklist); um arquivo ainda sem dono só é visível para quem o enviou;
+  - ao vincular arquivos a um registro, só são aceitos arquivos **enviados pelo próprio usuário e ainda sem dono**: conhecer o id de um arquivo não dá acesso a ele;
+  - ninguém remove as fotos de um checklist já enviado.
+- O job de vencimentos roda sem usuário e ignora os filtros de tenant de propósito: ele só lê documentos e grava eventos com o `CompanyId` do próprio documento (revisado e comentado no código).
+- Os testes de `OperationsApiTests` cobrem o 403 por papel (Visualizador, Manutenção, Operações, Motorista), o 404 entre empresas para documentos e arquivos e o 403 na correção de hodômetro feita por Operações.
+
+## Upload de arquivos
+
+- O tipo é detectado pelos **magic bytes** (PDF, JPEG, PNG). A extensão e o `Content-Type` enviados pelo cliente são ignorados: um executável renomeado para `.pdf` é recusado.
+- O limite de 10 MB é aplicado duas vezes: `RequestSizeLimit` no endpoint e cópia limitada no serviço.
+- O nome original é sanitizado (sem caminho nem caracteres reservados) e usado **só para exibição**. A chave no storage é gerada pelo servidor, e o `LocalFileStorage` recusa qualquer caminho fora da raiz (defesa contra *path traversal*).
+- Os arquivos ficam fora do web root e só são servidos pela API autenticada, com o `Content-Type` validado, `X-Content-Type-Options: nosniff` (middleware) e `Cache-Control: private, no-store`.
+- Pendências: antivírus no upload e limpeza de arquivos órfãos.
+
 ## Proteção de dados (LGPD)
 
 - CPF, RG, CNH, telefone, e-mail e endereço de motoristas são **dados pessoais**. O acesso exige `drivers.view`, e toda alteração é auditada.
 - Logs de aplicação **não** registram dados pessoais nem corpos de requisição.
+- Minimização na Fase 2: no contexto do veículo (lista, hub, histórico) aparece só o **nome** do motorista alocado, para quem tem `vehicles.view`, porque ele é necessário para operar. CPF, CNH e contatos continuam exigindo `drivers.view`. Nos alertas de documento do dashboard, o nome do motorista só aparece com `drivers.view`. O payload JSON dos eventos operacionais leva ids, não dados pessoais.
+- Documentos de motorista (exames, ASO) podem conter dados de saúde, que são **dados sensíveis** (LGPD, art. 11). O acesso aos arquivos exige `documents.view`. Pendência: definir a base legal e a retenção com o jurídico.
 - Em produção, a connection string e a chave JWT vêm de variáveis de ambiente ou de um cofre (Azure Key Vault ou equivalente), **nunca do repositório**. `appsettings.Development.json` contém apenas segredos de desenvolvimento.
 - HTTPS obrigatório fora de Development (HSTS + redirecionamento).
 - Pendências futuras: base legal documentada, política de retenção e anonimização de motoristas desligados, e exportação dos dados do titular.
 
 ## Auditoria
 
-- Toda criação, alteração e exclusão (soft delete) de Company, User, Driver, Vehicle e Implement grava `AuditLogs` com o usuário, a data, os campos e os valores antigo e novo. Ver DATABASE.md.
+- Toda criação, alteração e exclusão (soft delete) de Company, User, Driver, Vehicle e Implement (e, na Fase 2, também de VehicleAssignment, OdometerReading — inclusive revisão e correção —, DocumentType, Document, StoredFile, ChecklistTemplate, ChecklistExecution e Occurrence, inclusive a mudança de situação) grava `AuditLogs` com o usuário, a data, os campos e os valores antigo e novo. Ver DATABASE.md.
 - Os logins bem-sucedidos e as falhas de login também vão para o log da aplicação, no nível Information/Warning.
 - A leitura do histórico exige `audit.view`.
 

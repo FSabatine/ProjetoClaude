@@ -10,6 +10,7 @@ using Fleet.Domain.Documents;
 using Fleet.Domain.Drivers;
 using Fleet.Domain.Files;
 using Fleet.Domain.Implements;
+using Fleet.Domain.Maintenance;
 using Fleet.Domain.Mileage;
 using Fleet.Domain.Occurrences;
 using Fleet.Domain.Operations;
@@ -54,6 +55,13 @@ public sealed class FleetDbContext : DbContext, IFleetDbContext
     public DbSet<Occurrence> Occurrences => Set<Occurrence>();
     public DbSet<OperationalEvent> OperationalEvents => Set<OperationalEvent>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+
+    public DbSet<Workshop> Workshops => Set<Workshop>();
+    public DbSet<MaintenancePlan> MaintenancePlans => Set<MaintenancePlan>();
+    public DbSet<MaintenanceSchedule> MaintenanceSchedules => Set<MaintenanceSchedule>();
+    public DbSet<HourMeterReading> HourMeterReadings => Set<HourMeterReading>();
+    public DbSet<MaintenanceRequest> MaintenanceRequests => Set<MaintenanceRequest>();
+    public DbSet<WorkOrder> WorkOrders => Set<WorkOrder>();
 
     /// <summary>Read by the tenant query filter on every query (EF parameterizes this per context instance).</summary>
     private Guid? CurrentCompanyId => _currentUser.CompanyId;

@@ -95,9 +95,9 @@ Alvos de toque de no mínimo 40px. O motorista vai usar o celular nas fases futu
 ### Página "hub" do registro (veículo e motorista)
 - `/veiculos/:id` e `/motoristas/:id` são o **centro** do registro. A edição do cadastro foi para `/…/:id/editar`, e salvar volta ao hub.
 - Estrutura: `PageHeader` (título, breadcrumb, Histórico de auditoria, Editar e **uma** ação primária, como "Realizar checklist") → **cabeçalho operacional** (situação, placa, hodômetro com a data e motorista atual) → **abas** (`DetailTabs`).
-- Abas do veículo: Visão geral (alertas do veículo + dados gerais), Motorista, Quilometragem, Documentos, Checklists, Ocorrências (com contador das abertas) e Histórico. Abas do motorista: Visão geral, Veículos, Documentos, Checklists, Ocorrências e Histórico. Cada aba só aparece com a permissão do módulo.
+- Abas do veículo: Visão geral (alertas do veículo + dados gerais), Motorista, Quilometragem, Documentos, Checklists, Ocorrências (com contador das abertas), **Manutenção** (Fase 3: próximas, ordens de serviço, problemas recorrentes) e Histórico. Abas do motorista: Visão geral, Veículos, Documentos, Checklists, Ocorrências e Histórico. Cada aba só aparece com a permissão do módulo.
 - A aba ativa fica na URL (`?aba=documentos`): os alertas do dashboard levam direto à seção certa e o botão voltar funciona.
-- Não há abas de módulos futuros (manutenção, combustível, pneus…): elas entram quando existirem.
+- Não há abas de módulos futuros (combustível, pneus, viagens…): elas entram quando existirem.
 
 ### Confirmações e ações de risco
 - A troca de motorista pede confirmação com a frase do servidor ("o veículo está com Maria…"). Nada é encerrado em silêncio.

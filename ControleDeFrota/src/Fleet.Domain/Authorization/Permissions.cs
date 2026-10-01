@@ -105,6 +105,20 @@ public static class Permissions
     {
         public const string View = "audit.view";
     }
+
+    public static class Maintenance
+    {
+        public const string View = "maintenance.view";
+        /// <summary>Report a problem / ask for maintenance (driver report, occurrence, manager).</summary>
+        public const string CreateRequest = "maintenance.createrequest";
+        /// <summary>Configure preventive maintenance plans and their items.</summary>
+        public const string ManagePlans = "maintenance.manageplans";
+        /// <summary>Approve/reject requests, create, schedule, assign, execute and close work orders.</summary>
+        public const string ManageWorkOrders = "maintenance.manageworkorders";
+        public const string ManageWorkshops = "maintenance.manageworkshops";
+        /// <summary>See parts/labor/total cost figures.</summary>
+        public const string ViewCosts = "maintenance.viewcosts";
+    }
 }
 
 public sealed record PermissionDefinition(int Id, string Key, string Description)
@@ -150,6 +164,12 @@ public static class PermissionCatalog
         new(141, Permissions.Occurrences.Create, "Registrar ocorrências"),
         new(142, Permissions.Occurrences.Manage, "Analisar, resolver e cancelar ocorrências"),
         new(150, Permissions.Operations.Configure, "Configurar tipos de documento e modelos de checklist"),
+        new(160, Permissions.Maintenance.View, "Visualizar manutenção (planos, solicitações, ordens de serviço)"),
+        new(161, Permissions.Maintenance.CreateRequest, "Solicitar manutenção"),
+        new(162, Permissions.Maintenance.ManagePlans, "Configurar planos de manutenção preventiva"),
+        new(163, Permissions.Maintenance.ManageWorkOrders, "Aprovar solicitações e gerenciar ordens de serviço"),
+        new(164, Permissions.Maintenance.ManageWorkshops, "Cadastrar e editar oficinas"),
+        new(165, Permissions.Maintenance.ViewCosts, "Visualizar custos de manutenção"),
     ];
 
     public static PermissionDefinition Get(string key) => All.Single(p => p.Key == key);

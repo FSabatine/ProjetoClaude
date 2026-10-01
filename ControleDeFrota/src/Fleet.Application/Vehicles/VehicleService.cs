@@ -1,6 +1,7 @@
 using Fleet.Application.Assignments;
 using Fleet.Application.Common;
 using Fleet.Application.Operations;
+using Fleet.Domain.Maintenance;
 using Fleet.Domain.Mileage;
 using Fleet.Domain.Operations;
 using Fleet.Domain.Validation;
@@ -77,6 +78,19 @@ public sealed class VehicleService(IFleetDbContext db, IClock clock, Operational
             ReadAt = vehicle.OdometerUpdatedAt.Value,
             Source = OdometerReadingSource.Registration,
         });
+        if (request.HourMeter is { } hourMeter)
+        {
+            vehicle.HourMeter = hourMeter;
+            vehicle.HourMeterUpdatedAt = clock.UtcNow;
+            // Same idea as the odometer: the first entry of the hour-meter history (ADR-027).
+            db.HourMeterReadings.Add(new HourMeterReading
+            {
+                VehicleId = vehicle.Id,
+                Hours = hourMeter,
+                ReadAt = vehicle.HourMeterUpdatedAt.Value,
+                Source = HourMeterReadingSource.Registration,
+            });
+        }
         await db.SaveChangesAsync(ct);
         return await ToResponseAsync(vehicle, ct);
     }
@@ -88,6 +102,9 @@ public sealed class VehicleService(IFleetDbContext db, IClock clock, Operational
         if (request.CurrentOdometerKm is { } odometer && odometer != vehicle.CurrentOdometerKm)
             throw ValidationErrors.ForField("currentOdometerKm",
                 "O hodômetro é atualizado pelo registro de leituras, que valida e guarda o histórico. Use \"Registrar leitura\" na aba Quilometragem.");
+        if (request.HourMeter is { } requestedHourMeter && requestedHourMeter != vehicle.HourMeter)
+            throw ValidationErrors.ForField("hourMeter",
+                "O horímetro é atualizado pelo registro de leituras, que valida e guarda o histórico. Use a aba Manutenção.");
 
         var previousStatus = vehicle.Status;
         if (request.Status == VehicleStatus.Inactive && previousStatus != VehicleStatus.Inactive &&

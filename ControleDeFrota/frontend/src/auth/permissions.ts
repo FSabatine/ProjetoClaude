@@ -14,6 +14,14 @@ export const PERMISSIONS = {
   checklists: { view: 'checklists.view', execute: 'checklists.execute' },
   occurrences: { view: 'occurrences.view', create: 'occurrences.create', manage: 'occurrences.manage' },
   operations: { configure: 'operations.configure' },
+  maintenance: {
+    view: 'maintenance.view',
+    createrequest: 'maintenance.createrequest',
+    manageplans: 'maintenance.manageplans',
+    manageworkorders: 'maintenance.manageworkorders',
+    manageworkshops: 'maintenance.manageworkshops',
+    viewcosts: 'maintenance.viewcosts',
+  },
 } as const;
 
 type Values<T> = T[keyof T];

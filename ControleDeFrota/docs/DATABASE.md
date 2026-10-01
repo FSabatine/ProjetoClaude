@@ -307,3 +307,52 @@ Sem FKs (o histórico sobrevive a qualquer limpeza). Índices: `(CompanyId, Vehi
 
 ### Revisão da migration `OperationalControl`
 O `Up` é **somente aditivo**: 11 tabelas novas, a coluna `Vehicles.OdometerUpdatedAt` (nullable), um índice em `Vehicles` e o seed de permissões. Não há alteração nem remoção de coluna existente. O aviso "may result in the loss of data" do `dotnet ef` refere-se ao `Down`, que remove as tabelas novas.
+
+## Entidades e relacionamentos (Fase 3 — migration `Maintenance`)
+
+```
+Companies 1───N Workshops
+Companies 1───N MaintenancePlans 1───N MaintenancePlanItems (cascade)
+Vehicles 1───N HourMeterReadings                              (append-only, como OdometerReadings)
+Vehicles 1───N MaintenanceSchedules N───1 MaintenancePlanItems (única por VehicleId+MaintenancePlanItemId)
+Vehicles 1───N MaintenanceRequests N───0..1 Occurrences, N───0..1 WorkOrders
+Vehicles 1───N WorkOrders N───0..1 (Implements | MaintenanceRequests | Workshops)
+WorkOrders 1───N WorkOrderItems (cascade) N───0..1 MaintenancePlanItems
+WorkOrders 1───N WorkOrderParts (cascade)
+WorkOrders 1───N WorkOrderLabor (cascade)
+```
+
+Todas as tabelas novas têm `CompanyId` com FK `Restrict` para `Companies` (exceto as filhas de agregado, que não têm `CompanyId` próprio), filtro global de tenant onde aplicável e índices começando por `CompanyId`. FKs para veículo/implemento/oficina/ocorrência/solicitação são `Restrict` — histórico nunca some em cascata; só as coleções realmente filhas (`MaintenancePlanItems`, `WorkOrderItems/Parts/Labor`) são `Cascade`.
+
+### Vehicles (alterações)
+| Coluna | Tipo | Regras |
+|---|---|---|
+| HourMeterUpdatedAt | datetime2 NULL | data da última leitura de horímetro aplicada (como `OdometerUpdatedAt`) |
+
+### Workshops
+`Name nvarchar(150)`, `Document varchar(20) NULL`, `Phone varchar(11) NULL`, `Email nvarchar(254) NULL`, endereço (`Address`, owned type), `Specialties nvarchar(300) NULL`, `Status nvarchar(20)`, `Notes nvarchar(2000) NULL`, auditoria + soft delete.
+
+### MaintenancePlans / MaintenancePlanItems
+- Planos: `Name nvarchar(150)`, `VehicleId NULL` (FK Restrict), `VehicleType nvarchar(30) NULL`, `IsActive bit`, auditoria + soft delete. `VehicleId` e `VehicleType` nulos juntos = plano padrão da empresa.
+- Itens (cascade): `ServiceName nvarchar(150)`, `IntervalKm/GraceKm int NULL`, `IntervalMonths/GraceDays int NULL`, `IntervalHours/GraceHours decimal(10,1) NULL`, `Priority nvarchar(20)`, `EstimatedDurationMinutes int NULL`, `EstimatedCost decimal(18,2) NULL`, `IsRequired bit`, `Notes nvarchar(1000) NULL`.
+
+### HourMeterReadings
+Mesmas colunas de `OdometerReadings`, trocando `OdometerKm int` por `Hours decimal(10,1)`. Índices: `(CompanyId, VehicleId, ReadAt)`, `(CompanyId, Status)`. Append-only.
+
+### MaintenanceSchedules
+`VehicleId`, `MaintenancePlanItemId` (FK Restrict), `LastPerformedOn date NULL`, `LastPerformedKm int NULL`, `LastPerformedHours decimal(10,1) NULL`, `LastWorkOrderId NULL` (FK Restrict), `NextDueOn date NULL`, `NextDueKm int NULL`, `NextDueHours decimal(10,1) NULL`. Índice único `(VehicleId, MaintenancePlanItemId)`; índices `(CompanyId, NextDueOn)` e `(CompanyId, NextDueKm)` para os contadores do dashboard.
+
+### MaintenanceRequests
+`VehicleId`, `DriverId NULL`, `Source/MaintenanceType/Priority nvarchar(20)`, `Description nvarchar(2000)`, `ReportedAt datetime2`, `OdometerKm int NULL`, `HourMeter decimal(10,1) NULL`, `OccurrenceId NULL` (FK Restrict), `Status nvarchar(20)`, `ReviewedAt/By NULL`, `RejectionReason nvarchar(1000) NULL`, `WorkOrderId NULL` (FK Restrict). Índices: `(CompanyId, Status, ReportedAt)`, `(CompanyId, VehicleId, ReportedAt)`.
+
+### WorkOrders
+`Sequence int` (gera o `Number` exibido, `OS-{Sequence:D6}`, calculado em memória — não é coluna), `VehicleId`, `ImplementId NULL`, `MaintenanceRequestId NULL`, `WorkshopId NULL` (todos FK Restrict), `Type/Priority/Status nvarchar(20)`, `OpenedAt/ScheduledAt/StartedAt/CompletedAt datetime2 NULL` (exceto `OpenedAt`, obrigatório), `OdometerKm int NULL`, `HourMeter decimal(10,1) NULL`, `Description/Diagnosis/Resolution/Notes nvarchar(2000)`, `CompletedBy NULL`, `PartsCost/LaborCost/OtherCost/TotalCost decimal(18,2)`, `DowntimeMinutes int NULL`. Índice único `(CompanyId, Sequence)`; índices `(CompanyId, Status, Priority)`, `(CompanyId, VehicleId, OpenedAt)`, `(CompanyId, OpenedAt)`.
+
+### WorkOrderItems / WorkOrderParts / WorkOrderLabor
+Filhas em cascade de `WorkOrders` (sem `CompanyId` próprio). Itens: `Description nvarchar(300)`, `MaintenancePlanItemId NULL` (FK Restrict), `IsRequired bit`, `Status nvarchar(20)`, `Notes nvarchar(500)`. Peças: `PartName nvarchar(150)`, `PartNumber nvarchar(60) NULL`, `Quantity/UnitCost decimal`, `Supplier nvarchar(150) NULL`, `Notes nvarchar(500) NULL` (`TotalCost` calculado em memória, não gravado). Mão de obra: `TechnicianName nvarchar(150)`, `Hours decimal(10,2)`, `HourlyRate decimal(18,2)`, `Description nvarchar(500) NULL` (`TotalCost` calculado).
+
+### Seed
+Permissões 160–165 e o mapeamento dos papéis via `InsertData`/`UpdateData` na própria migration `Maintenance` (sem `DevDataSeeder` dedicado ainda).
+
+### Revisão da migration `Maintenance`
+O `Up` é **somente aditivo**: 10 tabelas novas, a coluna `Vehicles.HourMeterUpdatedAt` (nullable) e o seed de permissões/papéis. Nenhuma coluna existente foi alterada ou removida. O aviso "may result in the loss of data" refere-se só ao `Down`.

@@ -12,6 +12,7 @@ import { notifyError, notifySuccess } from '../../components/notify';
 import { PageHeader } from '../../components/PageHeader';
 import { formatDateTime, formatPlate } from '../../lib/format';
 import { AuditHistoryButton } from '../audit/AuditHistoryButton';
+import { MaintenanceRequestFormModal } from '../maintenance/MaintenanceRequestFormModal';
 import { occurrencesApi, type Occurrence } from '../operations/api';
 import { OCCURRENCE_ACTION, OCCURRENCE_SEVERITY, OCCURRENCE_STATUS, OCCURRENCE_TYPE, type OccurrenceStatus } from '../operations/labels';
 import { OccurrenceFormModal } from './OccurrenceFormModal';
@@ -27,6 +28,7 @@ function OccurrenceDetail({ occurrence: o }: { occurrence: Occurrence }) {
   const canManage = can(PERMISSIONS.occurrences.manage);
   const [editing, setEditing] = useState(false);
   const [target, setTarget] = useState<OccurrenceStatus | null>(null);
+  const [requestingMaintenance, setRequestingMaintenance] = useState(false);
   const save = occurrencesApi.useSave(o.id);
 
   const addPhoto = (fileId: string) =>
@@ -61,7 +63,12 @@ function OccurrenceDetail({ occurrence: o }: { occurrence: Occurrence }) {
               <StatusBadge value={o.status} map={OCCURRENCE_STATUS} />
               <StatusBadge value={o.severity} map={OCCURRENCE_SEVERITY} />
             </Group>
-            {actions}
+            <Group gap="xs">
+              {o.vehicleId && can(PERMISSIONS.maintenance.createrequest) && (
+                <Button variant="default" onClick={() => setRequestingMaintenance(true)}>Abrir solicitação de manutenção</Button>
+              )}
+              {actions}
+            </Group>
           </Group>
         </Paper>
 
@@ -98,6 +105,10 @@ function OccurrenceDetail({ occurrence: o }: { occurrence: Occurrence }) {
 
       <StatusModal occurrence={o} target={target} onClose={() => setTarget(null)} />
       <OccurrenceFormModal opened={editing} onClose={() => setEditing(false)} occurrence={o} />
+      {o.vehicleId && (
+        <MaintenanceRequestFormModal opened={requestingMaintenance} onClose={() => setRequestingMaintenance(false)}
+          defaults={{ vehicleId: o.vehicleId, vehicleLabel: o.licensePlate ? formatPlate(o.licensePlate) : null, occurrenceId: o.id }} />
+      )}
     </>
   );
 }

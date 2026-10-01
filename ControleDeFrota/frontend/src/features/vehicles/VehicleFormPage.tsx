@@ -149,7 +149,10 @@ function VehicleForm({ vehicle }: { vehicle?: Vehicle }) {
                 inputMode="numeric" disabled={!!vehicle}
                 description={vehicle ? 'Atualize pela aba Quilometragem, que valida e guarda o histórico.' : 'Primeira leitura do histórico do veículo.'}
                 {...form.getInputProps('currentOdometerKm')} />
-              <NumberInput label="Horímetro" suffix=" h" thousandSeparator="." decimalSeparator="," decimalScale={1} allowNegative={false} {...form.getInputProps('hourMeter')} />
+              <NumberInput label={vehicle ? 'Horímetro atual' : 'Horímetro inicial'} suffix=" h" thousandSeparator="." decimalSeparator="," decimalScale={1} allowNegative={false}
+                inputMode="numeric" disabled={!!vehicle}
+                description={vehicle ? 'Atualize pela aba Manutenção, que valida e guarda o histórico.' : 'Primeira leitura do histórico, se o veículo tiver horímetro.'}
+                {...form.getInputProps('hourMeter')} />
               <Select label="Situação" withAsterisk data={toSelectData(VEHICLE_STATUS)}
                 description="Indisponível: fora de uso por outro motivo que não manutenção (documento, sinistro…)." {...form.getInputProps('status')} />
             </FormSection>

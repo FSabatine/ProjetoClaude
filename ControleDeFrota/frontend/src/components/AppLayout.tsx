@@ -3,7 +3,9 @@ import { ActionIcon, AppShell, Avatar, Burger, Divider, Group, Menu, NavLink, Sc
 import { useDisclosure } from '@mantine/hooks';
 import {
   IconAlertTriangle,
+  IconBuildingFactory2,
   IconChecklist,
+  IconClipboardList,
   IconFileText,
   IconFiles,
   IconListCheck,
@@ -17,6 +19,7 @@ import {
   IconShieldLock,
   IconSteeringWheel,
   IconSun,
+  IconTool,
   IconTruck,
   IconTruckLoading,
   IconUsers,
@@ -42,11 +45,15 @@ const OPERATION: NavItem[] = [
   { label: 'Checklists', to: '/checklists', icon: IconChecklist, permission: PERMISSIONS.checklists.view },
   { label: 'Ocorrências', to: '/ocorrencias', icon: IconAlertTriangle, permission: PERMISSIONS.occurrences.view },
   { label: 'Documentos', to: '/documentos', icon: IconFileText, permission: PERMISSIONS.documents.view },
+  { label: 'Solicitações de manutenção', to: '/solicitacoes-manutencao', icon: IconClipboardList, permission: PERMISSIONS.maintenance.view },
+  { label: 'Ordens de serviço', to: '/ordens-servico', icon: IconTool, permission: PERMISSIONS.maintenance.view },
 ];
 
 const SETTINGS: NavItem[] = [
   { label: 'Modelos de checklist', to: '/configuracoes/checklists', icon: IconListCheck, permission: PERMISSIONS.operations.configure },
   { label: 'Tipos de documento', to: '/configuracoes/tipos-de-documento', icon: IconFiles, permission: PERMISSIONS.operations.configure },
+  { label: 'Planos de manutenção', to: '/planos-manutencao', icon: IconListCheck, permission: PERMISSIONS.maintenance.manageplans },
+  { label: 'Oficinas', to: '/oficinas', icon: IconBuildingFactory2, permission: PERMISSIONS.maintenance.manageworkshops },
 ];
 
 const ADMINISTRATION: NavItem[] = [

@@ -12,6 +12,9 @@ public static class BrazilianFormat
 
     public static string Number(double value) => value.ToString("N0", Numbers);
 
+    /// <summary>Used where fractional precision matters (engine hours, money) — defaults to no decimals like <see cref="Number(double)"/>.</summary>
+    public static string Number(decimal value, int decimals = 0) => value.ToString(decimals == 0 ? "N0" : $"N{decimals}", Numbers);
+
     public static string Date(DateOnly date) => date.ToString("dd'/'MM'/'yyyy", CultureInfo.InvariantCulture);
 
     public static string DateTime(DateTime local) => local.ToString("dd'/'MM'/'yyyy HH':'mm", CultureInfo.InvariantCulture);

@@ -46,6 +46,13 @@ Princípio: **Segurança > Conveniência**. O backend é a única autoridade. Es
 - O job de vencimentos roda sem usuário e ignora os filtros de tenant de propósito: ele só lê documentos e grava eventos com o `CompanyId` do próprio documento (revisado e comentado no código).
 - Os testes de `OperationsApiTests` cobrem o 403 por papel (Visualizador, Manutenção, Operações, Motorista), o 404 entre empresas para documentos e arquivos e o 403 na correção de hodômetro feita por Operações.
 
+### Autorização na Fase 3
+
+- Permissões novas: `maintenance.view`, `maintenance.createrequest`, `maintenance.manageplans`, `maintenance.manageworkorders`, `maintenance.manageworkshops` e `maintenance.viewcosts` (matriz por papel em DOMAIN.md). O papel **Manutenção**, que na Fase 2 só via veículos e ocorrências, ganhou o conjunto completo; **Operações** ganhou só `view` e `createrequest` (relatar um problema, não geri-lo); **Financeiro** ganhou `view` e `viewcosts`.
+- `maintenance.viewcosts` é checada **no serviço**, não só na rota: sem ela, `WorkOrderService` zera `partsCost/laborCost/otherCost/totalCost` e o custo unitário de peças e mão de obra na resposta, em vez de recusar o acesso à ordem de serviço inteira — o técnico de campo vê o que precisa fazer sem ver quanto custa.
+- Checada no serviço (não dá para expressar como atributo): o início de uma ordem de serviço recusa um veículo em viagem ou inativo; a conclusão exige todos os itens obrigatórios resolvidos.
+- `MaintenanceApiTests` cobre o 403 por papel (Operações não aprova nem gerencia oficinas) e o 404 entre empresas para ordens de serviço.
+
 ## Upload de arquivos
 
 - O tipo é detectado pelos **magic bytes** (PDF, JPEG, PNG). A extensão e o `Content-Type` enviados pelo cliente são ignorados: um executável renomeado para `.pdf` é recusado.
@@ -66,7 +73,7 @@ Princípio: **Segurança > Conveniência**. O backend é a única autoridade. Es
 
 ## Auditoria
 
-- Toda criação, alteração e exclusão (soft delete) de Company, User, Driver, Vehicle e Implement (e, na Fase 2, também de VehicleAssignment, OdometerReading — inclusive revisão e correção —, DocumentType, Document, StoredFile, ChecklistTemplate, ChecklistExecution e Occurrence, inclusive a mudança de situação) grava `AuditLogs` com o usuário, a data, os campos e os valores antigo e novo. Ver DATABASE.md.
+- Toda criação, alteração e exclusão (soft delete) de Company, User, Driver, Vehicle e Implement (e, na Fase 2, também de VehicleAssignment, OdometerReading — inclusive revisão e correção —, DocumentType, Document, StoredFile, ChecklistTemplate, ChecklistExecution e Occurrence, inclusive a mudança de situação; e, na Fase 3, Workshop, MaintenancePlan, HourMeterReading, MaintenanceRequest e WorkOrder, inclusive as transições de situação) grava `AuditLogs` com o usuário, a data, os campos e os valores antigo e novo. Ver DATABASE.md.
 - Os logins bem-sucedidos e as falhas de login também vão para o log da aplicação, no nível Information/Warning.
 - A leitura do histórico exige `audit.view`.
 

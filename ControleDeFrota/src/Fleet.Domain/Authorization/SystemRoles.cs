@@ -52,6 +52,12 @@ public static class SystemRoles
     private static readonly string[] OperationsRead =
         [Permissions.Assignments.View, Permissions.Documents.View, Permissions.Checklists.View, Permissions.Occurrences.View];
 
+    private static readonly string[] MaintenanceFull =
+    [
+        Permissions.Maintenance.View, Permissions.Maintenance.CreateRequest, Permissions.Maintenance.ManagePlans,
+        Permissions.Maintenance.ManageWorkOrders, Permissions.Maintenance.ManageWorkshops, Permissions.Maintenance.ViewCosts,
+    ];
+
     public static readonly IReadOnlyList<RoleDefinition> All =
     [
         new(1, PlatformAdministrator, "Administrador da plataforma",
@@ -60,25 +66,25 @@ public static class SystemRoles
             "Acesso total à própria empresa.",
             AllPermissions.Where(p => p != Permissions.Companies.Manage).ToArray()),
         new(3, FleetManager, "Gestor de frota",
-            "Gerencia a frota e a operação: cadastros, alocações, hodômetro, documentos, checklists e ocorrências.",
+            "Gerencia a frota e a operação: cadastros, alocações, hodômetro, documentos, checklists, ocorrências e manutenção.",
             [Permissions.Dashboard.View, Permissions.Companies.View, Permissions.Users.View, Permissions.Roles.View,
-             Permissions.Audit.View, .. FleetRegistryFull, .. OperationsFull]),
+             Permissions.Audit.View, .. FleetRegistryFull, .. OperationsFull, .. MaintenanceFull]),
         new(4, Operations, "Operações",
             "Operação diária: motoristas, alocações, hodômetro, documentos, checklists e ocorrências.",
             [Permissions.Dashboard.View, Permissions.Drivers.View, Permissions.Drivers.Create, Permissions.Drivers.Update,
              Permissions.Vehicles.View, Permissions.Vehicles.Update, Permissions.Implements.View, Permissions.Implements.Update,
-             .. OperationsDaily]),
+             .. OperationsDaily, Permissions.Maintenance.View, Permissions.Maintenance.CreateRequest]),
         new(5, Maintenance, "Manutenção",
-            "Atualiza a situação de veículos e implementos e acompanha as ocorrências operacionais.",
+            "Atualiza a situação de veículos e implementos, acompanha ocorrências e executa a manutenção da frota.",
             [Permissions.Dashboard.View, Permissions.Vehicles.View, Permissions.Vehicles.Update,
-             Permissions.Implements.View, Permissions.Implements.Update, Permissions.Occurrences.View]),
+             Permissions.Implements.View, Permissions.Implements.Update, Permissions.Occurrences.View, .. MaintenanceFull]),
         new(6, Finance, "Financeiro",
             "Consulta a frota para fins financeiros.",
-            [Permissions.Dashboard.View, .. FleetRegistryRead]),
+            [Permissions.Dashboard.View, .. FleetRegistryRead, Permissions.Maintenance.View, Permissions.Maintenance.ViewCosts]),
         new(7, Driver, "Motorista",
             "Reservado para o app do motorista (fases futuras).", []),
         new(8, Viewer, "Visualizador",
             "Somente leitura.",
-            [Permissions.Dashboard.View, Permissions.Companies.View, .. FleetRegistryRead, .. OperationsRead]),
+            [Permissions.Dashboard.View, Permissions.Companies.View, .. FleetRegistryRead, .. OperationsRead, Permissions.Maintenance.View]),
     ];
 }

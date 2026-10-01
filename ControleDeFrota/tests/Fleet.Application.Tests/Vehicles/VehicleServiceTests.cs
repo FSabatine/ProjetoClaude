@@ -40,6 +40,31 @@ public class VehicleServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task CreateAsync_WithHourMeter_SeedsHourMeterHistory()
+    {
+        var service = await SignedInServiceAsync();
+
+        var created = await service.CreateAsync(Requests.Vehicle() with { HourMeter = 500m }, default);
+
+        created.HourMeter.Should().Be(500m);
+        var db = _t.NewContext();
+        (await db.HourMeterReadings.SingleAsync(r => r.VehicleId == created.Id)).Source.Should().Be(Domain.Maintenance.HourMeterReadingSource.Registration);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ChangingHourMeterDirectly_IsRefused()
+    {
+        var service = await SignedInServiceAsync();
+        var created = await service.CreateAsync(Requests.Vehicle() with { HourMeter = 500m }, default);
+
+        var act = () => service.UpdateAsync(created.Id, Requests.Vehicle() with { HourMeter = 600m }, default);
+
+        var error = (await act.Should().ThrowAsync<ValidationException>()).Which.Errors.Single();
+        error.PropertyName.Should().Be("hourMeter");
+        error.ErrorMessage.Should().Contain("registro de leituras");
+    }
+
+    [Fact]
     public async Task CreateAsync_DuplicatePlateInSameCompany_ThrowsConflict()
     {
         var service = await SignedInServiceAsync();

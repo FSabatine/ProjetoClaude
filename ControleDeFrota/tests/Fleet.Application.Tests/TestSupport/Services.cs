@@ -10,6 +10,7 @@ using Fleet.Application.Companies;
 using Fleet.Application.Dashboard;
 using Fleet.Application.Drivers;
 using Fleet.Application.Implements;
+using Fleet.Application.Maintenance;
 using Fleet.Application.Users;
 using Fleet.Application.Vehicles;
 using Fleet.Infrastructure.Security;
@@ -48,6 +49,19 @@ public static class Services
         new OccurrenceRequestValidator(t.Clock), new OccurrenceStatusRequestValidator());
     public static ChecklistService Checklists(TestDb t) => new(
         t.Db, t.Clock, Files(t), Mileage(t), Occurrences(t), Events(t), new ChecklistListRequestValidator(), new ChecklistExecutionRequestValidator());
+
+    // Phase 3
+    public static WorkshopService Workshops(TestDb t) => new(t.Db, new WorkshopRequestValidator());
+    public static MaintenancePlanService MaintenancePlans(TestDb t) => new(t.Db, new MaintenancePlanRequestValidator());
+    public static MaintenanceScheduleService MaintenanceSchedules(TestDb t) => new(t.Db, t.Clock);
+    public static HourMeterService HourMeter(TestDb t) => new(
+        t.Db, t.Clock, t.CurrentUser, Events(t), new HourMeterReadingRequestValidator(t.Clock), new HourMeterReviewRequestValidator());
+    public static WorkOrderService WorkOrders(TestDb t) => new(
+        t.Db, t.Clock, t.CurrentUser, Events(t), MaintenanceSchedules(t), new WorkOrderRequestValidator(),
+        new WorkOrderStatusRequestValidator(), new WorkOrderPartRequestValidator(), new WorkOrderLaborRequestValidator());
+    public static MaintenanceRequestService MaintenanceRequests(TestDb t) => new(
+        t.Db, t.Clock, t.CurrentUser, Events(t), WorkOrders(t), new MaintenanceRequestRequestValidator(t.Clock),
+        new MaintenanceRequestRejectRequestValidator());
 
     public static UserService Users(TestDb t) => new(
         t.Db, t.CurrentUser, Hasher, t.Clock, new UserCreateRequestValidator(), new UserUpdateRequestValidator());

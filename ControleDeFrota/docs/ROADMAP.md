@@ -16,8 +16,8 @@ O escopo foi redefinido pelo usuário: controle operacional do dia a dia, **sem*
 - Histórico operacional do veículo e do motorista + base de eventos para notificações (outbox).
 - Dashboard operacional.
 
-## FASE 2.5 — Viagens e composição (próxima recomendada)
-Itens previstos originalmente para a Fase 2 que ficaram fora do escopo redefinido:
+## FASE 2.5 — Viagens e composição (adiada)
+Itens previstos originalmente para a Fase 2 que ficaram fora do escopo redefinido. Era a próxima fase recomendada, mas o usuário decidiu conscientemente pular para a Fase 3 primeiro (2026-10-01, ver ADR-026 em `DECISIONS.md`) — continua no backlog, antes da Fase 4:
 - Viagens e ordens de transporte: origem, destino, motorista, veículo e composição.
 - **Vínculo veículo ↔ implemento com vigência** (`VehicleImplementCoupling`).
 - `OnTrip`/`InUse` controlados pelas viagens; bloqueio de motorista com CNH vencida para iniciar viagem.
@@ -25,8 +25,9 @@ Itens previstos originalmente para a Fase 2 que ficaram fora do escopo redefinid
 - Acesso do motorista ("Meu veículo" no celular: checklist e ocorrência só no veículo alocado), se o negócio confirmar.
 - Troca de empresa ativa para usuários com acesso a várias empresas.
 
-## FASE 3 — Manutenção
-Planos de manutenção preventiva (por km, horas e tempo), ordens de manutenção corretiva, oficinas e fornecedores. `UnderMaintenance` passa a ser controlado pelas ordens. **Ponto de integração pronto**: ocorrências abertas (e itens reprovados de checklist) viram ordens, e as leituras de hodômetro alimentam a preventiva por km.
+## FASE 3 — Manutenção (concluída em 2026-10-01)
+Planos de manutenção preventiva (por km, horas e tempo, com carência configurável e precedência veículo > tipo de veículo > padrão da empresa), solicitações de manutenção (motorista/checklist/ocorrência/gestor → aprovação → ordem de serviço), ordens de serviço com máquina de estados (itens, peças, mão de obra, custo, tempo de indisponibilidade), oficinas e histórico de horímetro (mesma forma do hodômetro). `UnderMaintenance` passa a ser controlado pelas ordens de serviço (ADR-028), sem sobrescrever uma mudança manual do veículo. Ocorrências abertas (e itens reprovados de checklist, via ocorrência) viram solicitações de manutenção por ação manual do gestor; as leituras de hodômetro alimentam a preventiva por km.
+**Fora do escopo desta fase** (pontos de extensão deixados prontos): inventário/estoque de peças, ordens de compra, entidade de mecânico/técnico interno (técnico é texto livre), calendário visual de manutenções (lista agrupada por dia no lugar), manutenção preditiva/IA, notificações por e-mail/WhatsApp (só o evento operacional fica pronto para a Fase 9).
 
 ## FASE 4 — Gestão de combustível
 Abastecimentos, postos, consumo médio (km/l), detecção de anomalias e tanque próprio.

@@ -29,11 +29,17 @@ Linguagem ubíqua: o código usa **inglês** e a interface usa **português**. E
 Company ─┬─< User >─< Role >─< Permission
          ├─< DocumentType ─< Document >── (Vehicle | Driver | Implement | Company)
          ├─< Driver ──┐
-         ├─< Vehicle ─┴─< VehicleAssignment (vigência)      ···(futuro)··· Maintenance, Fueling, Tires, Trips, Costs
+         ├─< Vehicle ─┴─< VehicleAssignment (vigência)      ···(futuro)··· Fueling, Tires, Trips, Costs
          │    ├─< OdometerReading
+         │    ├─< HourMeterReading
          │    ├─< ChecklistExecution ─< ChecklistAnswer (snapshot) ──> Occurrence
-         │    └─< Occurrence ─< StoredFile (fotos)
+         │    ├─< Occurrence ─< StoredFile (fotos) ──> MaintenanceRequest (manual)
+         │    ├─< MaintenanceRequest ──> WorkOrder (aprovação)
+         │    ├─< WorkOrder ─< WorkOrderItem | WorkOrderPart | WorkOrderLabor
+         │    └─< MaintenanceSchedule >─ MaintenancePlanItem
          ├─< ChecklistTemplate ─< ChecklistTemplateItem
+         ├─< MaintenancePlan ─< MaintenancePlanItem (padrão | por VehicleType | por Vehicle)
+         ├─< Workshop ──> WorkOrder
          ├─< Implement ···(futuro)··· VehicleImplementCoupling (vínculo veículo ↔ implemento com vigência)
          └─< OperationalEvent (histórico + outbox, sem FKs)
 ```
@@ -277,4 +283,70 @@ Nenhum campo representa dois conceitos: a condição do veículo não diz quem o
   - km rodados pela frota: por veículo, a maior leitura válida do mês menos a maior leitura válida anterior ao mês (ou a primeira do mês);
   - média por veículo ativo;
   - veículo com o maior hodômetro.
-- **Alertas**: os 10 mais urgentes, críticos primeiro. Incluem CNH (com `drivers.view`), documentos (com `documents.view`; o nome do motorista só aparece com `drivers.view`), ocorrências críticas em aberto (`occurrences.view`) e leituras suspeitas (`mileage.manage`). Cada alerta abre a aba certa do registro.
+- **Alertas**: os 10 mais urgentes, críticos primeiro. Incluem CNH (com `drivers.view`), documentos (com `documents.view`; o nome do motorista só aparece com `drivers.view`), ocorrências críticas em aberto (`occurrences.view`), leituras suspeitas (`mileage.manage`) e, na Fase 3, ordens de serviço críticas em aberto (`maintenance.view`).
+
+---
+
+# Fase 3 — Manutenção
+
+## Catálogo de permissões (Fase 3)
+
+| Módulo | Permissões |
+|---|---|
+| maintenance | `maintenance.view`, `maintenance.createrequest` (solicitar manutenção), `maintenance.manageplans` (planos preventivos), `maintenance.manageworkorders` (aprovar solicitações, criar/editar/executar/fechar ordens), `maintenance.manageworkshops`, `maintenance.viewcosts` (peças, mão de obra e custo total) |
+
+Papel **Manutenção** (`SystemRoles.Maintenance`) ganhou todas as permissões acima, além das que já tinha (veículos/implementos view+update, ocorrências view). **Gestor de frota**/**Administrador** ganham todas. **Operações** ganha `maintenance.view` + `maintenance.createrequest` (reporta problemas, não aprova). **Financeiro** ganha `maintenance.view` + `maintenance.viewcosts`.
+
+## Workshop (Oficina)
+
+- `Name`, `Document` (CPF/CNPJ, opcional), `Phone`, `Email`, `Address`, `Specialties` (texto livre — não é uma tabela de tags), `Status` (`Active`/`Inactive`), `Notes`. Catálogo por empresa, soft delete.
+- Não se exclui oficina com ordens de serviço registradas; o caminho é inativar.
+
+## MaintenancePlan / MaintenancePlanItem (Plano de manutenção preventiva)
+
+- Um plano tem `VehicleId` **ou** `VehicleType` **ou** nenhum dos dois (plano padrão da empresa) — nunca os dois ao mesmo tempo. **Precedência** quando mais de um se aplica a um veículo: veículo específico > tipo de veículo > padrão da empresa (`MaintenancePlanResolver`).
+- Cada item (`MaintenancePlanItem`) define o serviço e pelo menos um intervalo: `IntervalKm`, `IntervalMonths` e/ou `IntervalHours`. **O que vencer primeiro** dispara a manutenção. Cada eixo tem sua própria carência (`GraceKm`/`GraceDays`/`GraceHours`): tolerância depois do vencimento e também janela de aviso antes dele.
+- Prioridade (`Low/Medium/High/Critical`), duração e custo estimados, se é obrigatório, observações.
+- Não se remove um item que já tem manutenção registrada (teria que apagar histórico); o caminho é deixar um intervalo bem longo ou inativar o plano inteiro.
+
+## MaintenanceSchedule (Agenda de manutenção)
+
+- Uma linha por (veículo, item do plano), criada **só depois da primeira manutenção feita** naquele item — veículos ainda não atendidos não têm linha; a agenda deles é calculada a partir da data de cadastro/hodômetro inicial.
+- Guarda a última manutenção (`LastPerformedOn/Km/Hours`) e a próxima calculada (`NextDueOn/Km/Hours`) — são recalculadas quando uma `WorkOrderItem` ligada ao item do plano é concluída.
+- **Status nunca é gravado**: `Scheduled`, `DueSoon`, `Due` ou `Overdue`, calculado por `MaintenanceSchedulePolicy` a partir dos valores atuais do veículo. O eixo mais urgente entre os configurados decide o status final.
+
+## HourMeterReading (Histórico de horímetro)
+
+- Mesmo modelo do hodômetro (ADR-019/ADR-027): append-only, `Source` (`Registration/Manual/WorkOrder/Correction`), `Status` (`Valid/PendingReview/Rejected`), não retrocede, salto suspeito (acima de 20 h/dia) fica `PendingReview` e não é aplicado.
+- `Vehicle.HourMeter`/`HourMeterUpdatedAt` só mudam por `HourMeterService` — a edição do veículo não altera mais o horímetro diretamente (antes da Fase 3 era editável livremente).
+
+## MaintenanceRequest (Solicitação de manutenção)
+
+- Origem (`Source`): motorista, checklist, gestor, ocorrência ou alerta automático. Quando vem de uma ocorrência (`OccurrenceId` preenchido), a origem é forçada para `Occurrence` no servidor.
+- Tipo (`Preventive/Corrective/Inspection`), prioridade, descrição, hodômetro/horímetro no momento do relato.
+- Situação: `Open → Converted | Rejected` (ambos finais). **Aprovar cria a ordem de serviço na mesma transação** — não existe "aprovada, sem ordem ainda".
+- **Não é automático**: uma ocorrência aberta não vira solicitação sozinha — é um botão que o gestor aciona, porque nem toda ocorrência precisa de manutenção.
+
+## WorkOrder (Ordem de serviço)
+
+- Número sequencial por empresa (`OS-000001`). Tipo (`Preventive/Corrective/Inspection`), prioridade, oficina (opcional), veículo (e implemento, opcional, sem o vínculo formal — ver DECISIONS).
+- **Situação** (`WorkOrderStatus`), máquina de estados explícita (`WorkOrderWorkflow`):
+
+  ```
+  Draft ──> Approved ──> Scheduled ──> InProgress ⇄ WaitingParts ──> Completed
+    │           │              │             │
+    └───────────┴──────────────┴─────────────┴──> Cancelled | Rejected
+  ```
+
+  `Completed`/`Cancelled`/`Rejected` são finais. Concluir exige o texto da resolução; cancelar/rejeitar exige o motivo. A API devolve `nextStatuses`, como a Ocorrência.
+- **Itens** (`WorkOrderItem`): tarefas da ordem, cada uma `Pending/Done/Skipped`; quando ligada a um item de plano preventivo, concluir a ordem recalcula a `MaintenanceSchedule` dele. **Itens obrigatórios pendentes impedem concluir a ordem.**
+- **Peças** (`WorkOrderPart`) e **mão de obra** (`WorkOrderLabor`, técnico em texto livre) são linhas de custo, somadas em `PartsCost`/`LaborCost`/`TotalCost` (+ `OtherCost` livre) a cada alteração.
+- **Tempo de indisponibilidade** (`DowntimeMinutes`): `CompletedAt − StartedAt`, calculado ao fechar.
+- **Controle de `Vehicle.Status`** (ADR-028): entrar em `InProgress`/`WaitingParts` pela primeira vez muda o veículo para `UnderMaintenance` (se estava `Available`); sair delas só devolve `Available` se não restar outra ordem ativa e ninguém mudou o status manualmente nesse meio tempo. Veículo `OnTrip`/`Inactive` recusa iniciar manutenção.
+- Depois que a ordem sai de `Draft/Approved/Scheduled` (ou seja, já começou), a edição geral (`PUT`) é bloqueada — só as ações incrementais (itens, peças, mão de obra, situação) continuam disponíveis, para não apagar o progresso já registrado.
+- Custos (`PartsCost/LaborCost/OtherCost/TotalCost`, `UnitCost` da peça, `HourlyRate` da mão de obra) só aparecem para quem tem `maintenance.viewcosts`; sem a permissão, voltam `null`/zerados.
+
+## Dashboard (Fase 3)
+
+- **Manutenção**: Due Today / Due Soon / Overdue (calculados a partir das `MaintenanceSchedule` existentes — veículos nunca atendidos não entram nessa contagem, só aparecem na própria aba do veículo), Em andamento, Aguardando peças, Concluídas no mês, Veículos em manutenção.
+- **Alertas**: ordens de serviço com prioridade `Critical` ainda abertas (`maintenance.view`).

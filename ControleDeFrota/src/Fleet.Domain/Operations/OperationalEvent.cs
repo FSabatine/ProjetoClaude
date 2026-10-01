@@ -24,6 +24,17 @@ public enum OperationalEventType
     ChecklistFailed,
     OccurrenceCreated,
     OccurrenceStatusChanged,
+
+    // Phase 3 — maintenance
+    HourMeterRecorded,
+    HourMeterAnomalyDetected,
+    HourMeterCorrected,
+    HourMeterReviewed,
+    MaintenanceRequestCreated,
+    MaintenanceRequestRejected,
+    WorkOrderOpened,
+    WorkOrderStatusChanged,
+    WorkOrderCompleted,
 }
 
 /// <summary>

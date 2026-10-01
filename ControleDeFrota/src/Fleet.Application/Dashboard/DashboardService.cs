@@ -8,6 +8,7 @@ using Fleet.Domain.Authorization;
 using Fleet.Domain.Common;
 using Fleet.Domain.Documents;
 using Fleet.Domain.Drivers;
+using Fleet.Domain.Maintenance;
 using Fleet.Domain.Mileage;
 using Fleet.Domain.Occurrences;
 using Fleet.Domain.Validation;
@@ -46,6 +47,10 @@ public sealed record MileageSummary(
     int VehiclesWithoutRecentMileage,
     int StaleAfterDays);
 
+/// <summary>Preventive maintenance due-counts across the fleet (seção 28) + the work order funnel.</summary>
+public sealed record MaintenanceSummary(
+    int DueToday, int DueSoon, int Overdue, int InProgress, int WaitingParts, int CompletedThisMonth, int VehiclesUnderMaintenance);
+
 public enum AlertType
 {
     LicenseExpired,
@@ -54,6 +59,7 @@ public enum AlertType
     DocumentExpiringSoon,
     CriticalOccurrence,
     MileagePendingReview,
+    CriticalWorkOrder,
 }
 
 public enum AlertSeverity
@@ -79,6 +85,7 @@ public sealed record DashboardResponse(
     FleetStatusBreakdown Fleet,
     OperationsSummary Operations,
     MileageSummary Mileage,
+    MaintenanceSummary? Maintenance,
     IReadOnlyList<DashboardAlert> Alerts,
     int TotalAlerts);
 
@@ -109,12 +116,15 @@ public sealed class DashboardService(IFleetDbContext db, IClock clock, ICurrentU
             Can(Permissions.Documents.View) ? await GetDocumentAlertsAsync(ct) : NoAlerts,
             Can(Permissions.Occurrences.View) ? await GetCriticalOccurrenceAlertsAsync(ct) : NoAlerts,
             Can(Permissions.Mileage.Manage) ? await GetMileageReviewAlertsAsync(ct) : NoAlerts,
+            Can(Permissions.Maintenance.View) ? await GetCriticalWorkOrderAlertsAsync(ct) : NoAlerts,
         };
         var alerts = sources.SelectMany(s => s.Alerts)
             .OrderByDescending(a => a.Severity).ThenBy(a => a.DueDate)
             .Take(MaxAlerts).ToList();
 
-        return new DashboardResponse(indicators, fleet, await GetOperationsAsync(mileage, ct), mileage, alerts, sources.Sum(s => s.Total));
+        var maintenance = Can(Permissions.Maintenance.View) ? await GetMaintenanceAsync(fleet.UnderMaintenance, ct) : null;
+        return new DashboardResponse(
+            indicators, fleet, await GetOperationsAsync(mileage, ct), mileage, maintenance, alerts, sources.Sum(s => s.Total));
     }
 
     private bool Can(string permission) => currentUser.HasPermission(permission);
@@ -187,6 +197,51 @@ public sealed class DashboardService(IFleetDbContext db, IClock clock, ICurrentU
         var stale = await VehicleService.WhereStaleMileage(db.Vehicles, clock.UtcNow).CountAsync(ct);
 
         return new MileageSummary(fleetKm, activeVehicles == 0 ? 0 : fleetKm / activeVehicles, highest, stale, OdometerPolicy.StaleAfterDays);
+    }
+
+    /// <summary>
+    /// Due counts only cover vehicles serviced at least once (MaintenanceSchedule rows): a never-serviced vehicle's
+    /// due status is evaluated live on its own maintenance tab, not aggregated here (keeps this query cheap).
+    /// </summary>
+    private async Task<MaintenanceSummary> GetMaintenanceAsync(int vehiclesUnderMaintenance, CancellationToken ct)
+    {
+        var today = clock.Today;
+        var rows = await db.MaintenanceSchedules
+            .Where(s => s.Vehicle.Status != VehicleStatus.Inactive)
+            .Join(db.MaintenancePlans.SelectMany(p => p.Items), s => s.MaintenancePlanItemId, i => i.Id, (s, i) => new
+            {
+                s.NextDueOn, s.NextDueKm, s.NextDueHours, i.GraceDays, i.GraceKm, i.GraceHours,
+                s.Vehicle.CurrentOdometerKm, s.Vehicle.HourMeter,
+            })
+            .ToListAsync(ct);
+        var statuses = rows.Select(r => MaintenanceSchedulePolicy.Evaluate(
+            new MaintenanceDueData(r.NextDueOn, r.NextDueKm, r.NextDueHours),
+            new MaintenancePlanItem { GraceDays = r.GraceDays, GraceKm = r.GraceKm, GraceHours = r.GraceHours },
+            today, r.CurrentOdometerKm, r.HourMeter)).ToList();
+
+        var monthStart = clock.StartOfBusinessDayUtc(new DateOnly(today.Year, today.Month, 1));
+        var inProgress = await db.WorkOrders.CountAsync(w => w.Status == WorkOrderStatus.InProgress, ct);
+        var waitingParts = await db.WorkOrders.CountAsync(w => w.Status == WorkOrderStatus.WaitingParts, ct);
+        var completedThisMonth = await db.WorkOrders.CountAsync(w => w.Status == WorkOrderStatus.Completed && w.CompletedAt >= monthStart, ct);
+
+        return new MaintenanceSummary(
+            statuses.Count(s => s == MaintenanceScheduleStatus.Due), statuses.Count(s => s == MaintenanceScheduleStatus.DueSoon),
+            statuses.Count(s => s == MaintenanceScheduleStatus.Overdue), inProgress, waitingParts, completedThisMonth, vehiclesUnderMaintenance);
+    }
+
+    private async Task<AlertSource> GetCriticalWorkOrderAlertsAsync(CancellationToken ct)
+    {
+        var query = db.WorkOrders.Where(w => w.Priority == MaintenancePriority.Critical &&
+            w.Status != WorkOrderStatus.Completed && w.Status != WorkOrderStatus.Cancelled && w.Status != WorkOrderStatus.Rejected);
+        var total = await query.CountAsync(ct);
+        var orders = await query.OrderBy(w => w.OpenedAt).Take(MaxAlerts)
+            .Select(w => new { w.Id, w.Sequence, w.Description, w.OpenedAt, Plate = w.Vehicle.LicensePlate })
+            .ToListAsync(ct);
+        var alerts = orders.Select(w => new DashboardAlert(
+            AlertType.CriticalWorkOrder, AlertSeverity.Critical, "Manutenção crítica",
+            $"{LicensePlate.Format(w.Plate)} — OS-{w.Sequence:D6}: {Short(w.Description)}",
+            "WorkOrder", w.Id, clock.ToBusinessDate(w.OpenedAt), "work-orders")).ToList();
+        return new AlertSource(alerts, total);
     }
 
     private async Task<AlertSource> GetLicenseAlertsAsync(CancellationToken ct)

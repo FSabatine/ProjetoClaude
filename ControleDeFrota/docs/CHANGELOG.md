@@ -2,6 +2,36 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Datas no padrão AAAA-MM-DD.
 
+## [0.3.0] — 2026-10-01 — Fase 3: Manutenção
+
+### Adicionado
+- **Planos de manutenção preventiva** (ADR-027): itens com intervalo por km, meses e/ou horas (o primeiro a vencer dispara a manutenção), carência configurável por eixo, precedência veículo específico > tipo de veículo > padrão da empresa (`MaintenancePlanResolver`).
+- **Agenda de manutenção**: status calculado `Scheduled/DueSoon/Due/Overdue` (`MaintenanceSchedulePolicy`, mesma forma do `DocumentExpiryPolicy`), recalculado quando um item ligado a uma ordem de serviço é concluído; veículos nunca atendidos usam a linha de base do cadastro.
+- **Histórico de horímetro** (ADR-027): mesma forma do hodômetro (ADR-019) — não retrocede, salto suspeito (> 20 h/dia) fica pendente de revisão, correção auditada. `Vehicle.HourMeter` deixou de ser editável no cadastro depois de criado.
+- **Solicitações de manutenção**: origem (motorista, checklist, ocorrência, gestor, alerta automático), prioridade, tipo; aprovar abre a ordem de serviço na mesma transação (`Status = Approved`); rejeitar exige motivo. Botão manual "Abrir solicitação de manutenção" na ocorrência — nunca automático.
+- **Ordens de serviço**: número sequencial por empresa (`OS-000001`), máquina de estados `Draft → Approved → Scheduled → InProgress ⇄ WaitingParts → Completed` (+ `Cancelled`/`Rejected`), itens (com itens obrigatórios bloqueando o fechamento), peças e mão de obra como linhas de custo, tempo de indisponibilidade calculado no fechamento.
+- **`Vehicle.Status = UnderMaintenance` controlado pelas ordens de serviço** (ADR-028): entra em manutenção ao iniciar a execução, só volta a `Available` quando nenhuma outra ordem ativa resta e ninguém mudou o status manualmente nesse meio tempo.
+- **Oficinas**: cadastro simples (interno ou externo), vinculado à ordem de serviço.
+- **Permissões**: 6 novas (`maintenance.view`, `maintenance.createrequest`, `maintenance.manageplans`, `maintenance.manageworkorders`, `maintenance.manageworkshops`, `maintenance.viewcosts`). O papel Manutenção ganhou o conjunto completo; Operações ganhou `view`+`createrequest`; Financeiro ganhou `view`+`viewcosts`.
+- **API**: endpoints de `/workshops`, `/maintenance-plans`, `/maintenance-requests`, `/work-orders` (+ status, itens, peças, mão de obra), `/vehicles/{id}/hour-meter-readings`, `/vehicles/{id}/maintenance/{schedule,history,repeated-problems}`.
+- **Dashboard**: bloco "Manutenção" (vence hoje/vencendo/atrasadas/em andamento/aguardando peças/concluídas no mês/veículos em manutenção) e alertas de ordens de serviço críticas em aberto.
+- **Frontend**: módulo `features/maintenance/` completo (oficinas, planos com itens dinâmicos, solicitações com aprovação/rejeição, ordens de serviço com fila e hub de execução), nova aba "Manutenção" no hub do veículo (próximas, ordens, problemas recorrentes).
+- **Banco**: migration `Maintenance`, somente aditiva (10 tabelas, `Vehicles.HourMeterUpdatedAt`, seed de permissões e papéis).
+- **Testes**: 78 novos no backend (42 de domínio, 31 de serviços, 5 de integração HTTP), totalizando 402. O lint, o build e os 40 testes de frontend continuam verdes; sem verificação visual automatizada (browser headless indisponível nesta máquina).
+
+### Alterado
+- O horímetro deixou de ser editável no cadastro do veículo depois de criado, do mesmo jeito que o hodômetro desde a Fase 2: muda só por leituras (`HourMeterService`), com a API recusando a alteração direta com uma mensagem orientando.
+- `BrazilianFormat.Number` ganhou uma sobrecarga para `decimal` com casas decimais (horas, valores), além do inteiro já existente.
+- `ROADMAP.md`/`CLAUDE.md`: a Fase 2.5 (Viagens) foi conscientemente adiada por decisão do usuário; a Fase 3 (Manutenção) entrou no lugar (ADR-026).
+
+### Corrigido
+- Desempate de ordenação de alocações (`AssignmentService`) por `Id` não era confiável no SQLite dos testes (o GUID sequencial só ordena corretamente sob a comparação específica do SQL Server); trocado por um desempate com significado de negócio (alocação ativa primeiro).
+
+### Segurança
+- `maintenance.viewcosts` checada no serviço: sem ela, os campos de custo da ordem de serviço voltam `null`/zerados em vez de recusar o acesso ao resto do registro.
+- Início de ordem de serviço recusa veículo em viagem ou inativo; fechamento exige todos os itens obrigatórios resolvidos — regras que não dá para expressar como atributo de rota, checadas no serviço.
+- Dependências sem vulnerabilidades conhecidas: `dotnet list package --vulnerable --include-transitive` e `npm audit --omit=dev`.
+
 ## [0.2.0] — 2026-09-30 — Fase 2: Controle operacional
 
 ### Adicionado

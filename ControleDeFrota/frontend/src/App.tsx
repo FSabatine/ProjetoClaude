@@ -35,6 +35,13 @@ const ChecklistRunPage = page(() => import('./features/checklists/ChecklistRunPa
 const ChecklistDetailPage = page(() => import('./features/checklists/ChecklistDetailPage'), 'ChecklistDetailPage');
 const ChecklistTemplateListPage = page(() => import('./features/checklists/ChecklistTemplatePages'), 'ChecklistTemplateListPage');
 const ChecklistTemplateFormPage = page(() => import('./features/checklists/ChecklistTemplatePages'), 'ChecklistTemplateFormPage');
+const WorkshopListPage = page(() => import('./features/maintenance/WorkshopListPage'), 'WorkshopListPage');
+const MaintenancePlanListPage = page(() => import('./features/maintenance/MaintenancePlanPages'), 'MaintenancePlanListPage');
+const MaintenancePlanFormPage = page(() => import('./features/maintenance/MaintenancePlanPages'), 'MaintenancePlanFormPage');
+const MaintenanceRequestListPage = page(() => import('./features/maintenance/MaintenanceRequestListPage'), 'MaintenanceRequestListPage');
+const WorkOrderListPage = page(() => import('./features/maintenance/WorkOrderListPage'), 'WorkOrderListPage');
+const WorkOrderFormPage = page(() => import('./features/maintenance/WorkOrderFormPage'), 'WorkOrderFormPage');
+const WorkOrderDetailPage = page(() => import('./features/maintenance/WorkOrderDetailPage'), 'WorkOrderDetailPage');
 const P = PERMISSIONS;
 
 // Routes are in Portuguese (what users see in the address bar); code stays in English.
@@ -78,6 +85,15 @@ const router = createBrowserRouter([
               { path: 'configuracoes/checklists/novo', element: <RequirePermission permission={P.operations.configure}><ChecklistTemplateFormPage /></RequirePermission> },
               { path: 'configuracoes/checklists/:id', element: <RequirePermission permission={P.operations.configure}><ChecklistTemplateFormPage /></RequirePermission> },
               { path: 'configuracoes/tipos-de-documento', element: <RequirePermission permission={P.operations.configure}><DocumentTypesPage /></RequirePermission> },
+              { path: 'oficinas', element: <RequirePermission permission={P.maintenance.manageworkshops}><WorkshopListPage /></RequirePermission> },
+              { path: 'planos-manutencao', element: <RequirePermission permission={P.maintenance.manageplans}><MaintenancePlanListPage /></RequirePermission> },
+              { path: 'planos-manutencao/novo', element: <RequirePermission permission={P.maintenance.manageplans}><MaintenancePlanFormPage /></RequirePermission> },
+              { path: 'planos-manutencao/:id', element: <RequirePermission permission={P.maintenance.manageplans}><MaintenancePlanFormPage /></RequirePermission> },
+              { path: 'solicitacoes-manutencao', element: <RequirePermission permission={P.maintenance.view}><MaintenanceRequestListPage /></RequirePermission> },
+              { path: 'ordens-servico', element: <RequirePermission permission={P.maintenance.view}><WorkOrderListPage /></RequirePermission> },
+              { path: 'ordens-servico/novo', element: <RequirePermission permission={P.maintenance.manageworkorders}><WorkOrderFormPage /></RequirePermission> },
+              { path: 'ordens-servico/:id', element: <RequirePermission permission={P.maintenance.view}><WorkOrderDetailPage /></RequirePermission> },
+              { path: 'ordens-servico/:id/editar', element: <RequirePermission permission={P.maintenance.manageworkorders}><WorkOrderFormPage /></RequirePermission> },
               { path: 'usuarios', element: <RequirePermission permission={P.users.view}><UserListPage /></RequirePermission> },
               { path: 'usuarios/novo', element: <RequirePermission permission={P.users.manage}><UserFormPage /></RequirePermission> },
               { path: 'usuarios/:id', element: <RequirePermission permission={P.users.view}><UserFormPage /></RequirePermission> },

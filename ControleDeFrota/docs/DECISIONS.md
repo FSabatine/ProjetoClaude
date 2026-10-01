@@ -162,6 +162,47 @@ Formato: **Problema · Alternativas · Decisão · Motivo · Impacto**. Um ADR n
 - **Motorista secundário / revezamento** e **alocação agendada**: não suportados; a regra atual é um responsável por vez.
 - **Categoria da CNH × tipo de veículo** (ex.: cavalo mecânico exige E): não validado; hoje só a CNH vencida bloqueia a alocação.
 - **Limite de 1.500 km/dia**: constante de domínio. Pode virar configuração por empresa ou por tipo de veículo.
-- **Horímetro**: continua editável no cadastro, sem histórico (máquinas e implementos com horímetro ficam para a manutenção preventiva).
+- **Horímetro**: ~~continua editável no cadastro, sem histórico~~ (histórico entregue na Fase 3, ADR-027; a edição direta no cadastro do veículo foi removida).
 - **Arquivos órfãos**: uploads nunca vinculados e arquivos removidos (soft delete) permanecem no storage até existir um job de limpeza.
 - **Rate limit do `/auth/refresh`** (Fase 1: 10 por minuto por IP, junto com o login): recarregar a página várias vezes seguidas, ou vários usuários atrás do mesmo NAT, pode gerar 429 e forçar novo login. Recomendação: política própria e mais generosa para o refresh (o token tem 64 bytes aleatórios; força bruta é inviável).
+
+---
+
+# Fase 3 — Manutenção (2026-10-01)
+
+## ADR-026 — Pular a Fase 2.5 (Viagens) e ir direto para a Fase 3 (Manutenção)
+- **Status**: aceito (decisão explícita do usuário, 2026-10-01, confirmada quando avisado que o `ROADMAP.md`/`CLAUDE.md` recomendavam a Fase 2.5 antes).
+- **Problema**: o usuário enviou uma especificação completa da Fase 3 sem pedir a Fase 2.5 (Viagens) primeiro, contrariando a recomendação registrada no roadmap.
+- **Decisão**: implementar a Fase 3 agora; a Fase 2.5 volta para o backlog, antes da Fase 4.
+- **Impacto**: `OnTrip` continua manual (não há módulo de viagens controlando-o), então uma ordem de serviço recusa iniciar com o veículo nesse estado em vez de lidar com uma transição Viagem↔Manutenção que ainda não existe. O vínculo veículo↔implemento com vigência (`VehicleImplementCoupling`) também continua pendente — por isso `WorkOrder.ImplementId` é um campo solto, sem o vínculo formal.
+
+## ADR-027 — Modelo de manutenção: planos, agenda e escopo
+- **Status**: aceito.
+- **Problema**: a especificação do usuário (52 seções) descreve um ERP de manutenção completo — muito além do padrão enxuto das Fases 1/2 deste projeto.
+- **Decisão**: escopo deliberadamente reduzido, documentado como corte consciente (não omissão):
+  - **Sem** entidade `Mechanic`/técnico interno — `WorkOrderLabor.TechnicianName` é texto livre.
+  - **Sem** inventário/estoque de peças nem ordens de compra — `WorkOrderPart` é só uma linha de custo.
+  - **Sem** calendário visual (arrastar-e-soltar) — a "agenda" é a lista de `/work-orders` agrupada por data no frontend.
+  - **Permissões**: 6 (`maintenance.{view, createrequest, manageplans, manageworkorders, manageworkshops, viewcosts}`), não as 9 sugeridas na especificação — `manageworkorders` cobre aprovar/criar/editar/atribuir/concluir (mesmo molde de `occurrences.manage` cobrindo editar+transição).
+- **Modelo de planos** (`MaintenancePlan`): `VehicleId` e `VehicleType` nulos = plano padrão da empresa; a precedência (veículo específico > tipo de veículo > padrão) é resolvida por `MaintenancePlanResolver`, uma função pura, não uma query.
+- **`MaintenanceSchedule`** só grava uma linha depois que o item é atendido pela primeira vez (mesma ideia do `OdometerReading`/`Vehicle.CurrentOdometerKm`): evita popular uma linha por combinação veículo×item sem necessidade. Para veículos nunca atendidos, `MaintenanceScheduleService` calcula a linha de base a partir do cadastro (leitura de registro do hodômetro, `CreatedAt`), do mesmo jeito que o `MileageService.BaselineAsync` já faz.
+- **Status da agenda** (`Scheduled/DueSoon/Due/Overdue`) nunca é gravado — `MaintenanceSchedulePolicy.Evaluate` calcula a partir dos valores atuais do veículo, igual ao `DocumentExpiryPolicy`. Cada eixo configurado (km/data/horas) tem sua própria carência (`Grace*`), e o eixo mais urgente decide o status final.
+- **Número da OS** (`WorkOrder.Sequence` → `"OS-000001"`): calculado por `MAX(Sequence)+1` por empresa, sem contador atômico dedicado. Sob concorrência real (duas OS abertas no mesmo milissegundo) poderia colidir; aceito como risco baixo para o volume esperado — ver "Pontos em aberto da Fase 3".
+- **Solicitação → Ordem de serviço**: aprovar uma `MaintenanceRequest` cria a `WorkOrder` já em `Approved`, na mesma transação, e marca a solicitação `Converted` — não existe um estado intermediário "aprovada, sem OS".
+
+## ADR-028 — Quem controla `Vehicle.Status = UnderMaintenance`
+- **Status**: aceito.
+- **Problema**: não existe `VehicleStatusService` — `Vehicle.Status` só mudava, até aqui, dentro de `VehicleService.UpdateAsync` (edição manual). A Fase 3 precisa que a ordem de serviço controle `UnderMaintenance` sem apagar uma mudança manual (ex.: `Unavailable` por documentação pendente) nem quebrar quando duas ordens do mesmo veículo se sobrepõem.
+- **Decisão**: `WorkOrderService` muta o veículo diretamente, do mesmo jeito que `MileageService`/`ChecklistService` já fazem, com uma regra explícita:
+  - Ao entrar em `InProgress`/`WaitingParts` pela primeira vez: se `Vehicle.Status == Available`, vira `UnderMaintenance`. Se já é `UnderMaintenance` (outra ordem ativa), não faz nada. Se é `OnTrip` ou `Inactive`, recusa. Se é `Unavailable`, permite sem mexer no status (já está correto).
+  - Ao sair dessas situações (concluir/cancelar): só volta a `Available` se **nenhuma outra ordem ativa** restar para o veículo **e** o status ainda for `UnderMaintenance` — nunca sobrescreve uma mudança manual feita nesse meio tempo.
+- **Alternativa rejeitada**: uma pilha/prioridade de "quem é dono do status atual". Mais correta no limite, mas desnecessária para o volume de ordens simultâneas esperado; a regra acima cobre os casos reais sem introduzir um conceito novo no modelo.
+- **Impacto**: nenhum campo novo em `Vehicle` além de `HourMeterUpdatedAt`. A regra fica só no `WorkOrderService`, testada em `WorkOrderServiceTests`.
+
+## Pontos em aberto da Fase 3
+- **Número sequencial da OS** sob concorrência: ver ADR-027. Uma migração futura pode trocar por uma coluna contadora na `Company` com `UPDATE ... OUTPUT`, se o volume justificar.
+- **Calendário visual**: a "agenda" é uma lista ordenada por data agrupada no frontend, não um componente de calendário com arrastar-e-soltar.
+- **Entidade `Mechanic`**: técnico é texto livre em `WorkOrderLabor.TechnicianName`. Vira entidade própria se o negócio precisar de histórico por técnico, agenda de disponibilidade etc.
+- **Inventário de peças**: `WorkOrderPart` é só uma linha de custo; não controla estoque, não desconta de um almoxarifado.
+- **Horímetro de implementos**: `HourMeterReading`/`HourMeterService` hoje só valem para `Vehicle`. Implementos e máquinas com horímetro próprio ficam para quando existir demanda real.
+- **`WorkOrder.ImplementId`**: campo solto (sem o vínculo formal `VehicleImplementCoupling` da Fase 2.5, que ainda não existe).

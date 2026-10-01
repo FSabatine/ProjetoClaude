@@ -2,9 +2,11 @@ using Fleet.Application.Common;
 using Fleet.Application.Companies;
 using Fleet.Application.Drivers;
 using Fleet.Application.Implements;
+using Fleet.Application.Maintenance;
 using Fleet.Application.Vehicles;
 using Fleet.Domain.Drivers;
 using Fleet.Domain.Implements;
+using Fleet.Domain.Maintenance;
 using Fleet.Domain.Vehicles;
 
 namespace Fleet.Application.Tests.TestSupport;
@@ -50,6 +52,37 @@ public static class Requests
         LicenseCategory = LicenseCategory.E,
         LicenseExpiresOn = today.AddYears(2),
         Status = DriverStatus.Active,
+    };
+
+    public static WorkshopRequest Workshop(string name = "Oficina Central") => new() { Name = name, Status = WorkshopStatus.Active };
+
+    public static MaintenancePlanRequest MaintenancePlan(Guid? vehicleId = null, VehicleType? vehicleType = null) => new()
+    {
+        Name = "Plano padrão",
+        VehicleId = vehicleId,
+        VehicleType = vehicleId is null ? vehicleType : null,
+        IsActive = true,
+        Items =
+        [
+            new MaintenancePlanItemRequest { ServiceName = "Troca de óleo", IntervalKm = 10_000, GraceKm = 500, Priority = MaintenancePriority.High },
+        ],
+    };
+
+    public static WorkOrderRequest WorkOrder(Guid vehicleId) => new()
+    {
+        VehicleId = vehicleId,
+        Type = MaintenanceType.Corrective,
+        Priority = MaintenancePriority.Medium,
+        Description = "Barulho no motor",
+    };
+
+    public static MaintenanceRequestRequest MaintenanceRequest(Guid vehicleId) => new()
+    {
+        VehicleId = vehicleId,
+        Source = MaintenanceRequestSource.FleetManager,
+        MaintenanceType = MaintenanceType.Corrective,
+        Priority = MaintenancePriority.Medium,
+        Description = "Barulho no motor",
     };
 
     public static CompanyRequest Company(string cnpj = "12.ABC.345/01DE-35") => new()

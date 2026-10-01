@@ -1,6 +1,6 @@
 import { Alert, Anchor, Button, Group, Paper, SimpleGrid, Stack, Text } from '@mantine/core';
 import {
-  IconAlertTriangle, IconChecklist, IconFileText, IconGauge, IconHistory, IconInfoCircle, IconPencil, IconPlayerPlay, IconSteeringWheel,
+  IconAlertTriangle, IconChecklist, IconFileText, IconGauge, IconHistory, IconInfoCircle, IconPencil, IconPlayerPlay, IconSteeringWheel, IconTool,
 } from '@tabler/icons-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
@@ -16,6 +16,7 @@ import { AuditHistoryButton } from '../audit/AuditHistoryButton';
 import { ChecklistsPanel } from '../checklists/ChecklistsPanel';
 import { DocumentsPanel } from '../documents/DocumentsPanel';
 import { HistoryTimeline } from '../history/HistoryTimeline';
+import { VehicleMaintenancePanel } from '../maintenance/VehicleMaintenancePanel';
 import { MileagePanel } from '../mileage/MileagePanel';
 import { OccurrencesPanel } from '../occurrences/OccurrencesPanel';
 import { documentsApi, mileageApi, occurrencesApi } from '../operations/api';
@@ -47,6 +48,7 @@ function VehicleHub({ vehicle: v }: { vehicle: Vehicle }) {
       value: 'ocorrencias', label: 'Ocorrências', icon: <IconAlertTriangle size={16} />, count: openOccurrences.data?.totalCount,
       content: <OccurrencesPanel filter={{ vehicleId: v.id }} defaults={{ vehicleId: v.id, vehicleLabel: plate, driverId: v.currentAssignment?.driverId, driverLabel: v.currentAssignment?.driverName }} />,
     }] : []),
+    ...(can(PERMISSIONS.maintenance.view) ? [{ value: 'manutencao', label: 'Manutenção', icon: <IconTool size={16} />, content: <VehicleMaintenancePanel vehicleId={v.id} /> }] : []),
     { value: 'historico', label: 'Histórico', icon: <IconHistory size={16} />, content: <HistoryTimeline owner="vehicles" id={v.id} /> },
   ];
 

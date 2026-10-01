@@ -31,7 +31,11 @@ const show = (value: JsonValue) => (value === null || value === '' ? '—' : Arr
  * "Who changed what, when, from → to" for one record (DATABASE.md, auditing). Field names are shown
  * as stored; a per-module label map is a planned refinement.
  */
-export function AuditHistoryButton({ entity, id }: { entity: 'Vehicle' | 'Implement' | 'Driver' | 'User' | 'Company' | 'Occurrence' | 'ChecklistTemplate' | 'Document'; id: string }) {
+type AuditEntity =
+  | 'Vehicle' | 'Implement' | 'Driver' | 'User' | 'Company' | 'Occurrence' | 'ChecklistTemplate' | 'Document'
+  | 'Workshop' | 'MaintenancePlan' | 'HourMeterReading' | 'MaintenanceRequest' | 'WorkOrder';
+
+export function AuditHistoryButton({ entity, id }: { entity: AuditEntity; id: string }) {
   const { can } = useAuth();
   const [opened, { open, close }] = useDisclosure(false);
   const query = useQuery({

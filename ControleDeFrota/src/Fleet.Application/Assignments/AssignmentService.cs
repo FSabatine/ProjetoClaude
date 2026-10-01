@@ -207,7 +207,10 @@ public sealed class AssignmentService(
 
     private async Task<PagedResult<AssignmentResponse>> ListAsync(IQueryable<VehicleAssignment> query, ListRequest request, CancellationToken ct)
     {
-        var page = await query.OrderByDescending(a => a.StartedAt).ThenByDescending(a => a.Id)
+        // Id as a final tiebreaker is unreliable here: EF's sequential-GUID generator only sorts correctly under
+        // SQL Server's special comparison, not SQLite's plain byte order (used in tests). When StartedAt ties
+        // (e.g. a same-instant hand-over), the active assignment is the meaningful "latest" one to show first.
+        var page = await query.OrderByDescending(a => a.StartedAt).ThenByDescending(a => a.EndedAt == null).ThenByDescending(a => a.Id)
             .ToPagedResultAsync(request, a => new
             {
                 a.Id, a.VehicleId, a.Vehicle.LicensePlate, a.Vehicle.Manufacturer, a.Vehicle.Model, a.DriverId,

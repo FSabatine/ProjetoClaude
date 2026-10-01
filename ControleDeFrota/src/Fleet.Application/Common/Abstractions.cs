@@ -7,6 +7,7 @@ using Fleet.Domain.Documents;
 using Fleet.Domain.Drivers;
 using Fleet.Domain.Files;
 using Fleet.Domain.Implements;
+using Fleet.Domain.Maintenance;
 using Fleet.Domain.Mileage;
 using Fleet.Domain.Occurrences;
 using Fleet.Domain.Operations;
@@ -42,6 +43,14 @@ public interface IFleetDbContext
     DbSet<Occurrence> Occurrences { get; }
     DbSet<OperationalEvent> OperationalEvents { get; }
     DbSet<AuditLog> AuditLogs { get; }
+
+    // Phase 3 — maintenance
+    DbSet<Workshop> Workshops { get; }
+    DbSet<MaintenancePlan> MaintenancePlans { get; }
+    DbSet<MaintenanceSchedule> MaintenanceSchedules { get; }
+    DbSet<HourMeterReading> HourMeterReadings { get; }
+    DbSet<MaintenanceRequest> MaintenanceRequests { get; }
+    DbSet<WorkOrder> WorkOrders { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 

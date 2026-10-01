@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
 import { Anchor, Badge, Group, Paper, SimpleGrid, Skeleton, Stack, Text, ThemeIcon, Title, UnstyledButton } from '@mantine/core';
 import {
-  IconAlertTriangle, IconChecklist, IconCircleCheck, IconFileAlert, IconFileText, IconGauge, IconId, IconRoute, IconSteeringWheel, IconTool,
-  IconTruck, IconTruckDelivery, IconBan, IconArchive,
+  IconAlertTriangle, IconChecklist, IconCircleCheck, IconClock, IconFileAlert, IconFileText, IconGauge, IconHourglass, IconId, IconProgress,
+  IconRoute, IconSteeringWheel, IconTool, IconTruck, IconTruckDelivery, IconBan, IconArchive,
 } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
@@ -14,8 +14,10 @@ import { EmptyState, ErrorState } from '../../components/States';
 import { formatNumber, formatPlate } from '../../lib/format';
 import classes from './DashboardPage.module.css';
 
-type AlertType = 'LicenseExpired' | 'LicenseExpiringSoon' | 'DocumentExpired' | 'DocumentExpiringSoon' | 'CriticalOccurrence' | 'MileagePendingReview';
-type EntityType = 'Driver' | 'Vehicle' | 'Implement' | 'Company' | 'Occurrence';
+type AlertType =
+  | 'LicenseExpired' | 'LicenseExpiringSoon' | 'DocumentExpired' | 'DocumentExpiringSoon' | 'CriticalOccurrence' | 'MileagePendingReview'
+  | 'CriticalWorkOrder';
+type EntityType = 'Driver' | 'Vehicle' | 'Implement' | 'Company' | 'Occurrence' | 'WorkOrder';
 
 interface DashboardAlert {
   type: AlertType;
@@ -47,6 +49,15 @@ interface DashboardData {
     vehiclesWithoutRecentMileage: number;
     staleAfterDays: number;
   };
+  maintenance: {
+    dueToday: number;
+    dueSoon: number;
+    overdue: number;
+    inProgress: number;
+    waitingParts: number;
+    completedThisMonth: number;
+    vehiclesUnderMaintenance: number;
+  } | null;
   alerts: DashboardAlert[];
   totalAlerts: number;
 }
@@ -61,6 +72,7 @@ const alertLink = (a: DashboardAlert) => {
     case 'Vehicle': return `/veiculos/${a.entityId}${tab}`;
     case 'Implement': return `/implementos/${a.entityId}`;
     case 'Occurrence': return `/ocorrencias/${a.entityId}`;
+    case 'WorkOrder': return `/ordens-servico/${a.entityId}`;
     default: return '/minha-empresa';
   }
 };
@@ -72,6 +84,7 @@ const ALERT_ICON: Record<AlertType, typeof IconId> = {
   DocumentExpiringSoon: IconFileText,
   CriticalOccurrence: IconAlertTriangle,
   MileagePendingReview: IconGauge,
+  CriticalWorkOrder: IconTool,
 };
 
 /** A number that leads to the filtered list behind it (one click from the KPI to the records). */
@@ -145,6 +158,22 @@ export function DashboardPage() {
             </SimpleGrid>
           )}
         </Block>
+
+        {can(PERMISSIONS.maintenance.view) && (
+          <Block title="Manutenção">
+            {!d ? loading(7) : d.maintenance === null ? null : (
+              <SimpleGrid cols={{ base: 2, sm: 3, lg: 7 }} spacing="sm">
+                <Stat label="Vence hoje" value={d.maintenance.dueToday} icon={IconClock} color="yellow" to="/ordens-servico" />
+                <Stat label="Vencendo" value={d.maintenance.dueSoon} icon={IconHourglass} color="orange" to="/ordens-servico" />
+                <Stat label="Atrasadas" value={d.maintenance.overdue} icon={IconAlertTriangle} color="red" to="/ordens-servico" />
+                <Stat label="Em andamento" value={d.maintenance.inProgress} icon={IconProgress} color="blue" to="/ordens-servico?status=InProgress" />
+                <Stat label="Aguardando peças" value={d.maintenance.waitingParts} icon={IconTool} color="grape" to="/ordens-servico?status=WaitingParts" />
+                <Stat label="Concluídas no mês" value={d.maintenance.completedThisMonth} icon={IconCircleCheck} color="teal" to="/ordens-servico?status=Completed" />
+                <Stat label="Veículos em manutenção" value={d.maintenance.vehiclesUnderMaintenance} icon={IconTruck} color="gray" to="/veiculos?operationalStatus=UnderMaintenance" />
+              </SimpleGrid>
+            )}
+          </Block>
+        )}
 
         <SimpleGrid cols={{ base: 1, lg: 3 }} spacing="lg">
           <div style={{ gridColumn: 'span 2' }}>

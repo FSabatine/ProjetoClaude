@@ -112,7 +112,10 @@ public class Vehicle : AuditableEntity, ITenantScoped, ISoftDeletable, IAuditabl
     public int CurrentOdometerKm { get; set; }
     /// <summary>When the current odometer value was read (null = never read since registration).</summary>
     public DateTime? OdometerUpdatedAt { get; set; }
+    /// <summary>Fast read of the latest applied hour-meter reading. Changed only by HourMeterService (Fase 3).</summary>
     public decimal? HourMeter { get; set; }
+    /// <summary>When the current hour meter value was read (null = never read through HourMeterService).</summary>
+    public DateTime? HourMeterUpdatedAt { get; set; }
     public VehicleStatus Status { get; set; } = VehicleStatus.Available;
 
     public DateOnly? AcquisitionDate { get; set; }

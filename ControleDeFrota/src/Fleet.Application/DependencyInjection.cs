@@ -12,6 +12,7 @@ using Fleet.Application.Companies;
 using Fleet.Application.Dashboard;
 using Fleet.Application.Drivers;
 using Fleet.Application.Implements;
+using Fleet.Application.Maintenance;
 using Fleet.Application.Roles;
 using Fleet.Application.Users;
 using Fleet.Application.Vehicles;
@@ -52,6 +53,14 @@ public static class DependencyInjection
         services.AddScoped<ChecklistTemplateService>();
         services.AddScoped<ChecklistService>();
         services.AddScoped<OccurrenceService>();
+
+        // Phase 3 — maintenance
+        services.AddScoped<WorkshopService>();
+        services.AddScoped<MaintenancePlanService>();
+        services.AddScoped<MaintenanceScheduleService>();
+        services.AddScoped<HourMeterService>();
+        services.AddScoped<WorkOrderService>();
+        services.AddScoped<MaintenanceRequestService>();
         return services;
     }
 }

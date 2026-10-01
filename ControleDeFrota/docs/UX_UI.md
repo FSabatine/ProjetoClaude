@@ -90,6 +90,15 @@ Alvos de toque de no mínimo 40px. O motorista vai usar o celular nas fases futu
 - Datas em `dd/mm/aaaa`, números em `pt-BR` (`1.234,56`) e moeda em `R$`.
 
 
+## Central de Ajuda (manual do usuário)
+
+- Ícone `?` (`IconHelpCircle`) no cabeçalho, ao lado do seletor de tema — mesmo `Group` de ações, sempre visível, nunca navega para outra rota.
+- Abre um `Drawer` à direita (`size="md"` no desktop, `size="100%"` no celular, mesmo ponto de quebra de 768px das listas): busca sempre visível no topo, depois a tela atual (início, categoria ou artigo), com navegação em pilha interna (botão "Voltar") — fechar e reabrir sempre volta para o início.
+- Categorias aparecem **na ordem mais relevante para a tela atual**: a aba aberta no hub do veículo/motorista prioriza a categoria correspondente (`features/help/context.ts`).
+- Um artigo é texto curto, nunca um bloco só de parágrafo: resumo, "por que importa", passo a passo numerado, um exemplo em bloco destacado, notas importantes e "Relacionados" (que navegam sem fechar a ajuda).
+- Conteúdo só do que já existe no sistema — nunca uma funcionalidade planejada. Cada artigo tem `requiredPermission` opcional (o mesmo `PERMISSIONS` do app): por padrão todo artigo é visível a qualquer usuário autenticado; só os de Empresas/Usuários/Papéis exigem a permissão de visualização do módulo, por relevância (não há segredo nenhum no manual).
+- **Diferente de `docs/`**: o manual é em pt-BR, linguagem de negócio, sem nenhum detalhe de implementação — nunca um link direto para a documentação técnica.
+
 ## Fase 2 — padrões operacionais
 
 ### Página "hub" do registro (veículo e motorista)

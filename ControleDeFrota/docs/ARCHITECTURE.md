@@ -222,9 +222,15 @@ frontend/src/
 ├── features/<m>/  <m>.ts (tipos + mapas de rótulos/cores + resource), <M>ListPage.tsx, <M>FormPage.tsx, <M>DetailPage.tsx (hub com abas)
 ├── features/operations/  labels.ts (rótulos/cores dos enums da Fase 2) e api.ts (tipos + hooks: alocação, hodômetro, documentos, arquivos, checklists, ocorrências, histórico)
 ├── features/{assignments,mileage,documents,checklists,occurrences,history}/  painéis reutilizados nos hubs + páginas próprias
+├── features/maintenance/  maintenance.ts (tipos + rótulos), api.ts (hooks), páginas de oficinas/planos/solicitações/ordens de serviço e o painel de manutenção do hub do veículo
+├── features/help/ Central de Ajuda (manual do usuário, ver abaixo) — content/ (dado estático por categoria), search.ts, context.ts, analytics.ts, HelpButton/HelpDrawer/HelpArticleView
 ├── hooks/         useListParams (busca/filtros/ordem/página na URL)
 ├── lib/           validators.ts (espelho do Domain), format.ts, mileage.ts (espelho do OdometerPolicy para feedback imediato), images.ts (redução das fotos antes do upload)
 └── theme.ts       tema Mantine (única fonte de cores)
 ```
 
 Fluxo de sessão: ao abrir o app, `POST /auth/refresh` restaura a sessão pelo cookie. Um 401 em qualquer chamada dispara um único refresh e repete a chamada. Se o refresh falhar, o usuário volta ao login com o aviso "sessão expirada".
+
+### Central de Ajuda (manual do usuário)
+
+Só frontend — não é um módulo do backend. O conteúdo é dado estático versionado em `features/help/content/*.ts` (um arquivo por categoria, cada um exportando `HELP_CATEGORY`/`ARTICLES`), não um CMS nem uma tabela no banco (ADR em DECISIONS.md). A busca (`search.ts`) e a ajuda contextual por rota (`context.ts`) são funções puras, sem dependência nova. É deliberadamente **separado** da documentação técnica em `docs/`: o manual é para quem usa o sistema, pt-BR e sem detalhe de implementação; `docs/` é para quem desenvolve.

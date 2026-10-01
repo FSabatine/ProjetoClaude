@@ -1,0 +1,20 @@
+import type { HelpWhatsNewEntry } from '../types';
+
+/**
+ * Só marcos realmente lançados (nunca um recurso planejado) — ver docs/CHANGELOG.md para a versão técnica completa.
+ * Mais recente primeiro.
+ */
+export const WHATS_NEW: HelpWhatsNewEntry[] = [
+  {
+    id: 'whats-new-maintenance',
+    title: 'Manutenção da frota',
+    description: 'Planos preventivos, solicitações de manutenção, ordens de serviço, oficinas e histórico de horímetro.',
+    date: 'outubro de 2026',
+  },
+  {
+    id: 'whats-new-operations',
+    title: 'Controle operacional',
+    description: 'Alocação de motoristas, histórico de hodômetro, documentos com vencimento, checklists e ocorrências.',
+    date: 'setembro de 2026',
+  },
+];

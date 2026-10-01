@@ -100,6 +100,8 @@ Por padrão, cada módulo é uma pasta vertical: tudo o que muda junto fica junt
 
 Mudou arquitetura, banco, regra de negócio, segurança, UX ou dependência importante? **Atualize o doc correspondente no mesmo PR** e registre em CHANGELOG.md. Uma decisão estrutural gera um ADR em DECISIONS.md.
 
+**Funcionalidade nova visível para o usuário final?** Pergunte: *"isso precisa de um artigo novo na Central de Ajuda?"* Se sim, adicione (ou edite) o artigo em `frontend/src/features/help/content/<categoria>.ts` no mesmo PR — só documente o que já está implementado, nunca uma função planejada. A Central de Ajuda (`?` no cabeçalho) é **diferente** de `docs/`: é em pt-BR, linguagem de negócio, sem detalhe técnico.
+
 ## Code review: checklist
 
 - [ ] O escopo é o que foi pedido, sem módulo futuro "adiantado"?
@@ -113,6 +115,7 @@ Mudou arquitetura, banco, regra de negócio, segurança, UX ou dependência impo
 - [ ] As mensagens para o usuário estão em pt-BR e são acionáveis?
 - [ ] A tela tem os estados de carregamento, vazio, erro, feedback e responsividade?
 - [ ] Docs e CHANGELOG foram atualizados?
+- [ ] Se a funcionalidade é visível para o usuário final, a Central de Ajuda ganhou (ou atualizou) um artigo?
 
 ## Segurança (resumo; detalhes em SECURITY.md)
 

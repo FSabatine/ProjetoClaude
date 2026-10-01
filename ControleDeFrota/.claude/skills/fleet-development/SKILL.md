@@ -78,6 +78,7 @@ Detalhes em `docs/UX_UI.md`. O mínimo obrigatório de toda tela:
 - Registro com vida operacional ganha uma página **hub** com `DetailTabs` (aba na URL `?aba=`) e cabeçalho com `HeaderFact`; a edição do cadastro fica em `/:id/editar`.
 - Seleção de veículo/motorista: `VehiclePicker`/`DriverPicker` (busca no servidor). Anexos: `UploadButton` (com `camera` no celular) + `AttachmentList`.
 - Telas usadas em campo (checklist) são mobile-first: botões ≥ 48px, "marcar todos", foto pela câmera, barra de envio fixa e erro rolando até o item.
+- **Toda funcionalidade nova visível ao usuário final ganha um artigo na Central de Ajuda** (`frontend/src/features/help/content/<categoria>.ts`, aberta pelo `?` no cabeçalho) — pt-BR, linguagem de negócio, só do que já está implementado. É **diferente** de `docs/` (técnico, para quem desenvolve). Ver docs/DECISIONS.md (ADR-029/030).
 
 ## Quality gates (antes de dizer "pronto")
 

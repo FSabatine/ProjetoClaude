@@ -2,6 +2,21 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Datas no padrão AAAA-MM-DD.
 
+## [0.3.1] — 2026-10-01 — Central de Ajuda (manual do usuário)
+
+### Adicionado
+- **Central de Ajuda**: ícone `?` no cabeçalho, ao lado do seletor de tema, abrindo um `Drawer` com busca, categorias e artigos, sem navegar para outra rota (ADR-029/030 em DECISIONS.md).
+- **Manual completo** de tudo o que já existe: Primeiros passos, Painel, Empresas, Usuários, Papéis e permissões, Motoristas, Veículos, Implementos, Alocações, Quilometragem, Documentos, Checklists, Ocorrências, Manutenção, Busca e filtros, e Perguntas frequentes — só funcionalidade real, nada planejado.
+- **Busca** client-side (sem lib nova) e **ajuda contextual**: a categoria mais relevante para a tela atual aparece primeiro (ex.: abrir a ajuda na aba Manutenção do veículo prioriza a categoria Manutenção).
+- **"Novidades"**: bloco com os marcos já lançados (Fase 2 e Fase 3), nunca um recurso futuro.
+- Permissão opcional por artigo (reaproveita o catálogo existente): por padrão todo artigo é visível, só os de Empresas/Usuários/Papéis exigem a permissão de visualização do módulo.
+- **Testes**: 15 novos no frontend (busca, ajuda contextual e integridade do conteúdo), totalizando 55.
+- Regra nova no `fleet-development` e em `DEVELOPMENT_GUIDELINES.md`: funcionalidade visível ao usuário ganha artigo no mesmo PR.
+
+### Limitações conhecidas
+- Sem teste automatizado de interação (abrir/fechar, clique, responsividade, tema) — o projeto não tem Testing Library/jsdom de componente configurado; verificação manual.
+- Analytics de uso (artigo mais visto, busca sem resultado) é só o ponto de extensão — sem destino real ainda.
+
 ## [0.3.0] — 2026-10-01 — Fase 3: Manutenção
 
 ### Adicionado

@@ -27,8 +27,9 @@ import {
 import { NavLink as RouterNavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { PERMISSIONS, type Permission } from '../auth/permissions';
-import { FormSkeleton } from './EntityFormPage';
 import { openChangePassword } from '../features/auth/ChangePasswordModal';
+import { HelpButton } from '../features/help/HelpButton';
+import { FormSkeleton } from './EntityFormPage';
 
 interface NavItem {
   label: string;
@@ -112,6 +113,7 @@ export function AppLayout() {
             </div>
           </Group>
           <Group gap="xs" wrap="nowrap">
+            <HelpButton />
             <Tooltip label={colorScheme === 'dark' ? 'Tema claro' : 'Tema escuro'}>
               <ActionIcon variant="subtle" color="gray" size="lg" onClick={toggleColorScheme} aria-label="Alternar tema claro/escuro">
                 {colorScheme === 'dark' ? <IconSun size={18} /> : <IconMoon size={18} />}

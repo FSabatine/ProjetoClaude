@@ -206,3 +206,26 @@ Formato: **Problema · Alternativas · Decisão · Motivo · Impacto**. Um ADR n
 - **Inventário de peças**: `WorkOrderPart` é só uma linha de custo; não controla estoque, não desconta de um almoxarifado.
 - **Horímetro de implementos**: `HourMeterReading`/`HourMeterService` hoje só valem para `Vehicle`. Implementos e máquinas com horímetro próprio ficam para quando existir demanda real.
 - **`WorkOrder.ImplementId`**: campo solto (sem o vínculo formal `VehicleImplementCoupling` da Fase 2.5, que ainda não existe).
+
+---
+
+# Central de Ajuda / Manual do usuário (2026-10-01)
+
+## ADR-029 — Conteúdo do manual como dado estático em TypeScript, não CMS/banco
+- **Status**: aceito.
+- **Problema**: o manual do usuário precisa evoluir junto do sistema (toda funcionalidade nova pede um artigo novo, seção 43/44 do pedido do usuário), sem virar um módulo pesado nem uma segunda fonte de verdade desalinhada do código.
+- **Alternativas**: (a) artigos como dado estático versionado no frontend (`features/help/content/*.ts`); (b) tabela no banco com CRUD de administração; (c) arquivos Markdown carregados em runtime.
+- **Decisão**: (a).
+- **Motivo**: KISS/YAGNI (`DEVELOPMENT_GUIDELINES.md`) — não existe hoje a necessidade de editar o manual sem um deploy, e manter o conteúdo no mesmo repositório/PR que muda o comportamento que ele descreve é o que torna fácil cumprir a regra "feature nova ganha artigo novo". A opção (b) exigiria uma entidade, permissões de CRUD e uma tela de administração só para isso; a opção (c) exigiria um parser de Markdown e perderia a checagem de tipo dos ids relacionados.
+- **Impacto**: um teste de integridade de conteúdo (`features/help/content/content.test.ts`) substitui a validação que um banco daria de graça (sem id duplicado, sem link quebrado entre artigos). Se um dia o manual precisar ser editado por alguém que não mexe em código, a decisão deve ser revista.
+
+## ADR-030 — Busca client-side simples, sem biblioteca nova
+- **Status**: aceito.
+- **Decisão**: `features/help/search.ts` é uma função pura que normaliza o texto (minúsculas, sem acento) e pontua por campo (título > resumo/palavras-chave > passos/exemplo), exigindo que toda palavra da busca apareça em algum campo.
+- **Motivo**: o conteúdo é pequeno e estático (não cresce por entrada de usuário) — uma lib de busca (Lunr, Fuse.js, Elasticsearch) seria uma dependência nova para resolver um problema que um `Array.filter` já resolve bem nesse volume.
+- **Impacto**: se o manual crescer muito (centenas de artigos) ou pedir busca difusa (erro de digitação, sinônimos automáticos), essa decisão deve ser revisitada.
+
+## Pontos em aberto da Central de Ajuda
+- **Testes de interação** (abrir/fechar o drawer, clicar numa categoria, navegar para um artigo): não implementados — o projeto hoje só tem Vitest para função pura no frontend, sem Testing Library/jsdom de componente configurado. Os testes cobrem `search.ts`, `context.ts` e a integridade do conteúdo; a interação, a responsividade e os dois temas foram verificados manualmente.
+- **Analytics** (`HelpArticleViewed`, `HelpSearchPerformed`, `HelpSearchNoResult`): só o ponto de extensão (`trackHelpEvent`, hoje loga em desenvolvimento). Sem destino real (produto de analytics) ainda.
+- **Screenshots/imagens nos artigos**: a estrutura do artigo (`HelpArticle`) não tem campo de imagem ainda — texto e exemplo em bloco cobrem o conteúdo inicial. Se precisar, adiciona-se um campo opcional sem quebrar os artigos existentes.

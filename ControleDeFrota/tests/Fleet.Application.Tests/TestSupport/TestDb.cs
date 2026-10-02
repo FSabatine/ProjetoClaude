@@ -77,8 +77,8 @@ public sealed class TestDb : IDisposable
     }
 
     /// <summary>A fresh context on the same database — use it to assert what was really persisted.</summary>
-    public FleetDbContext NewContext() =>
-        new(new DbContextOptionsBuilder<FleetDbContext>().UseSqlite(_connection).Options, CurrentUser, Clock);
+    public FleetDbContext NewContext(params Microsoft.EntityFrameworkCore.Diagnostics.IInterceptor[] interceptors) =>
+        new(new DbContextOptionsBuilder<FleetDbContext>().UseSqlite(_connection).AddInterceptors(interceptors).Options, CurrentUser, Clock);
 
     public async Task<Company> AddCompanyAsync(string cnpj = "11222333000181", string name = "Empresa Teste")
     {

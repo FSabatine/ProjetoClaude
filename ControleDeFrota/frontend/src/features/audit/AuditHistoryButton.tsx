@@ -34,7 +34,8 @@ const show = (value: JsonValue) => (value === null || value === '' ? '—' : Arr
 type AuditEntity =
   | 'Vehicle' | 'Implement' | 'Driver' | 'User' | 'Company' | 'Occurrence' | 'ChecklistTemplate' | 'Document'
   | 'Workshop' | 'MaintenancePlan' | 'HourMeterReading' | 'MaintenanceRequest' | 'WorkOrder'
-  | 'Fueling' | 'FuelStation' | 'FuelType';
+  | 'Fueling' | 'FuelStation' | 'FuelType'
+  | 'Tire' | 'TireLayout' | 'TireModel';
 
 export function AuditHistoryButton({ entity, id }: { entity: AuditEntity; id: string }) {
   const { can } = useAuth();

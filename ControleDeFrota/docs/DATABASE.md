@@ -452,3 +452,67 @@ O `Up` é **somente aditivo**: 7 tabelas novas, 3 colunas nullable em `Vehicles`
 
 ### Retenção
 Abastecimentos, alertas, correções e leituras geradas são histórico operacional: não há exclusão nem expurgo nesta fase (o cancelado permanece). Arquivos anexados seguem a política geral (bytes no storage até existir o job de limpeza).
+
+## Entidades e relacionamentos (Fase 5 — migration `TireManagement`)
+
+```
+Companies 1───N TireModels 1───N Tires
+Companies 1───N TireLayouts 1───N TireLayoutAxles (cascade)
+TireLayouts 1───N Vehicles (Vehicles.TireLayoutId NULL, FK Restrict) e 1───N Implements (Implements.TireLayoutId NULL)
+Tires 1───N TireInstallations N───0..1 Vehicles | Implements ; N───0..1 TireRotations (RotationId, RemovalRotationId)
+Tires 1───N TireInspections 1───N TireInspectionDamages (cascade) ; TireInspections N───0..1 TireInstallations
+Tires 1───N TireServiceOrders N───0..1 Workshops
+Tires 1───N TireCosts N───0..1 TireServiceOrders
+Tires 1───N TireAnomalies
+Companies 1───0..1 TireSettings
+OperationalEvents.TireId (sem FK, como as demais colunas do histórico)
+StoredFiles OwnerType = Tire | TireInspection | TireServiceOrder (sem FK)
+```
+
+Todas as tabelas têm `CompanyId` (FK Restrict) e filtro global de tenant. Soft delete: `TireModels`, `TireLayouts`, `Tires` (só sem histórico), `TireCosts` (só manuais). O resto é histórico append-only.
+
+| Tabela | Colunas principais |
+|---|---|
+| TireModels | Brand (60), Name (80), Size varchar(30) normalizado, Application, Construction, LoadIndex, SpeedRating, OriginalTreadDepthMm (5,2), IsActive, Notes |
+| TireLayouts | Name (80), Target, Description, SpareCount, IsActive |
+| TireLayoutAxles | TireLayoutId, Number, Type, IsDual, IsRequired, AllowedSize varchar(30) NULL, RecommendedPressurePsi (6,1) NULL |
+| Tires | Sequence, Code (20), TireModelId, SerialNumber, Dot, ManufacturedOn date, PurchasedOn date, PurchasePrice (14,2), Supplier, OriginalTreadDepthMm, StorageLocation, Notes, Status, campos rápidos (AccumulatedKm, HasUnmeasuredDistance, RetreadCount, RepairCount, CurrentTreadDepthMm, TreadMeasuredAt, LastInspectedAt, LastWearPattern, LastInspectionHasDamage, LastPressureCheck, InspectionReferenceAt, LastMovementAt), baixa (DisposedAt, DisposalReason, DisposalDestination, DisposalNotes, DisposedBy), **Version int (token de concorrência)** |
+| TireInstallations | TireId, VehicleId NULL, ImplementId NULL, PositionCode varchar(10), PositionLabel (60), AxleNumber, IsSpare, InstalledAt, InstalledOdometerKm NULL, InstalledHourMeter, InstallReason, RotationId NULL, Notes; RemovedAt NULL, RemovedOdometerKm, RemovedHourMeter, RemovalReason, RemovalDestination, RemovedBy, RemovalRotationId, RemovalNotes, DistanceKm NULL (snapshot) |
+| TireRotations | VehicleId/ImplementId, PerformedAt, OdometerKm, Reason, Notes, TireCount |
+| TireInspections | TireId, InstallationId, VehicleId/ImplementId, PositionCode/Label (snapshot), InspectedAt, Source, OdometerKm, TireKm, TreadDepthMm (5,2), Pressure (7,2), PressureUnit, PressureCheck, Condition, WearPattern, Notes, OccurrenceId, MaintenanceRequestId |
+| TireInspectionDamages | InspectionId, Type (único por inspeção) |
+| TireServiceOrders | TireId, Kind, Status, Result, InPlace, WorkshopId, ProviderName, SentAt, CompletedAt, RepairType, RetreadNumber, TreadPattern, NewTreadDepthMm, Cost (14,2), WarrantyUntil, Description, ResultNotes, CancellationReason |
+| TireCosts | TireId, Type, IncurredOn date, Amount (14,2), Description, ServiceOrderId NULL |
+| TireAnomalies | TireId, Type, Message (400), DetectedAt, ReviewedAt/By, ReviewNotes |
+| TireSettings | MinTreadDepthMm, TreadWarningDepthMm, InspectionIntervalDays, MaxAgeYears, PressureTolerancePercent, PressureUnit, RapidWearMmPer1000Km, MinExpectedLifeKm, AutoMaintenanceRequestOnUnfit (único por empresa) |
+
+### Índices (consultas reais)
+
+| Índice | Consulta / regra |
+|---|---|
+| `TireInstallations (TireId)` único `WHERE [RemovedAt] IS NULL` | **um pneu em uma posição no máximo**, mesmo com requisições simultâneas |
+| `TireInstallations (VehicleId, PositionCode)` único `WHERE [RemovedAt] IS NULL AND [VehicleId] IS NOT NULL` (idem `ImplementId`) | **uma posição com um pneu no máximo** |
+| `TireServiceOrders (TireId)` único `WHERE [Status] = 'Open'` | um serviço aberto por pneu |
+| `Tires (CompanyId, Code)` e `(CompanyId, Sequence)` únicos filtrados por `DeletedAt` | número de fogo |
+| `Tires (CompanyId, Status)` | inventário, contadores do painel (os filtros de alerta são aplicados sobre a situação) |
+| `TireInstallations (CompanyId, TireId, InstalledAt)`, `(CompanyId, VehicleId, InstalledAt)`, `(CompanyId, ImplementId, InstalledAt)`, `(CompanyId, InstalledAt)` | aba Instalações do pneu, histórico do veículo, relatório de ciclo de vida por período |
+| `TireInspections (CompanyId, TireId, InspectedAt)`, `(CompanyId, InspectedAt)`, `(CompanyId, VehicleId, InspectedAt)` | histórico de sulco (e a medição anterior da regra de desgaste), relatório de inspeções |
+| `TireCosts (CompanyId, TireId, Type)`, `(CompanyId, IncurredOn)` | custo do ciclo de vida (`GROUP BY TireId, Type`) |
+| `TireAnomalies (CompanyId, ReviewedAt)`, `(CompanyId, TireId)` | fila "requer revisão" |
+| `OperationalEvents (CompanyId, TireId, OccurredAt)` | linha do tempo do pneu (paginada) |
+
+Sulco, km e retread **não** têm índice próprio: são filtros secundários sobre `(CompanyId, Status)` numa frota de milhares de pneus.
+
+### Concorrência e transações (ADR-038)
+- `Tires.Version` é `IsConcurrencyToken`: toda operação incrementa; o `UPDATE … WHERE Version = @old` da segunda operação concorrente afeta 0 linhas → `DbUpdateConcurrencyException` → **409** com explicação.
+- Operações que liberam e ocupam posições (substituir, transferir, rodízio) usam **dois `SaveChanges` dentro de `InTransactionAsync`** — o EF não ordena comandos por índice filtrado. Violação dos índices únicos de pneu também vira 409.
+- Testado: rodízio com falha simulada no segundo `SaveChanges` desfaz tudo; dois "requests" (dois `DbContext`) instalando o mesmo pneu → o segundo recebe 409; o banco recusa duas vigências abertas do mesmo pneu ou da mesma posição mesmo sem o serviço.
+
+### Agregação
+Painel e relatórios somam/contam no banco (`GROUP BY` de colunas simples — ADR-033). O ranking de custo/km precisa do km em andamento: três consultas estreitas (uma linha por pneu) consolidadas em memória — nunca o histórico. Volume testado: 3.000 pneus, painel + lista filtrada em < 5 s no SQLite em memória (`Volume_ThreeThousandTires…`); todas as consultas executadas também no SQL Server (LocalDB, banco temporário com os dados de desenvolvimento).
+
+### Seed
+Permissões 180–191 e papéis via `InsertData` na migration; configurações de eixos padrão na primeira leitura. Em desenvolvimento, `DevTireSeeder`: 3 modelos, configurações nos veículos/implemento de exemplo, 11 pneus no RDX1A23 instalados há 75 dias (km do histórico daquela data) com inspeções (um perto do mínimo, um no mínimo, um com desgaste no ombro, um com furo), 3 em estoque, 1 na recapadora e 1 baixado.
+
+### Revisão da migration `TireManagement`
+`Up` somente aditivo: 11 tabelas novas, `Vehicles.TireLayoutId`, `Implements.TireLayoutId` e `OperationalEvents.TireId` (nullable) + índices, seed de permissões/papéis e descrições de quatro papéis. Nenhuma coluna existente alterada. O aviso "may result in the loss of data" refere-se só ao `Down`.

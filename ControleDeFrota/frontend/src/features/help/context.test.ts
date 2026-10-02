@@ -27,6 +27,13 @@ describe('resolveContextualCategory', () => {
     expect(resolveContextualCategory('/configuracoes/combustivel', '')).toBe('fuel');
   });
 
+  it('resolves tire routes and the tire tab of the vehicle hub', () => {
+    expect(resolveContextualCategory('/veiculos/123', '?aba=pneus')).toBe('tires');
+    expect(resolveContextualCategory('/pneus/painel', '')).toBe('tires');
+    expect(resolveContextualCategory('/pneus/1', '')).toBe('tires');
+    expect(resolveContextualCategory('/configuracoes/pneus', '')).toBe('tires');
+  });
+
   it('resolves the dashboard route exactly, not by prefix', () => {
     expect(resolveContextualCategory('/', '')).toBe('dashboard');
     expect(resolveContextualCategory('/veiculos', '')).not.toBe('dashboard');

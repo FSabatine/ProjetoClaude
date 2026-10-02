@@ -15,6 +15,7 @@ using Fleet.Application.Drivers;
 using Fleet.Application.Implements;
 using Fleet.Application.Maintenance;
 using Fleet.Application.Roles;
+using Fleet.Application.Tires;
 using Fleet.Application.Users;
 using Fleet.Application.Vehicles;
 using FluentValidation;
@@ -70,6 +71,18 @@ public static class DependencyInjection
         services.AddScoped<FuelConsumptionService>();
         services.AddScoped<FuelingService>();
         services.AddScoped<FuelAnalyticsService>();
+
+        // Phase 5 — tires
+        services.AddScoped<TireModelService>();
+        services.AddScoped<TireLayoutService>();
+        services.AddScoped<TireSettingsService>();
+        services.AddScoped<TireLifecycle>();
+        services.AddScoped<TireMonitoring>();
+        services.AddScoped<TireService>();
+        services.AddScoped<TireOperationsService>();
+        services.AddScoped<TireInspectionService>();
+        services.AddScoped<TireServiceOrderService>();
+        services.AddScoped<TireAnalyticsService>();
         return services;
     }
 }

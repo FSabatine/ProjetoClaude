@@ -15,6 +15,7 @@ using Fleet.Domain.Maintenance;
 using Fleet.Domain.Mileage;
 using Fleet.Domain.Occurrences;
 using Fleet.Domain.Operations;
+using Fleet.Domain.Tires;
 using Fleet.Domain.Users;
 using Fleet.Domain.Vehicles;
 using Microsoft.EntityFrameworkCore;
@@ -70,6 +71,18 @@ public sealed class FleetDbContext : DbContext, IFleetDbContext
     public DbSet<FuelSettings> FuelSettings => Set<FuelSettings>();
     public DbSet<Fueling> Fuelings => Set<Fueling>();
     public DbSet<FuelingAnomaly> FuelingAnomalies => Set<FuelingAnomaly>();
+
+    public DbSet<TireModel> TireModels => Set<TireModel>();
+    public DbSet<TireLayout> TireLayouts => Set<TireLayout>();
+    public DbSet<Tire> Tires => Set<Tire>();
+    public DbSet<TireInstallation> TireInstallations => Set<TireInstallation>();
+    public DbSet<TireRotation> TireRotations => Set<TireRotation>();
+    public DbSet<TireInspection> TireInspections => Set<TireInspection>();
+    public DbSet<TireInspectionDamage> TireInspectionDamages => Set<TireInspectionDamage>();
+    public DbSet<TireServiceOrder> TireServiceOrders => Set<TireServiceOrder>();
+    public DbSet<TireCost> TireCosts => Set<TireCost>();
+    public DbSet<TireAnomaly> TireAnomalies => Set<TireAnomaly>();
+    public DbSet<TireSettings> TireSettings => Set<TireSettings>();
 
     /// <summary>Read by the tenant query filter on every query (EF parameterizes this per context instance).</summary>
     private Guid? CurrentCompanyId => _currentUser.CompanyId;

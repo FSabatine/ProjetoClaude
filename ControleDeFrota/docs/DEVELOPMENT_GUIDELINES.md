@@ -93,6 +93,13 @@ Por padrão, cada módulo é uma pasta vertical: tudo o que muda junto fica junt
 - Nome do teste: `Metodo_Cenario_ResultadoEsperado`. Estrutura Arrange/Act/Assert.
 - Os testes não dependem de ordem nem de relógio real (use `IClock`/`FakeClock`).
 
+## Operações que mexem em vários registros (Fase 5)
+
+- A consistência que duas requisições simultâneas poderiam quebrar fica **no banco**: índice único filtrado ("uma vigência aberta por pneu/posição") e/ou token de concorrência (`IsConcurrencyToken` numa coluna `Version` incrementada a cada operação). A checagem no serviço existe para dar a mensagem boa; o banco é a garantia.
+- Liberar e ocupar o mesmo valor único na mesma operação (substituir, rodízio) = dois `SaveChanges` dentro de `InTransactionAsync`. Envolva a operação no helper do módulo (`TireLifecycle.RunAsync`) para traduzir `DbUpdateConcurrencyException`/violação de índice em `ConflictException` com texto em pt-BR.
+- Teste a transação com um `SaveChangesInterceptor` que falha no segundo save (`TestDb.NewContext(interceptor)`) e a concorrência com dois `DbContext` sobre o mesmo banco (`TireServices.Operations(T, outroContexto)`).
+- Quilometragem de qualquer módulo novo vem do `MileageService` (linha de base, `OdometerAtAsync`, `EnsureFitsHistoryAsync`, `AddReadingAsync`) — nunca de uma coluna própria.
+
 ## Comentários
 
 - Comente o **porquê**, nunca o quê. O código explica o quê.

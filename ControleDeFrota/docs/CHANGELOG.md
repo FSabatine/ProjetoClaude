@@ -2,6 +2,35 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Datas no padrão AAAA-MM-DD.
 
+## [0.5.0] — 2026-10-02 — Fase 5: Pneus
+
+### Adicionado
+- **Pneus individuais** pelo número de fogo (gerado `PN-000001` ou informado), modelo, série, DOT (data de fabricação a partir da semana/ano), compra, sulco original, local de armazenamento; cadastro de pneu usado (sulco atual e recapagens anteriores) (ADR-035).
+- **Catálogo de modelos** (marca, modelo, medida, aplicação, construção, carga, velocidade, sulco original).
+- **Configurações de eixos** reutilizáveis por veículos e implementos, com eixos simples/duplos, obrigatórios, medida exigida e pressão de referência por eixo, estepes, padrões por empresa e editor com pré-visualização; posições geradas com códigos estáveis (ADR-037).
+- **Diagrama interativo** na nova aba **Pneus** do veículo e na página do implemento (veículo visto de cima; lista no celular), com detalhe da posição e ações.
+- **Ciclo de vida** com transições controladas (em estoque, instalado, em avaliação, em conserto, em recapagem, baixado) (ADR-036): instalação com verificação de compatibilidade, remoção com motivo e destino, **substituição**, **transferência** e **rodízio atômicos**, avaliação/liberação, baixa com motivo, destino e documento, correção controlada de km.
+- **Inspeções** com sulco, pressão (psi/bar/kPa, comparada à referência do eixo), condição, desgaste observado, danos e fotos; histórico de medições sem sobrescrita.
+- **Consertos** (inclusive no veículo) e **recapagens** com fornecedor, resultado aprovado/reprovado, banda, sulco novo, valor e garantia.
+- **Custos** do ciclo de vida e **custo/km** (só com km suficiente e medido) (ADR-039).
+- **Alertas** pela política da empresa (sulco perto/no mínimo, inspeção atrasada, desgaste irregular, dano, idade, pressão) e sinais **"requer revisão"** (perda rápida de sulco, consertos/furos repetidos, vida curta, danos repetidos na posição).
+- Regra configurável: inspeção "imprópria" de pneu de veículo abre solicitação de manutenção (padrão desligado). Ocorrência de pneu ganhou "Inspecionar pneus do veículo".
+- **Painel de pneus**, **lista/inventário** com filtros no servidor e **relatórios** (inventário, ciclo de vida, inspeções, custos); alerta "Pneu no sulco mínimo / com dano" no painel principal.
+- Linha do tempo do pneu (eventos `Tire*`, nova coluna `OperationalEvents.TireId`) e movimentações no histórico do veículo.
+- Permissões `tires.view/create/edit/install/remove/rotate/inspect/repair/retread/dispose/viewcosts/managesettings` e mapeamento nos papéis (Manutenção opera a borracharia; Operações inspeciona; Financeiro vê custos).
+- **Central de Ajuda**: categoria Pneus com 24 artigos, ajuda contextual (aba Pneus e telas de pneus), `[?]` em número de fogo, DOT, sulco e custo/km, "Novidades".
+- Dados de desenvolvimento da Fase 5 (`DevTireSeeder`).
+- **Testes**: +48 no Domain (244 → 292), +65 de serviço (240 → 305, incluindo rollback de transação, concorrência com dois contextos, índices únicos, tenant, permissões e volume com 3.000 pneus), +16 HTTP (42 → 58) e +13 no frontend (65 → 78).
+
+### Alterado
+- `MileageService.OdometerAtAsync`, `MaintenanceRequestService.AddAutomatic`, `OperationalEventLog.RecordAt` e `OperationalHistoryService.ForTireAsync` (aditivos).
+- Não se exclui veículo ou implemento com histórico de pneus (inative).
+- Tabela de relatório (`ReportTable`) extraída de Combustível para `components/` e reutilizada.
+
+### Limitações conhecidas
+- Pneu em implemento não tem km (o engate é da Fase 2.5); sem almoxarifado, reserva, compras ou TPMS; sem exportação de relatórios.
+- Sem revisão visual automatizada (headless desaconselhado nesta máquina): conferir telas em 375px/tablet/desktop e nos dois temas.
+
 ## [0.4.0] — 2026-10-02 — Fase 4: Combustível
 
 ### Adicionado

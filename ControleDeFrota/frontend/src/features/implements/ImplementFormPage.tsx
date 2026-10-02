@@ -12,6 +12,7 @@ import { formatPlate } from '../../lib/format';
 import { combine, required, rules } from '../../lib/validators';
 import { AuditHistoryButton } from '../audit/AuditHistoryButton';
 import { DocumentsPanel } from '../documents/DocumentsPanel';
+import { AssetTirePanel } from '../tires/AssetTirePanel';
 import {
   CAPACITY_UNIT,
   IMPLEMENT_STATUS,
@@ -143,6 +144,12 @@ function ImplementForm({ implement }: { implement?: Implement }) {
           </Box>
         )}
       </form>
+      {implement && can(PERMISSIONS.tires.view) && (
+        <Box mt="xl">
+          <Title order={3} fz="lg" mb="sm">Pneus do implemento</Title>
+          <AssetTirePanel asset={{ kind: 'implements', id: implement.id }} />
+        </Box>
+      )}
       {implement && can(PERMISSIONS.documents.view) && (
         <Box mt="xl">
           <Title order={3} fz="lg" mb="sm">Documentos do implemento</Title>

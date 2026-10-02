@@ -9,6 +9,7 @@ using Fleet.Domain.Common;
 using Fleet.Domain.Documents;
 using Fleet.Domain.Drivers;
 using Fleet.Domain.Fuel;
+using Fleet.Domain.Tires;
 using Fleet.Domain.Maintenance;
 using Fleet.Domain.Mileage;
 using Fleet.Domain.Occurrences;
@@ -63,6 +64,8 @@ public enum AlertType
     CriticalWorkOrder,
     /// <summary>Phase 4: a fueling with an anomaly nobody reviewed yet.</summary>
     FuelingPendingReview,
+    /// <summary>Phase 5: an installed tire at the company's minimum tread or with damage recorded in its last inspection.</summary>
+    TireCritical,
 }
 
 public enum AlertSeverity
@@ -122,6 +125,7 @@ public sealed class DashboardService(IFleetDbContext db, IClock clock, ICurrentU
             Can(Permissions.Maintenance.View) ? await GetCriticalWorkOrderAlertsAsync(ct) : NoAlerts,
             // Only who can act on it (review) sees it; the fuel dashboard shows the same queue to fuel.view.
             Can(Permissions.Fuel.ReviewAnomalies) ? await GetFuelingReviewAlertsAsync(ct) : NoAlerts,
+            Can(Permissions.Tires.View) ? await GetTireAlertsAsync(ct) : NoAlerts,
         };
         var alerts = sources.SelectMany(s => s.Alerts)
             .OrderByDescending(a => a.Severity).ThenBy(a => a.DueDate)
@@ -358,6 +362,35 @@ public sealed class DashboardService(IFleetDbContext db, IClock clock, ICurrentU
             AlertType.FuelingPendingReview, AlertSeverity.Warning, "Abastecimento requer revisão",
             $"{LicensePlate.Format(f.LicensePlate)}: {Short(f.Message ?? "alerta pendente")}",
             "Fueling", f.Id, clock.ToBusinessDate(f.FueledAt))).ToList();
+        return new AlertSource(alerts, total);
+    }
+
+    /// <summary>Installed tires needing action now (company thresholds — the wording never says "legal").</summary>
+    private async Task<AlertSource> GetTireAlertsAsync(CancellationToken ct)
+    {
+        var settings = await db.TireSettings.AsNoTracking().SingleOrDefaultAsync(ct) ?? TireSettings.Defaults();
+        var query = db.Tires.Where(t => t.Status == TireStatus.Installed &&
+                                        ((t.CurrentTreadDepthMm != null && t.CurrentTreadDepthMm <= settings.MinTreadDepthMm) || t.LastInspectionHasDamage));
+        var total = await query.CountAsync(ct);
+        var tires = await query.OrderBy(t => t.Code).Take(MaxAlerts)
+            .Select(t => new { t.Id, t.Code, t.CurrentTreadDepthMm, t.LastInspectionHasDamage, t.TreadMeasuredAt, t.LastInspectedAt })
+            .ToListAsync(ct);
+        var ids = tires.Select(t => t.Id).ToList();
+        var places = await db.TireInstallations.Where(i => ids.Contains(i.TireId) && i.RemovedAt == null)
+            .Select(i => new { i.TireId, i.PositionLabel, Plate = i.Vehicle != null ? i.Vehicle.LicensePlate : i.Implement!.LicensePlate })
+            .ToDictionaryAsync(i => i.TireId, ct);
+        var alerts = tires.Select(t =>
+        {
+            var place = places.GetValueOrDefault(t.Id);
+            var where = place is null ? "" : $" ({LicensePlate.Format(place.Plate)}, {place.PositionLabel})";
+            var lowTread = t.CurrentTreadDepthMm is { } mm && mm <= settings.MinTreadDepthMm;
+            return new DashboardAlert(AlertType.TireCritical, AlertSeverity.Critical,
+                lowTread ? "Pneu no sulco mínimo" : "Pneu com dano registrado",
+                lowTread
+                    ? $"{t.Code}{where}: sulco de {BrazilianFormat.Compact(t.CurrentTreadDepthMm!.Value)} mm, no mínimo configurado pela empresa."
+                    : $"{t.Code}{where}: dano registrado na última inspeção. Requer inspeção.",
+                "Tire", t.Id, clock.ToBusinessDate((lowTread ? t.TreadMeasuredAt : t.LastInspectedAt) ?? clock.UtcNow));
+        }).ToList();
         return new AlertSource(alerts, total);
     }
 

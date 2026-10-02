@@ -12,6 +12,7 @@ using Fleet.Domain.Maintenance;
 using Fleet.Domain.Mileage;
 using Fleet.Domain.Occurrences;
 using Fleet.Domain.Operations;
+using Fleet.Domain.Tires;
 using Fleet.Domain.Users;
 using Fleet.Domain.Vehicles;
 using Microsoft.EntityFrameworkCore;
@@ -60,6 +61,19 @@ public interface IFleetDbContext
     DbSet<FuelSettings> FuelSettings { get; }
     DbSet<Fueling> Fuelings { get; }
     DbSet<FuelingAnomaly> FuelingAnomalies { get; }
+
+    // Phase 5 — tires
+    DbSet<TireModel> TireModels { get; }
+    DbSet<TireLayout> TireLayouts { get; }
+    DbSet<Tire> Tires { get; }
+    DbSet<TireInstallation> TireInstallations { get; }
+    DbSet<TireRotation> TireRotations { get; }
+    DbSet<TireInspection> TireInspections { get; }
+    DbSet<TireInspectionDamage> TireInspectionDamages { get; }
+    DbSet<TireServiceOrder> TireServiceOrders { get; }
+    DbSet<TireCost> TireCosts { get; }
+    DbSet<TireAnomaly> TireAnomalies { get; }
+    DbSet<TireSettings> TireSettings { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 

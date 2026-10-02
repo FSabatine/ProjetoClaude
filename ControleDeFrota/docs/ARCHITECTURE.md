@@ -239,6 +239,32 @@ NotificationDispatcher futuro (Fase 9): lê OperationalEvents com PublishedAt IS
 - O job roda dentro da API e é idempotente (`Document.LastAlertedStatus`): com várias instâncias, cada estado continua anunciado uma vez. Como não tem usuário nem tenant, ele ignora os filtros globais e grava o `CompanyId` explícito em cada evento (comentado no código).
 - Configuração: `Jobs:DocumentExpirationScan:Enabled` (padrão `true`; desligado nos testes de integração) e `IntervalMinutes` (padrão 360).
 
+### Fase 5 — pneus
+
+```
+GET  /tire-models?includeInactive  [tires.view|create|managesettings]   GET /tire-models/brands [tires.view]
+POST /tire-models  [tires.create|managesettings]   PUT|DELETE /tire-models/{id}  [tires.managesettings]
+GET  /tire-layouts?target&includeInactive, /tire-layouts/{id}  [tires.view|managesettings]   POST|PUT|DELETE  [tires.managesettings]
+GET  /tire-settings [tires.view|managesettings]   PUT /tire-settings [tires.managesettings]
+
+GET  /tires?status&alert&inspection&brand&size&vehicleId&implementId&positionCode&storageLocation&manufacturedFrom&manufacturedTo
+          &installedFrom&installedTo&minRetreads&maxRetreads&search&sortBy&…                    [tires.view]
+GET  /tires/{id}, /tires/{id}/history, /tires/{id}/installations, /tires/{id}/inspections, /tires/{id}/service-orders   [tires.view]
+POST /tires [tires.create]   PUT|DELETE /tires/{id} [tires.edit]
+GET  /tires/{id}/compatibility?vehicleId|implementId&positionCode                                [tires.install|rotate]
+POST /tires/{id}/install [tires.install]   /remove [tires.remove]   /replace, /transfer [tires.install + remove no serviço]
+POST /tires/{id}/evaluation, /return-to-stock [tires.inspect]   /dispose [tires.dispose]
+POST /tires/{id}/inspections [tires.inspect]
+POST /tires/{id}/service-orders (kind) [tires.repair|retread, conforme o tipo no serviço]
+GET|POST /tires/{id}/costs, DELETE /tires/{id}/costs/{costId}  [tires.viewcosts + tires.edit no serviço]
+POST /tire-rotations [tires.rotate]   POST /tire-installations/{id}/correct [tires.edit]
+POST /tire-service-orders/{id}/complete|cancel [tires.repair|retread]   POST /tire-anomalies/{id}/review [tires.edit]
+GET  /vehicles/{id}/tires, /implements/{id}/tires  [tires.view]   PUT …/tires/layout  [tires.managesettings]
+GET  /tires/dashboard, /tires/reports/inventory|lifecycle|inspections  [tires.view]   /tires/reports/costs [tires.viewcosts]
+```
+
+Serviços (`Fleet.Application/Tires`): `TireModelService`, `TireLayoutService`, `TireSettingsService` (catálogo), `TireLifecycle` (carregamento, cronologia, km pelo `MileageService`, transação e tradução de concorrência — usado por todos), `TireMonitoring` (medições e regras de "requer revisão"), `TireService` (cadastro e leituras), `TireOperationsService` (instalar, remover, substituir, transferir, rodízio, avaliação, baixa, correção, diagrama do veículo/implemento), `TireInspectionService`, `TireServiceOrderService` (consertos, recapagens, custos) e `TireAnalyticsService` (painel e relatórios). Regras puras em `Fleet.Domain/Tires/TireRules.cs`. Integrações por métodos aditivos: `MileageService.OdometerAtAsync`, `MaintenanceRequestService.AddAutomatic`, `OperationalEventLog.RecordAt`, `OperationalHistoryService.ForTireAsync`.
+
 ## Arquivos (ADR-022)
 
 - O `FileService` valida o tamanho (cópia limitada a 10 MB + 1 byte) e o formato pela assinatura, gera a chave `{companyId}/{aaaa}/{mm}/{guid}` e grava os bytes via `IFileStorage`. Os metadados ficam em `StoredFiles`.
@@ -252,15 +278,16 @@ As listagens retornam `{ items, page, pageSize, totalCount, totalPages }` e orde
 frontend/src/
 ├── api/           client.ts (axios + refresh single-flight), crud.ts (createResource: list/get/save/remove com React Query), errors.ts (ProblemDetails → mensagem + erros por campo)
 ├── auth/          AuthContext (sessão, can()), guards (RequireAuth, RequirePermission, Can), permissions.ts (espelho do catálogo)
-├── components/    ColumnChart (gráfico de colunas de uma série, acessível, com tabela), AppLayout, PageHeader, DataTable, States (vazio/erro/sem resultado), forms (MaskedInput, FormSection, FormActions, guarda de alterações, confirmDelete), AddressFields, common (StatusBadge, ListToolbar, RowActions)
+├── components/    ReportTable (tabela de relatório ordenada/paginada no servidor), EntityPickers (veículo, motorista, implemento, oficina, pneu em estoque), ColumnChart (gráfico de colunas de uma série, acessível, com tabela), AppLayout, PageHeader, DataTable, States (vazio/erro/sem resultado), forms (MaskedInput, FormSection, FormActions, guarda de alterações, confirmDelete), AddressFields, common (StatusBadge, ListToolbar, RowActions)
 ├── features/<m>/  <m>.ts (tipos + mapas de rótulos/cores + resource), <M>ListPage.tsx, <M>FormPage.tsx, <M>DetailPage.tsx (hub com abas)
 ├── features/operations/  labels.ts (rótulos/cores dos enums da Fase 2) e api.ts (tipos + hooks: alocação, hodômetro, documentos, arquivos, checklists, ocorrências, histórico)
 ├── features/{assignments,mileage,documents,checklists,occurrences,history}/  painéis reutilizados nos hubs + páginas próprias
 ├── features/maintenance/  maintenance.ts (tipos + rótulos), api.ts (hooks), páginas de oficinas/planos/solicitações/ordens de serviço e o painel de manutenção do hub do veículo
 ├── features/fuel/  fuel.ts (tipos + rótulos), api.ts (hooks), components.tsx (ajuda [?], período na URL, KPI, alertas), páginas de abastecimento (lista, registro/correção, detalhe), postos, configuração, painel, relatórios e a aba Combustível do hub do veículo
+├── features/tires/  tires.ts (tipos + rótulos), api.ts (hooks), TireLayoutDiagram (veículo visto de cima, gerado da configuração; lista no celular), AssetTirePanel (aba Pneus do veículo e seção do implemento), TireOperationModals (instalar, remover/substituir, transferir, rodízio, inspeção, serviços, baixa, custo, correção), páginas de lista, cadastro, hub do pneu, painel, relatórios e configurações
 ├── features/help/ Central de Ajuda (manual do usuário, ver abaixo) — content/ (dado estático por categoria), search.ts, context.ts, analytics.ts, HelpButton/HelpDrawer/HelpArticleView
 ├── hooks/         useListParams (busca/filtros/ordem/página na URL)
-├── lib/           validators.ts (espelho do Domain), format.ts, mileage.ts (espelho do OdometerPolicy para feedback imediato), fuel.ts (espelho de FuelingAmounts e da regra do tanque), images.ts (redução das fotos antes do upload)
+├── lib/           validators.ts (espelho do Domain), format.ts, mileage.ts (espelho do OdometerPolicy para feedback imediato), fuel.ts (espelho de FuelingAmounts e da regra do tanque), tires.ts (espelho de TireAlertPolicy, TirePressure, TireDot, TirePositions e da regra do rodízio), images.ts (redução das fotos antes do upload)
 └── theme.ts       tema Mantine (única fonte de cores)
 ```
 

@@ -63,6 +63,16 @@ Princípio: **Segurança > Conveniência**. O backend é a única autoridade. Es
 - Isolamento de tenant: todas as tabelas novas são `ITenantScoped` (filtro global); id de outra empresa responde 404 (`FuelApiTests.OtherCompany_Gets404`, testes de serviço por entidade). Nenhum `IgnoreQueryFilters` novo fora do seed de desenvolvimento e da checagem de catálogo padrão (que filtra o `CompanyId` explicitamente, como o de tipos de documento).
 - Auditoria automática (`IAuditable`): `Fueling`, `FuelStation`, `FuelType`, `FuelPrice`, `FuelSettings`. Correções têm ainda o histórico próprio com motivo (`FuelingCorrection`); alertas guardam quem revisou.
 
+### Autorização na Fase 5
+
+- Permissões novas `tires.*` (12; matriz em DOMAIN.md). Motorista sem acesso; Operações só vê e inspeciona.
+- Regras que dependem do alvo, checadas **no serviço**: remover com destino conserto/recapagem/baixa exige `tires.repair`/`tires.retread`/`tires.dispose`; substituir e transferir exigem também `tires.remove`; enviar/concluir/cancelar serviço exige a permissão do **tipo** (conserto ou recapagem); custos manuais exigem `tires.edit` + `tires.viewcosts`.
+- **Valores em R$** (compra, serviços, ciclo de vida, custo/km, ranking do painel, relatório de custos): só com `tires.viewcosts`; sem ela os campos voltam `null`. Informar qualquer valor sem a permissão é 403; na edição, o valor de compra de quem não vê custos é ignorado (não é apagado). Eventos e resumos não levam R$.
+- Arquivos: fotos de inspeção (`TireInspection`) abrem com `tires.view`; nota, garantia e documentos de serviço/baixa (`Tire`, `TireServiceOrder`) exigem `tires.view` **e** (`tires.viewcosts` ou ser quem enviou) — mostram o valor pago. Remover: `tires.edit` (pneu/inspeção) ou `tires.repair|retread` (serviço). Upload liberado para quem opera pneus; o vínculo continua só pelo próprio autor (`AttachAsync`).
+- Isolamento: todas as tabelas novas `ITenantScoped`; veículo, implemento, pneu, oficina ou ocorrência de outra empresa → 404 (testes de serviço e `TireApiTests.OtherCompany_Gets404`). Nenhum `IgnoreQueryFilters` novo fora do seed de desenvolvimento e da checagem de configurações padrão (filtra o `CompanyId` explicitamente).
+- **Concorrência** (seção 52): o banco garante "um pneu, uma posição" (índices únicos filtrados) e o token `Tires.Version` impede que duas operações sobre o mesmo pneu se sobreponham; ambos viram 409 sem detalhe técnico.
+- Auditoria automática (`IAuditable`): `Tire`, `TireModel`, `TireLayout`, `TireInstallation`, `TireRotation`, `TireInspection`, `TireServiceOrder`, `TireCost`, `TireSettings` (todas liberadas em `/audit/{entidade}/{id}`). A linha do tempo do pneu (eventos) responde "o que aconteceu"; a auditoria, "quem mudou qual campo".
+
 ## Upload de arquivos
 
 - O tipo é detectado pelos **magic bytes** (PDF, JPEG, PNG). A extensão e o `Content-Type` enviados pelo cliente são ignorados: um executável renomeado para `.pdf` é recusado.

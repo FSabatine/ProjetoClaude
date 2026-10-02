@@ -110,6 +110,8 @@ public sealed class AuditController(AuditService service) : ControllerBase
         "Workshop", "MaintenancePlan", "HourMeterReading", "MaintenanceRequest", "WorkOrder",
         // Phase 4
         "Fueling", "FuelStation", "FuelType", "FuelPrice", "FuelSettings",
+        // Phase 5
+        "Tire", "TireModel", "TireLayout", "TireInstallation", "TireRotation", "TireInspection", "TireServiceOrder", "TireCost", "TireSettings",
     ];
 
     [HttpGet("{entityName}/{entityId:guid}"), HasPermission(Permissions.Audit.View)]

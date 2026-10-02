@@ -48,6 +48,7 @@ Prioridades: Clareza > Esperteza · Manutenibilidade > Complexidade · UX > Nº 
 - Documentos são gravados normalizados (só dígitos; placa em maiúsculas sem hífen).
 - Migration: `dotnet ef migrations add <Nome> --project src/Fleet.Infrastructure --startup-project src/Fleet.Api`. Revise o SQL e nunca edite migration já aplicada.
 - `IgnoreQueryFilters()` só com comentário justificando (quebra o isolamento de tenant/soft delete).
+- Regra que duas requisições simultâneas podem quebrar ("um pneu em uma posição") vai para o **banco**: índice único filtrado e/ou token de concorrência (`Version` + `IsConcurrencyToken`). Operação com vários registros roda em `InTransactionAsync`; liberar e ocupar um valor único na mesma operação = dois `SaveChanges` na transação. Teste o rollback (interceptor) e a concorrência (dois `DbContext`).
 
 ## Segurança
 

@@ -278,3 +278,54 @@ Formato: **Problema · Alternativas · Decisão · Motivo · Impacto**. Um ADR n
 - **Corretor sem `fuel.viewcosts`** que não é o autor: o preço chega vazio no formulário de correção e precisa ser redigitado. Hoje nenhum papel do sistema tem `fuel.correct` sem `fuel.viewcosts`.
 - **Limites por tipo de veículo** (ex.: tolerância diferente para leves e pesados): hoje são por empresa.
 - **Revisão visual automatizada**: não executada (o navegador headless travou esta máquina na Fase 1); a revisão de UX/responsividade foi feita no código e precisa de conferência manual em 375px, tablet e desktop, nos dois temas.
+
+---
+
+# Fase 5 — Pneus (2026-10-02)
+
+## ADR-035 — Modelo de pneus: pneu individual, catálogo de modelos e linha do tempo nos eventos operacionais
+- **Status**: aceito.
+- **Contexto**: o usuário enviou a especificação da Fase 5 diretamente, com a Fase 2.5 (Viagens) ainda no backlog — mesmo tratamento dos ADR-026/031. A especificação lista 13 entidades possíveis e pede para não criá-las às cegas.
+- **Decisão**:
+  - `Tire` é o pneu físico, com **número de fogo** único por empresa (gerado `PN-000001` ou informado — fleets já têm numeração própria marcada no pneu). Não depende de veículo.
+  - `TireModel` concentra marca, modelo, medida e especificações. `TireBrand`/`TireSpecification` não viram tabelas: nada mais as referencia; marca para filtro = `DISTINCT`.
+  - Uma única `TireServiceOrder` (`Kind` = conserto | recapagem): o ciclo é o mesmo (enviado → concluído aprovado/reprovado | cancelado); recapagem só acrescenta número, banda e sulco novo.
+  - A compra fica no pneu; `TireCost` guarda o resto (gerado ao concluir serviço, ou manual). Custo/km nunca é gravado.
+  - **Linha do tempo do pneu = `OperationalEvent` com a coluna nova `TireId`** (índice `(CompanyId, TireId, OccurredAt)`), não uma tabela `TireLifecycleEvent`: reaproveita o histórico/outbox do ADR-025 e a mesma tela de linha do tempo. `OperationalEventLog.RecordAt` grava `OccurredAt` = quando a operação aconteceu (operações podem ser lançadas depois).
+  - Fornecedor de conserto/recapagem = `Workshop` da Fase 3 **ou** texto livre (sem cadastro de fornecedores nesta fase).
+- **Consequência**: 11 tabelas; módulo isolado em `Domain/Tires` + `Application/Tires`, integrações por métodos aditivos.
+
+## ADR-036 — Ciclo de vida: seis situações, vigência por posição e um estado final
+- **Status**: aceito.
+- **Problema**: a especificação sugere 11 situações (Available, Installed, Removed, UnderInspection, UnderRepair, UnderRetread, Retreaded, Reserved, Discarded, Sold, Lost) e pede transições controladas.
+- **Decisão**: `InStock`, `Installed`, `UnderInspection` (removido/devolvido aguardando decisão — cobre "Removed"), `UnderRepair`, `UnderRetread`, `Disposed` (final). Vendido/extraviado/descartado/transferido são **motivos da baixa**; "Recapado" é o `RetreadCount` de um pneu em estoque; "Reservado" não existe (não há fluxo de reserva — entra junto com almoxarifado). Transições só em `TireWorkflow`; a API devolve as ações possíveis.
+- **Instalação como vigência** (`TireInstallation`, instalação e remoção no mesmo registro), nunca uma FK no pneu: um pneu tem muitas, cada uma com os km do período (snapshot na remoção). A posição é guardada como **código + rótulo** (snapshot).
+- **Histórico imutável**: nada é editado; a única correção é a de km de uma vigência de veículo, com motivo, evento e auditoria. Datas não são corrigidas (reordenar o histórico não é correção).
+
+## ADR-037 — Posições geradas de configurações de eixos compartilhadas
+- **Status**: aceito.
+- **Alternativas**: (a) posições fixas (FL/FR/RL/RR) — proibido pela especificação; (b) posições cadastradas uma a uma por veículo — trabalhoso e inconsistente; (c) **configuração de eixos reutilizável** (eixos simples/duplos + estepes) da qual as posições são geradas por função pura.
+- **Decisão**: (c). `TireLayout` + `TireLayoutAxle` (tipo, duplo, obrigatório, medida exigida, pressão de referência), apontada por `Vehicle.TireLayoutId` e `Implement.TireLayoutId` — mesmo conceito para veículo e implemento (seção 10). Códigos estáveis em pt-BR (`1E`, `2EE`, `2EI`, `2DI`, `2DE`, `EST1`), gerados igual no servidor (`TirePositions.For`) e na pré-visualização do editor (`lib/tires.previewPositions`). A configuração é atributo do ativo (como o perfil de combustível, ADR-031) e muda por um endpoint próprio da aba Pneus, não pelo formulário do veículo.
+- **Proteções**: não se remove posição ocupada (ao editar a configuração ou trocar a do veículo); estepe não soma km.
+
+## ADR-038 — Concorrência e transações garantidas pelo banco
+- **Status**: aceito.
+- **Problema**: seções 51/52 — duas pessoas instalando o mesmo pneu, rodízio pela metade.
+- **Decisão**: índices únicos filtrados (vigência aberta por pneu; por veículo+posição; por implemento+posição; serviço aberto por pneu) + **token de concorrência** `Tires.Version` (coluna int incrementada pela aplicação — `rowversion` não existe no SQLite dos testes, e o token manual funciona nos dois provedores). Toda operação roda em `InTransactionAsync`; liberar e ocupar posições usa dois `SaveChanges` na mesma transação (o EF não ordena comandos por índice filtrado). `TireLifecycle.RunAsync` traduz as falhas em 409 com texto pt-BR.
+- **Não escolhido**: lock pessimista (`UPDLOCK`) — específico do SQL Server e desnecessário com o token.
+
+## ADR-039 — Km do pneu pelo hodômetro do veículo; custo/km só quando significa algo
+- **Status**: aceito.
+- **Decisão**: o pneu não tem hodômetro. Km da vigência = km do veículo na remoção − na instalação, vindos do `MileageService` (linha de base; `OdometerAtAsync` para operação lançada depois; km informado vira leitura `TireService` pelas regras do ADR-019). **Salto suspeito recusa a operação de pneu** (diferente do abastecimento, que fica em revisão): uma vigência não pode começar num km que ninguém confirmou. Implemento sem hodômetro → km desconhecido (`HasUnmeasuredDistance`).
+- **Custo/km** = ciclo de vida ÷ km, só com ≥ 5.000 km, total > 0 e sem trecho não medido; caso contrário nulo com explicação (seção 25: "não calcule custo/km enganoso"). O ranking do painel usa a mesma regra.
+- **Alertas** calculados na leitura (limites da empresa, valem já); **"requer revisão"** gravado no momento do fato (uma anomalia aberta por tipo), sempre sem causa. Inspeção imprópria só abre solicitação de manutenção com a regra ligada (padrão desligado).
+
+## Pontos em aberto da Fase 5
+- **Fase 2.5 (Viagens e engate)** continua pendente — por isso pneu em implemento não tem km e o custo/km desses pneus não aparece.
+- **Almoxarifado**: local de armazenamento é texto; não há movimentação de estoque, reserva, compra ou fornecedor (só nome livre). Pneu comprado já recapado: registrar como "usado" com as recapagens.
+- **Rodízio no implemento** funciona, mas sem km (mesma razão).
+- **Correção** de vigência cobre só km; data/posição errada → remover e instalar de novo com a data certa (a ordem cronológica é protegida).
+- **Limites por tipo de veículo/eixo** (ex.: sulco mínimo diferente no direcional): hoje um valor por empresa; a pressão de referência já é por eixo.
+- **Sulco por canal**: a inspeção guarda a menor medida; medir 3–4 canais é extensão aditiva (linhas filhas).
+- **Exportação** dos relatórios: Fase 8. **Notificações**: eventos prontos para a Fase 9.
+- **Revisão visual automatizada**: não executada (headless desaconselhado nesta máquina); conferir o diagrama em 375px/tablet/desktop nos dois temas.

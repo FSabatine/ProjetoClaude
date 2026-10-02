@@ -101,6 +101,8 @@ public sealed class FileService(IFleetDbContext db, IFileStorage storage, ICurre
             FileOwnerType.Document => currentUser.HasPermission(Permissions.Documents.Manage),
             FileOwnerType.Occurrence => currentUser.HasPermission(Permissions.Occurrences.Manage),
             FileOwnerType.Fueling => currentUser.HasPermission(Permissions.Fuel.Correct),
+            FileOwnerType.Tire or FileOwnerType.TireInspection => currentUser.HasPermission(Permissions.Tires.Edit),
+            FileOwnerType.TireServiceOrder => currentUser.HasPermission(Permissions.Tires.Repair) || currentUser.HasPermission(Permissions.Tires.Retread),
             // Evidence of a submitted inspection is immutable.
             _ => false,
         };
@@ -115,6 +117,9 @@ public sealed class FileService(IFleetDbContext db, IFileStorage storage, ICurre
     private async Task<bool> CanViewAsync(StoredFile file, CancellationToken ct) => file.OwnerType switch
     {
         FileOwnerType.Fueling => await CanViewFuelingFileAsync(file.OwnerId, ct),
+        // Invoices, warranties and service documents of a tire show what was paid: same rule as the tire's money fields.
+        FileOwnerType.Tire or FileOwnerType.TireServiceOrder => currentUser.HasPermission(Permissions.Tires.View) &&
+            (currentUser.HasPermission(Permissions.Tires.ViewCosts) || file.CreatedBy == currentUser.UserId),
         _ => CanView(file),
     };
 
@@ -134,6 +139,8 @@ public sealed class FileService(IFleetDbContext db, IFileStorage storage, ICurre
         // Checklist photos are also the evidence shown on the occurrence the failed item opened.
         FileOwnerType.ChecklistAnswer => currentUser.HasPermission(Permissions.Checklists.View) ||
                                          currentUser.HasPermission(Permissions.Occurrences.View),
+        // Inspection photos are the evidence of the tire's condition, visible to whoever sees the tire.
+        FileOwnerType.TireInspection => currentUser.HasPermission(Permissions.Tires.View),
         _ => false,
     };
 

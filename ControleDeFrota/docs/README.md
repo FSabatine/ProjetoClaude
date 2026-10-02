@@ -29,7 +29,8 @@ Plataforma de **gestão e controle de frotas** multiempresa: veículos, implemen
 | Histórico operacional, eventos para notificações, dashboard operacional | Fase 2 |
 | Manutenção preventiva e corretiva (planos, solicitações, ordens de serviço, oficinas, horímetro) | Fase 3 |
 | Combustível (abastecimentos, postos, preços, consumo, alertas, painel e relatórios) | Fase 4 |
-| Viagens, pneus, financeiro, rastreamento, relatórios gerenciais, automação, integrações | ver [ROADMAP.md](ROADMAP.md) |
+| Pneus (número de fogo, configurações de eixos, diagrama, instalação, rodízio, inspeção, consertos, recapagens, custo/km, baixa, painel e relatórios) | Fase 5 |
+| Viagens, financeiro, rastreamento, relatórios gerenciais, automação, integrações | ver [ROADMAP.md](ROADMAP.md) |
 
 ## Stack
 
@@ -115,7 +116,7 @@ ControleDeFrota/
 
 ## Status
 
-**Fases 1 (Fundação), 2 (Controle operacional), 3 (Manutenção) e 4 (Combustível): concluídas** (até 2026-10-02). Próximo passo recomendado: Fase 2.5 — Viagens e composição. Ver [CHANGELOG.md](CHANGELOG.md) e [ROADMAP.md](ROADMAP.md).
+**Fases 1 (Fundação), 2 (Controle operacional), 3 (Manutenção), 4 (Combustível) e 5 (Pneus): concluídas** (até 2026-10-02). Próximo passo recomendado: Fase 2.5 — Viagens e composição. Ver [CHANGELOG.md](CHANGELOG.md) e [ROADMAP.md](ROADMAP.md).
 
 ## Documentos
 
@@ -124,3 +125,7 @@ ControleDeFrota/
 ### Dados de exemplo da Fase 4
 
 Com `Database:SeedSampleData`, a primeira execução (ou a próxima, em bancos de fases anteriores) cria 3 postos — um deles o tanque próprio —, preços de referência e cerca de 4 meses de abastecimentos dos veículos RDX2B34, RDX3C45 e ABC1234, terminando no hodômetro atual de cada um. Dois abastecimentos ficam em "Requer revisão" de propósito (760 L num tanque de 700 L e um trecho com consumo bem abaixo do esperado) para demonstrar o fluxo de revisão.
+
+### Dados de exemplo da Fase 5
+
+Com `Database:SeedSampleData`, a primeira execução (ou a próxima, em bancos de fases anteriores) cria 3 modelos de pneu, define as configurações de eixos dos veículos de exemplo (RDX1A23 e RDX3C45 cavalo 6x2, RDX2B34 6x4, ABC1234 picape) e do semirreboque RDX4D56, instala 11 pneus no RDX1A23 (há 75 dias, com o km que o histórico tinha) e registra inspeções com um pneu perto do mínimo, um no mínimo, um com desgaste no ombro e um com furo. Há ainda 3 pneus em estoque, 1 na recapadora e 1 baixado — para demonstrar o diagrama, os alertas e o painel.

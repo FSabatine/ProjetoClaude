@@ -6,7 +6,8 @@ using Fleet.Domain.Operations;
 namespace Fleet.Application.Operations;
 
 /// <summary>What an event is about: the timelines it appears in and the record that caused it.</summary>
-public sealed record EventSubject(string Type, Guid Id, Guid? VehicleId = null, Guid? DriverId = null, Guid? ImplementId = null);
+public sealed record EventSubject(
+    string Type, Guid Id, Guid? VehicleId = null, Guid? DriverId = null, Guid? ImplementId = null, Guid? TireId = null);
 
 /// <summary>
 /// ADR-025: modules report what happened here instead of calling each other. The event is added to the current unit of
@@ -24,6 +25,13 @@ public sealed class OperationalEventLog(IFleetDbContext db, IClock clock, ICurre
     public void Record(OperationalEventType type, EventSubject subject, string summary, object? data = null) =>
         db.OperationalEvents.Add(Create(type, subject, summary, data, clock.UtcNow, currentUser.UserId, companyId: null));
 
+    /// <summary>
+    /// For facts registered after they happened (a tire installed yesterday, typed today): the timeline is ordered by when
+    /// the operation took place, not by when it was typed.
+    /// </summary>
+    public void RecordAt(OperationalEventType type, EventSubject subject, DateTime occurredAt, string summary, object? data = null) =>
+        db.OperationalEvents.Add(Create(type, subject, summary, data, occurredAt, currentUser.UserId, companyId: null));
+
     /// <summary>For system jobs that run outside a request (no current company): the company is explicit.</summary>
     public static OperationalEvent Create(
         OperationalEventType type, EventSubject subject, string summary, object? data, DateTime occurredAt, Guid? userId, Guid? companyId) => new()
@@ -35,6 +43,7 @@ public sealed class OperationalEventLog(IFleetDbContext db, IClock clock, ICurre
         VehicleId = subject.VehicleId,
         DriverId = subject.DriverId,
         ImplementId = subject.ImplementId,
+        TireId = subject.TireId,
         SubjectType = subject.Type,
         SubjectId = subject.Id,
         Summary = summary.Length <= OperationalEvent.SummaryMaxLength ? summary : summary[..(OperationalEvent.SummaryMaxLength - 1)] + "…",

@@ -136,6 +136,27 @@ public static class Permissions
         /// <summary>Prices, totals and every cost figure (dashboard, reports, cost/km). Own records are always visible to their author.</summary>
         public const string ViewCosts = "fuel.viewcosts";
     }
+
+    public static class Tires
+    {
+        public const string View = "tires.view";
+        /// <summary>Register tires (and new catalog models while registering).</summary>
+        public const string Create = "tires.create";
+        /// <summary>Edit registry data and correct lifecycle history (reason required).</summary>
+        public const string Edit = "tires.edit";
+        /// <summary>Install, replace (installation side) and move tires between assets.</summary>
+        public const string Install = "tires.install";
+        public const string Remove = "tires.remove";
+        public const string Rotate = "tires.rotate";
+        public const string Inspect = "tires.inspect";
+        public const string Repair = "tires.repair";
+        public const string Retread = "tires.retread";
+        public const string Dispose = "tires.dispose";
+        /// <summary>Purchase price, service costs, lifecycle cost and cost/km (also required to type a cost).</summary>
+        public const string ViewCosts = "tires.viewcosts";
+        /// <summary>Axle configurations, tire model catalog and tire policy thresholds.</summary>
+        public const string ManageSettings = "tires.managesettings";
+    }
 }
 
 public sealed record PermissionDefinition(int Id, string Key, string Description)
@@ -195,6 +216,18 @@ public static class PermissionCatalog
         new(175, Permissions.Fuel.ManageStations, "Cadastrar postos e preços de referência"),
         new(176, Permissions.Fuel.Configure, "Configurar tipos de combustível e limites de alerta"),
         new(177, Permissions.Fuel.ViewCosts, "Visualizar custos de combustível"),
+        new(180, Permissions.Tires.View, "Visualizar pneus, histórico, painel e relatórios de pneus"),
+        new(181, Permissions.Tires.Create, "Cadastrar pneus"),
+        new(182, Permissions.Tires.Edit, "Editar pneus e corrigir o histórico de pneus"),
+        new(183, Permissions.Tires.Install, "Instalar, substituir e transferir pneus"),
+        new(184, Permissions.Tires.Remove, "Remover pneus"),
+        new(185, Permissions.Tires.Rotate, "Fazer rodízio de pneus"),
+        new(186, Permissions.Tires.Inspect, "Inspecionar pneus (sulco, pressão, danos)"),
+        new(187, Permissions.Tires.Repair, "Registrar consertos de pneus"),
+        new(188, Permissions.Tires.Retread, "Registrar recapagens de pneus"),
+        new(189, Permissions.Tires.Dispose, "Dar baixa em pneus"),
+        new(190, Permissions.Tires.ViewCosts, "Visualizar custos de pneus"),
+        new(191, Permissions.Tires.ManageSettings, "Configurar eixos, modelos e limites de pneus"),
     ];
 
     public static PermissionDefinition Get(string key) => All.Single(p => p.Key == key);

@@ -229,6 +229,8 @@ internal sealed class OperationalEventConfiguration : IEntityTypeConfiguration<O
         // No foreign keys on purpose (like AuditLogs): the history must survive whatever happens to the records.
         builder.HasIndex(e => new { e.CompanyId, e.VehicleId, e.OccurredAt });
         builder.HasIndex(e => new { e.CompanyId, e.DriverId, e.OccurredAt });
+        // Tire timeline (Phase 5).
+        builder.HasIndex(e => new { e.CompanyId, e.TireId, e.OccurredAt });
         builder.HasIndex(e => new { e.CompanyId, e.Type, e.OccurredAt });
         // Outbox scan of future notification dispatchers.
         builder.HasIndex(e => e.Id).HasFilter("[PublishedAt] IS NULL").HasDatabaseName("IX_OperationalEvents_Unpublished");

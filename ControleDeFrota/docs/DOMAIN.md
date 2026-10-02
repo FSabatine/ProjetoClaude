@@ -29,7 +29,7 @@ Linguagem ubíqua: o código usa **inglês** e a interface usa **português**. E
 Company ─┬─< User >─< Role >─< Permission
          ├─< DocumentType ─< Document >── (Vehicle | Driver | Implement | Company)
          ├─< Driver ──┐
-         ├─< Vehicle ─┴─< VehicleAssignment (vigência)      ···(futuro)··· Tires, Trips, Costs
+         ├─< Vehicle ─┴─< VehicleAssignment (vigência)      ···(futuro)··· Trips, Costs
          │    ├─< OdometerReading
          │    ├─< HourMeterReading
          │    ├─< ChecklistExecution ─< ChecklistAnswer (snapshot) ──> Occurrence
@@ -37,6 +37,8 @@ Company ─┬─< User >─< Role >─< Permission
          │    ├─< MaintenanceRequest ──> WorkOrder (aprovação)
          │    ├─< WorkOrder ─< WorkOrderItem | WorkOrderPart | WorkOrderLabor
          │    ├─< Fueling ─< FuelingAnomaly | FuelingCorrection (Fase 4) >── FuelStation, FuelType
+         │    ├─< TireInstallation (Fase 5: vigência do pneu na posição) >── Tire ──> TireModel
+         │    ├──> TireLayout ─< TireLayoutAxle (configuração de eixos; o Implement também aponta para ela)
          │    └─< MaintenanceSchedule >─ MaintenancePlanItem
          ├─< ChecklistTemplate ─< ChecklistTemplateItem
          ├─< MaintenancePlan ─< MaintenancePlanItem (padrão | por VehicleType | por Vehicle)
@@ -537,3 +539,186 @@ Precedência: `Vehicle.ExpectedConsumption` (configurado) > média do próprio v
 ## Cartão combustível (preparação, seção 16)
 
 Não implementado. A forma de pagamento `FuelCard` e o `Source` do abastecimento já existem; um futuro `FuelCard` (número mascarado, fornecedor, situação, limite, vínculo com veículo/motorista) entra como entidade própria e uma FK nula `Fueling.FuelCardId` — migration aditiva, sem reestruturar o abastecimento. Importação de transações de fornecedor acrescenta `FuelingSource.Integration` + um identificador externo único.
+
+---
+
+# Fase 5 — Pneus
+
+## Linguagem
+
+| Código | Interface | Significado |
+|---|---|---|
+| Tire | Pneu | O pneu físico, com identidade própria. Passa por vários veículos durante a vida |
+| Code (número de fogo) | Número de fogo | Identificador interno marcado na lateral (`PN-000123` gerado, ou o número da empresa). Único por empresa |
+| TireModel | Modelo de pneu | Marca + modelo + medida + especificações (aplicação, construção, carga, velocidade, sulco original) |
+| TireLayout / TireLayoutAxle | Configuração de eixos / Eixo | Quantos eixos, simples ou duplos, obrigatórios ou não, medida exigida e pressão de referência; estepes |
+| TirePosition | Posição | Gerada a partir dos eixos (`1E`, `2EE`, `EST1`…). Não é tabela |
+| TireInstallation | Instalação (vigência) | Período de um pneu numa posição de um veículo/implemento: instalação e remoção são as duas pontas do mesmo registro |
+| TireRotation | Rodízio | Cabeçalho de uma troca de posições atômica |
+| TireInspection | Inspeção / medição | Sulco, pressão, condição, desgaste, danos e fotos num momento. Também guarda a medição da remoção e o sulco da banda nova |
+| TireServiceOrder | Conserto / Recapagem | Envio a um fornecedor e o resultado (aprovado/reprovado) |
+| TireCost | Custo do pneu | Conserto, recapagem, montagem e outros (a compra fica no pneu) |
+| TireAnomaly | "Requer revisão" | Sinal calculado (perda rápida de sulco, consertos/furos repetidos, vida curta, danos repetidos na posição) |
+| TireSettings | Limites de pneus | Política da empresa (não é exigência legal) |
+
+## Modelo (ADR-035)
+
+```
+Company ─┬─< TireModel ─< Tire ─┬─< TireInstallation >── Vehicle | Implement (exatamente um)
+         │                       ├─< TireInspection ─< TireInspectionDamage ; ─< StoredFile (fotos)
+         │                       ├─< TireServiceOrder >── Workshop? ; ─< StoredFile
+         │                       ├─< TireCost (manual ou gerado pela conclusão do serviço)
+         │                       ├─< TireAnomaly
+         │                       ├─< StoredFile (nota, garantia, documento da baixa)
+         │                       └─< OperationalEvent (TireId) — a linha do tempo do pneu
+         ├─< TireLayout ─< TireLayoutAxle   ← Vehicle.TireLayoutId, Implement.TireLayoutId
+         ├─< TireRotation ─< (TireInstallation.RotationId / RemovalRotationId)
+         └── TireSettings (0..1)
+```
+
+Entidades sugeridas na especificação e **não** criadas: `TireBrand` e `TireSpecification` (atributos do `TireModel`: ninguém mais as referencia; a lista de marcas do filtro é `DISTINCT Brand`), `TirePosition` (gerada a partir dos eixos — `TirePositions.For`), `TireRemoval` (é a outra ponta do `TireInstallation`), `TireRepair`/`TireRetread` separados (um único `TireServiceOrder` com `Kind`: mesmo ciclo enviado → concluído/cancelado), `TireLifecycleEvent` (reutiliza `OperationalEvent` com a nova coluna `TireId` — ADR-025).
+
+## Tire (Pneu)
+
+- Número de fogo único por empresa; em branco, o servidor gera `PN-{sequência:D6}` (pula números já usados manualmente). Série, DOT (normalizado; os quatro últimos dígitos dão semana/ano — `TireDot`; data de fabricação = segunda-feira da semana ISO; sem código válido, informada à mão), compra (data ≤ hoje e ≥ fabricação, valor, fornecedor em texto), sulco original (padrão do modelo), local de armazenamento (texto livre, só fora do veículo) e observações.
+- Pneu usado cadastrado (migração da frota): sulco atual (vira uma medição `Registration`) e recapagens anteriores (0–10).
+- **Campos de leitura rápida** mantidos só pelos serviços de pneu: km acumulado (das instalações encerradas), `HasUnmeasuredDistance`, recapagens, consertos, sulco atual e data, última inspeção, último desgaste, dano na última inspeção, última checagem de pressão, referência da inspeção (`InspectionReferenceAt`) e `LastMovementAt`.
+- O modelo só muda com o pneu fora do veículo; a medida do modelo não muda depois de haver pneus dele.
+- Excluir só o pneu sem nenhum histórico (cadastro por engano). Com histórico: baixa.
+
+## Situação e transições (ADR-036 — `TireWorkflow`)
+
+| De \ operação | Instalar | Remover (destino) | Rodízio / transferir | Enviar a serviço | Concluir serviço | Avaliação / liberar | Baixa |
+|---|---|---|---|---|---|---|---|
+| **InStock** (Em estoque) | → Installed | — | — | → UnderRepair / UnderRetread | — | → UnderInspection | → Disposed |
+| **Installed** | — | → InStock, UnderInspection, UnderRepair, UnderRetread ou Disposed | continua Installed | só conserto no veículo (continua Installed) | — | — | só pela remoção com destino Baixa |
+| **UnderInspection** (Em avaliação) | — | — | — | → UnderRepair / UnderRetread | — | liberar → InStock | → Disposed |
+| **UnderRepair / UnderRetread** | — | — | — | — | aprovado → InStock; reprovado ou cancelado → UnderInspection | — | — |
+| **Disposed** (Baixado) | final | final | final | final | final | final | final |
+
+- Vendido, extraviado, transferido para outra empresa e descartado são **motivos da baixa** (`TireDisposalReason`), não situações: um estado final mantém as transições simples.
+- "Reservado" não existe nesta fase (não há fluxo de reserva). "Recapado" não é situação: é o número da vida (`RetreadCount`) de um pneu em estoque.
+- A API devolve `actions` (permissão + workflow); a tela não decide regra.
+
+## Posições e configuração de eixos (ADR-037 — seções 8–10)
+
+- `TireLayout`: nome único por empresa, alvo (`Vehicle`/`Implement`), descrição, estepes (0–2), ativa, 1–10 eixos. Cada eixo: tipo (`Steer` direcional, `Drive` tração, `Free` livre, `Trailer` implemento), rodado duplo, obrigatório, **medida exigida** (opcional) e **pressão de referência em psi** (opcional).
+- Posições geradas (`TirePositions.For`), do eixo 1 (frente) para trás, vistas de cima: eixo simples `nE`, `nD`; duplo `nEE`, `nEI`, `nDI`, `nDE` (esquerdo externo/interno, direito interno/externo); estepes `EST1`, `EST2` (não obrigatórias, sem medida).
+- Veículo e implemento apontam para uma configuração (`TireLayoutId`), escolhida na aba Pneus por quem tem `tires.managesettings`. Trocar exige que toda posição ocupada exista na nova; retirar exige nenhum pneu instalado. Editar uma configuração não pode remover posição ocupada em nenhum cadastro que a usa; o alvo não muda com cadastros usando.
+- A instalação guarda o **código da posição + rótulo + eixo + estepe** (snapshot): o histórico continua legível mesmo que a configuração mude depois.
+- Padrões criados na primeira leitura (`TireLayoutDefaults`): carro/picape, caminhão toco 4x2, truck 6x2, cavalo mecânico 6x2 (eixo livre opcional) e 6x4, semirreboques de 2 e 3 eixos.
+
+## Compatibilidade (seção 33 — `TireCompatibility`)
+
+| Situação | Resultado |
+|---|---|
+| A posição tem medida exigida e o pneu é de outra | **Incompatível**: instalação/substituição/transferência/rodízio recusados |
+| Aplicação do pneu não indicada para o eixo (tração em direcional, reboque em tração) | Aviso (instala) |
+| O par da roda dupla tem outra medida | Aviso (instala) |
+| A posição não tem medida configurada | "A compatibilidade não pôde ser verificada automaticamente" |
+| Estepe | Compatível |
+
+Carga e velocidade são informativas: nenhuma posição registra exigência delas, então nada é afirmado. A tela consulta `GET /tires/{id}/compatibility` antes de salvar.
+
+## Instalação, remoção, substituição, transferência e rodízio (seções 11–15, 32)
+
+- **Instalar**: pneu `InStock`; veículo/implemento existente e não inativo, com configuração; posição existente e **livre** (ocupada → 409 orientando "Substituir"); compatível. Data: em branco = agora; pode ser passada, nunca futura (5 min de tolerância), nunca anterior à última movimentação do pneu nem à última saída daquela posição.
+- **Remover**: motivo (`Rotation`, `Replacement`, `Repair`, `Retread`, `Inspection`, `VehicleSale`, `VehicleDecommission`, `Damage`, `EndOfLife`, `Transfer`, `Other`) e destino (estoque, avaliação, conserto, recapagem, baixa). Medição opcional (vira uma inspeção `Removal`). Conserto/recapagem abrem o `TireServiceOrder` na mesma transação; baixa exige motivo da baixa. Destino conserto/recapagem/baixa exige também `tires.repair`/`tires.retread`/`tires.dispose`. Remoção por dano verifica "danos repetidos na mesma posição".
+- **Substituir** = remoção do atual + instalação do novo na mesma posição, numa transação (dois `SaveChanges`: a posição é liberada antes de ser ocupada — índice único filtrado). Qualquer falha (ex.: medida) desfaz tudo.
+- **Transferir** = sair de um veículo/implemento e entrar em outro, numa transação; hodômetros de origem e destino opcionais.
+- **Rodízio** (atômico): validado contra o **mapa final** — cada pneu uma vez, nenhuma posição repetida, destino livre ou liberado no mesmo rodízio, compatibilidade de medida e do par duplo pelo mapa final. Fecha todas as vigências envolvidas (`RemovalRotationId`), salva, abre as novas (`RotationId`), salva — tudo em uma transação. Evento por pneu (linha do tempo do pneu) + um evento do rodízio (linha do tempo do veículo). Imutável depois; a única correção é a de km (abaixo).
+- **Correção controlada** (`tires.edit`, motivo obrigatório): só os km de uma vigência de veículo (instalação; remoção se encerrada). O km acumulado do pneu acompanha; evento `TireHistoryCorrected` (de → para) + auditoria. Datas e posições não mudam.
+
+## Quilometragem (seção 38 — `TireMileage`)
+
+- **Fonte única: o histórico de hodômetro do veículo.** Operação atual: km = linha de base do `MileageService`; se a pessoa informa um km maior, ele vira uma leitura `Source = TireService` pelas regras do ADR-019; um salto suspeito **recusa a operação** (a vigência não pode começar num km que ninguém confirmou — registre a leitura pela aba Quilometragem). Operação lançada depois: km = última leitura válida até aquela data (`MileageService.OdometerAtAsync`) ou o km informado, que precisa caber entre as leituras vizinhas.
+- Km da vigência = remoção − instalação (nunca negativo); **estepe = 0**; implemento (sem hodômetro) = desconhecido → `HasUnmeasuredDistance`. Km atual = acumulado + vigência aberta (`Vehicle.CurrentOdometerKm − instalação`).
+
+## Inspeção, sulco e pressão (seções 16–21)
+
+- Inspeção: data (pode ser passada, não futura), hodômetro opcional (mesma regra acima), sulco (0–40 mm, uma casa), pressão + unidade (psi/bar/kPa), condição (`Good` Bom, `Attention` Atenção, `Unfit` Impróprio), desgaste observado (`Normal`, `CenterWear`, `ShoulderWear`, `OneSidedWear`, `IrregularWear`, `Cupping`, `Unknown`), danos (`Cut`, `Crack`, `Bulge`, `Puncture`, `SidewallDamage`, `BeadDamage`, `Other` — "Outro" exige descrição), fotos, ocorrência de origem (opcional).
+- **Nada é sobrescrito**: cada medição é uma linha; os campos rápidos do pneu seguem só a medição mais recente (uma inspeção lançada depois de outra mais nova não muda o "sulco atual").
+- Pressão comparada com a referência do eixo da posição, convertida para psi, com a tolerância da empresa (`TirePressure.Check`): `WithinRange`, `Low`, `High` ou `NotEvaluated` (sem referência — nunca adivinhado).
+- Desgaste e dano são **observações**: o sistema não diagnostica causa.
+
+## Conserto e recapagem (seções 22, 23)
+
+- `TireServiceOrder` (`Kind` = `Repair` | `Retread`): `Open` → `Completed` (resultado `Approved`/`Rejected`) | `Cancelled`. Um pneu tem no máximo um serviço aberto (índice único filtrado). Fornecedor: oficina do cadastro da Fase 3 **ou** nome livre.
+- Enviar: pneu em estoque ou em avaliação (ou pela remoção). Recapagem registra o número (`RetreadCount + 1`).
+- **Conserto no veículo** (`InPlace`): pneu instalado, só conserto, registrado já concluído — o pneu não sai da posição.
+- Concluir aprovado → estoque; conserto soma `RepairCount`; recapagem soma `RetreadCount` e exige o **sulco da banda nova**, que vira medição `Retread` e o sulco atual. Aprovado limpa os sinais de dano/desgaste da última inspeção. Reprovado (motivo obrigatório) ou cancelado → avaliação. **Quem decide se a carcaça aceita recapagem é o fornecedor/gestor**; o sistema registra a decisão.
+
+## Custos e custo/km (seções 24–26 — `TireCostPolicy`)
+
+- Ciclo de vida = valor de compra (no pneu) + Σ `TireCost` (conserto e recapagem gerados ao concluir o serviço com valor; montagem e outros manuais). Custos de serviço não são excluídos à mão; os manuais sim (soft delete auditado).
+- **Custo/km = total ÷ km**, só com **≥ 5.000 km**, total > 0 e **sem trecho não medido** (implemento). Fora disso, nulo com a explicação (`CostPerKmNote`).
+- `tires.viewcosts` controla todo valor; digitar valor (compra, serviço, custo manual) também a exige; custo manual exige ainda `tires.edit`.
+
+## Alertas calculados (seção 34 — `TireAlertPolicy`)
+
+| Alerta | Regra (limites de `TireSettings`, padrão) | Gravidade |
+|---|---|---|
+| `TreadBelowMinimum` | sulco atual ≤ mínimo (3 mm) | crítico |
+| `TreadNearMinimum` | sulco atual ≤ aviso (4 mm) | aviso |
+| `InspectionOverdue` | instalado e `InspectionReferenceAt` (última inspeção ou instalação a partir do estoque) há mais que o intervalo (30 dias; 0 desliga) | aviso |
+| `UnevenWear` | último desgaste diferente de normal/não avaliado | aviso |
+| `DamageReported` | dano na última inspeção | crítico |
+| `AgeExceeded` | fabricado há mais que a idade (5 anos; 0 desliga) | aviso |
+| `PressureOutOfRange` | última pressão baixa/alta | aviso |
+
+Nunca gravados (como o vencimento de documentos); a forma SQL de cada um está em `TireService.WhereAlert` e é a mesma comparação. Textos dizem "configurado pela empresa" — nunca "legal".
+
+## "Requer revisão" (seção 35 — `TireAnomalyRules`)
+
+| Tipo | Regra |
+|---|---|
+| `RapidTreadLoss` | perda de sulco entre duas medições > referência (0,5 mm/1.000 km; 0 desliga), com ≥ 1.000 km entre elas e sem recapagem no meio |
+| `RepeatedRepairs` | ≥ 3 consertos concluídos em 365 dias |
+| `RepeatedPunctures` | ≥ 2 furos em 180 dias (inspeção + conserto do mesmo furo contam uma vez) |
+| `ShortLifecycle` | baixa com km abaixo da vida mínima esperada (0 = desligado, padrão) |
+| `RecurringPositionDamage` | ≥ 2 remoções por dano na mesma posição do mesmo veículo em 180 dias |
+
+Uma anomalia aberta por tipo e pneu (não acumula). Texto sempre "Requer revisão", nunca uma causa. Revisar exige `tires.edit` e texto.
+
+## Integração com manutenção, checklist e ocorrências (seções 36, 37, 62)
+
+- Inspeção "Impróprio para uso" de pneu em **veículo** abre `MaintenanceRequest` (`Source = AutomaticAlert`, prioridade alta) **só se** `TireSettings.AutoMaintenanceRequestOnUnfit` (padrão desligado) — pelo `MaintenanceRequestService.AddAutomatic`, na mesma transação. Nunca ordem de serviço.
+- Checklist: o item de pneu reprovado já vira ocorrência `TireProblem` (Fase 2); a ocorrência ganhou o atalho "Inspecionar pneus do veículo" (aba Pneus) e a inspeção aceita `OccurrenceId`.
+
+## Eventos (seção 61 — ADR-025)
+
+`TireRegistered`, `TireInstalled`, `TireRemoved`, `TireRotated`, `TireInspected`, `TireInspectionFailed`, `TireTreadLow`, `TirePressureLow`, `TireRepairStarted`, `TireRepairCompleted`, `TireRetreadStarted`, `TireRetreadCompleted`, `TireServiceCancelled`, `TireReturnedToStock`, `TireSentToEvaluation`, `TireEndOfLife`, `TireAnomalyDetected`, `TireCostRecorded`, `TireHistoryCorrected`, `TireLayoutChanged`. Todos levam `TireId` (linha do tempo do pneu); os que acontecem num veículo/implemento levam também o `VehicleId`/`ImplementId`. `OccurredAt` = quando a operação aconteceu (operação lançada depois fica no lugar certo da linha do tempo). Resumos sem R$. Nenhum canal de notificação acionado.
+
+## Catálogo de permissões (Fase 5)
+
+| Permissão | Significado |
+|---|---|
+| `tires.view` | pneus, histórico, diagrama, painel e relatórios (sem R$) |
+| `tires.create` | cadastrar pneus (e criar modelo durante o cadastro) |
+| `tires.edit` | editar cadastro, corrigir km do histórico, custos manuais (com `viewcosts`), revisar "requer revisão" |
+| `tires.install` | instalar, substituir (com `tires.remove`), transferir (com `tires.remove`) |
+| `tires.remove` | remover (destino conserto/recapagem/baixa exige a permissão correspondente) |
+| `tires.rotate` | rodízio |
+| `tires.inspect` | inspecionar, separar para avaliação, liberar para uso |
+| `tires.repair` / `tires.retread` | consertos / recapagens |
+| `tires.dispose` | baixa |
+| `tires.viewcosts` | valores (compra, serviços, ciclo de vida, custo/km, relatório de custos) |
+| `tires.managesettings` | configurações de eixos (e atribuí-las), catálogo de modelos, limites |
+
+`Tires.ViewReports` foi absorvida (como no ADR-034): relatórios seguem `tires.view` + `tires.viewcosts`.
+
+| Papel | Pneus |
+|---|---|
+| Administrador / plataforma / Gestor de frota | todas |
+| Manutenção (borracharia) | todas, inclusive custos |
+| Operações | `tires.view`, `tires.inspect` (inspeção de campo e dano; não move pneus) |
+| Financeiro | `tires.view`, `tires.viewcosts` |
+| Visualizador | `tires.view` |
+| Motorista | nenhuma (decisão da Fase 2) |
+
+## Preparação para fases futuras
+
+- **Inventário/almoxarifado**: `StorageLocation` é texto; um módulo de estoque substitui por FK de local + movimentações sem mudar o ciclo do pneu. Compra/fornecedor ficam em texto até existir o cadastro de fornecedores.
+- **TPMS/telemetria**: uma leitura automática de pressão entra como nova `TireInspectionSource` (ex.: `Sensor`) — a comparação `TirePressure.Check` já é única.
+- **Venda/transferência entre empresas**: a baixa com motivo `Sold`/`Transferred` preserva o histórico; um fluxo de venda futuro referencia o pneu baixado.
+- **Implementos com km**: com o engate (Fase 2.5), a km da vigência em implemento pode vir do veículo trator — hoje é desconhecida.

@@ -3,6 +3,7 @@ using Fleet.Application.Operations;
 using Fleet.Domain.Maintenance;
 using Fleet.Domain.Operations;
 using Fleet.Domain.Validation;
+using Fleet.Domain.Vehicles;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 
@@ -127,6 +128,30 @@ public sealed class MaintenanceRequestService(
             new { maintenanceRequest.MaintenanceType, maintenanceRequest.Priority, maintenanceRequest.Source });
         await db.SaveChangesAsync(ct);
         return await GetAsync(maintenanceRequest.Id, ct);
+    }
+
+    /// <summary>
+    /// Automatic request from a configurable rule of another module (Phase 5: a tire inspected as unfit, when the company turned
+    /// the rule on). Added to the caller's unit of work — saved with the fact that caused it. Never creates a work order.
+    /// </summary>
+    public MaintenanceRequest AddAutomatic(Vehicle vehicle, string description, MaintenancePriority priority, int? odometerKm)
+    {
+        var maintenanceRequest = new MaintenanceRequest
+        {
+            VehicleId = vehicle.Id,
+            Vehicle = vehicle,
+            Source = MaintenanceRequestSource.AutomaticAlert,
+            MaintenanceType = MaintenanceType.Corrective,
+            Priority = priority,
+            Description = description.Length <= MaintenanceRequest.DescriptionMaxLength ? description : description[..MaintenanceRequest.DescriptionMaxLength],
+            ReportedAt = clock.UtcNow,
+            OdometerKm = odometerKm,
+        };
+        db.MaintenanceRequests.Add(maintenanceRequest);
+        events.Record(OperationalEventType.MaintenanceRequestCreated, Subject(maintenanceRequest),
+            $"Solicitação de manutenção aberta automaticamente para {LicensePlate.Format(vehicle.LicensePlate)}: {Short(maintenanceRequest.Description)}",
+            new { maintenanceRequest.MaintenanceType, maintenanceRequest.Priority, maintenanceRequest.Source });
+        return maintenanceRequest;
     }
 
     /// <summary>Approves and immediately opens the work order (Status = Approved) — one decision, one action.</summary>

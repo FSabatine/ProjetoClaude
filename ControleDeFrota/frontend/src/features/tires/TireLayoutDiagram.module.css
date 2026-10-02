@@ -1,0 +1,100 @@
+/* Top view of the vehicle: front at the top. Colors come only from the Mantine theme variables. */
+.body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--mantine-spacing-lg);
+  padding: var(--mantine-spacing-md) var(--mantine-spacing-sm);
+  border-radius: var(--mantine-radius-lg);
+  border: 1px dashed var(--mantine-color-default-border);
+  background: var(--mantine-color-body);
+}
+
+.axle {
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-xs);
+}
+
+.side {
+  display: flex;
+  gap: 4px;
+}
+
+.bar {
+  min-width: 96px;
+  height: 14px;
+  border-radius: 7px;
+  background: var(--mantine-color-default-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.barLabel {
+  position: absolute;
+  top: 18px;
+  white-space: nowrap;
+}
+
+.tire {
+  width: 58px;
+  height: 92px;
+  border-radius: 12px;
+  border: 2px solid var(--level-border);
+  background: var(--level-bg);
+  color: var(--mantine-color-text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 2px;
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.tire:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--mantine-shadow-sm);
+}
+
+.tire:focus-visible {
+  outline: 3px solid var(--mantine-primary-color-filled);
+  outline-offset: 2px;
+}
+
+.selected {
+  box-shadow: 0 0 0 3px var(--mantine-primary-color-filled);
+}
+
+.empty {
+  border-style: dashed;
+}
+
+.ok {
+  --level-border: var(--mantine-color-teal-filled);
+  --level-bg: var(--mantine-color-teal-light);
+}
+
+.warning {
+  --level-border: var(--mantine-color-orange-filled);
+  --level-bg: var(--mantine-color-orange-light);
+}
+
+.critical {
+  --level-border: var(--mantine-color-red-filled);
+  --level-bg: var(--mantine-color-red-light);
+}
+
+.unknown,
+.vacant {
+  --level-border: var(--mantine-color-gray-filled);
+  --level-bg: var(--mantine-color-gray-light);
+}
+
+.spares {
+  display: flex;
+  gap: var(--mantine-spacing-sm);
+  align-items: center;
+}

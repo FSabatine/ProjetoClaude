@@ -4,6 +4,7 @@ import { DateInput } from '@mantine/dates';
 import {
   IconAlertTriangle,
   IconChecklist,
+  IconCircleDot,
   IconFileText,
   IconGauge,
   IconHistory,
@@ -27,11 +28,15 @@ function visual(type: string) {
   if (type.startsWith('Checklist')) return { icon: IconChecklist, color: 'teal' };
   if (type === 'OccurrenceStatusChanged') return { icon: IconRefresh, color: 'blue' };
   if (type.startsWith('Occurrence')) return { icon: IconAlertTriangle, color: 'orange' };
+  if (type === 'TireInspectionFailed' || type === 'TireTreadLow' || type === 'TirePressureLow' || type === 'TireAnomalyDetected')
+    return { icon: IconAlertTriangle, color: 'orange' };
+  if (type === 'TireEndOfLife') return { icon: IconCircleDot, color: 'gray' };
+  if (type.startsWith('Tire')) return { icon: IconCircleDot, color: 'indigo' };
   return { icon: IconHistory, color: 'gray' };
 }
 
 /** Operational timeline of a vehicle or driver (ADR-025), newest first, with an optional period. */
-export function HistoryTimeline({ owner, id }: { owner: 'vehicles' | 'drivers'; id: string }) {
+export function HistoryTimeline({ owner, id }: { owner: 'vehicles' | 'drivers' | 'tires'; id: string }) {
   const [from, setFrom] = useState<Date | null>(null);
   const [to, setTo] = useState<Date | null>(null);
   const [page, setPage] = useState(1);
@@ -50,7 +55,9 @@ export function HistoryTimeline({ owner, id }: { owner: 'vehicles' | 'drivers'; 
         <EmptyState
           icon={<IconHistory size={28} />}
           title={from || to ? 'Nada no período' : 'Nenhum evento ainda'}
-          description="Alocações, leituras de hodômetro, documentos, checklists e ocorrências aparecem aqui conforme acontecem."
+          description={owner === 'tires'
+            ? 'Cadastro, instalações, remoções, rodízios, inspeções, consertos e recapagens aparecem aqui conforme acontecem.'
+            : 'Alocações, leituras de hodômetro, documentos, checklists e ocorrências aparecem aqui conforme acontecem.'}
         />
       )}
       {query.data && query.data.totalCount > 0 && (

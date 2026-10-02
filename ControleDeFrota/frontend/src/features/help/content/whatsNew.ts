@@ -6,6 +6,12 @@ import type { HelpWhatsNewEntry } from '../types';
  */
 export const WHATS_NEW: HelpWhatsNewEntry[] = [
   {
+    id: 'whats-new-tires',
+    title: 'Gestão de pneus',
+    description: 'Cada pneu pelo número de fogo, diagrama de eixos do veículo, instalação, rodízio, inspeção de sulco e pressão, consertos, recapagens, custo por km, baixa, painel e relatórios de pneus.',
+    date: 'outubro de 2026',
+  },
+  {
     id: 'whats-new-fuel',
     title: 'Gestão de combustível',
     description: 'Abastecimentos com total calculado, consumo de tanque cheio a tanque cheio, postos e preços de referência, alertas para revisão, painel e relatórios de combustível.',

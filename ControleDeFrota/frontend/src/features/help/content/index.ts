@@ -14,6 +14,7 @@ import * as mileage from './mileage';
 import * as occurrences from './occurrences';
 import * as rolesPermissions from './rolesPermissions';
 import * as searchAndFilters from './searchAndFilters';
+import * as tires from './tires';
 import * as users from './users';
 import * as vehicles from './vehicles';
 
@@ -36,6 +37,7 @@ const MODULES = [
   occurrences,
   maintenance,
   fuel,
+  tires,
   searchAndFilters,
   faq,
 ];

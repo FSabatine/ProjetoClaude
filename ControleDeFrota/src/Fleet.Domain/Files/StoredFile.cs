@@ -10,6 +10,12 @@ public enum FileOwnerType
     ChecklistAnswer,
     /// <summary>Receipt, invoice or photo of a fueling (Phase 4).</summary>
     Fueling,
+    /// <summary>Invoice, warranty, disposal certificate of a tire (Phase 5).</summary>
+    Tire,
+    /// <summary>Photos of a tire inspection.</summary>
+    TireInspection,
+    /// <summary>Repair/retread documents.</summary>
+    TireServiceOrder,
 }
 
 /// <summary>

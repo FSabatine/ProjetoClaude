@@ -50,6 +50,12 @@ const FuelingDetailPage = page(() => import('./features/fuel/FuelingDetailPage')
 const FuelStationListPage = page(() => import('./features/fuel/FuelStationPages'), 'FuelStationListPage');
 const FuelStationDetailPage = page(() => import('./features/fuel/FuelStationPages'), 'FuelStationDetailPage');
 const FuelSettingsPage = page(() => import('./features/fuel/FuelSettingsPage'), 'FuelSettingsPage');
+const TireDashboardPage = page(() => import('./features/tires/TireDashboardPage'), 'TireDashboardPage');
+const TireListPage = page(() => import('./features/tires/TireListPage'), 'TireListPage');
+const TireFormPage = page(() => import('./features/tires/TireFormPage'), 'TireFormPage');
+const TireDetailPage = page(() => import('./features/tires/TireDetailPage'), 'TireDetailPage');
+const TireReportsPage = page(() => import('./features/tires/TireReportsPage'), 'TireReportsPage');
+const TireSettingsPage = page(() => import('./features/tires/TireSettingsPage'), 'TireSettingsPage');
 const P = PERMISSIONS;
 
 // Routes are in Portuguese (what users see in the address bar); code stays in English.
@@ -111,6 +117,13 @@ const router = createBrowserRouter([
               { path: 'postos', element: <RequirePermission permission={P.fuel.view}><FuelStationListPage /></RequirePermission> },
               { path: 'postos/:id', element: <RequirePermission permission={P.fuel.view}><FuelStationDetailPage /></RequirePermission> },
               { path: 'configuracoes/combustivel', element: <RequirePermission permission={P.fuel.configure}><FuelSettingsPage /></RequirePermission> },
+              { path: 'pneus', element: <RequirePermission permission={P.tires.view}><TireListPage /></RequirePermission> },
+              { path: 'pneus/painel', element: <RequirePermission permission={P.tires.view}><TireDashboardPage /></RequirePermission> },
+              { path: 'pneus/relatorios', element: <RequirePermission permission={P.tires.view}><TireReportsPage /></RequirePermission> },
+              { path: 'pneus/novo', element: <RequirePermission permission={P.tires.create}><TireFormPage /></RequirePermission> },
+              { path: 'pneus/:id', element: <RequirePermission permission={P.tires.view}><TireDetailPage /></RequirePermission> },
+              { path: 'pneus/:id/editar', element: <RequirePermission permission={P.tires.view}><TireFormPage /></RequirePermission> },
+              { path: 'configuracoes/pneus', element: <RequirePermission permission={P.tires.managesettings}><TireSettingsPage /></RequirePermission> },
               { path: 'usuarios', element: <RequirePermission permission={P.users.view}><UserListPage /></RequirePermission> },
               { path: 'usuarios/novo', element: <RequirePermission permission={P.users.manage}><UserFormPage /></RequirePermission> },
               { path: 'usuarios/:id', element: <RequirePermission permission={P.users.view}><UserFormPage /></RequirePermission> },

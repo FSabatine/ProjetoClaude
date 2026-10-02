@@ -2,7 +2,7 @@
 
 Guia rápido para agentes de IA neste repositório. **A fonte da verdade é `docs/`**: leia o documento da área antes de alterá-la e atualize-o no mesmo trabalho. Em qualquer implementação, siga a skill de projeto `fleet-development` (`.claude/skills/fleet-development/SKILL.md`).
 
-Controle de Frota é um sistema de gestão de frotas multiempresa em .NET 8 + React. A fase atual e o escopo estão em `docs/ROADMAP.md` (Fases 1 — Fundação, 2 — Controle operacional, 3 — Manutenção e 4 — Combustível concluídas; a Fase 2.5 — Viagens e composição foi adiada por decisão do usuário, ADR-026/ADR-031, e é a próxima recomendada). **Não implemente módulos de fases futuras** (pneus, viagens, rastreamento, financeiro…); apenas deixe o ponto de extensão (normalmente um novo valor em `OperationalEventType`).
+Controle de Frota é um sistema de gestão de frotas multiempresa em .NET 8 + React. A fase atual e o escopo estão em `docs/ROADMAP.md` (Fases 1 — Fundação, 2 — Controle operacional, 3 — Manutenção, 4 — Combustível e 5 — Pneus concluídas; a Fase 2.5 — Viagens e composição foi adiada por decisão do usuário, ADR-026/ADR-031/ADR-035, e é a próxima recomendada). **Não implemente módulos de fases futuras** (viagens, almoxarifado, rastreamento, financeiro…); apenas deixe o ponto de extensão (normalmente um novo valor em `OperationalEventType`).
 
 ## Comandos (a partir de `ControleDeFrota/`)
 
@@ -67,6 +67,16 @@ Login de desenvolvimento: `admin@frota.local` / `FrotaDev!2026`. Os demais usuá
 - Status do abastecimento é derivado dos alertas (`Fueling.RefreshStatus`): algum alerta sem revisão = `PendingReview`. Nada é excluído: corrigir (com `FuelingCorrection`) ou cancelar.
 - Dinheiro só com `fuel.viewcosts` **ou** sendo o autor do registro (ADR-034), decidido no serviço. Resumos de eventos e mensagens de alerta de preço não levam R$.
 - `FueledAt` é gravado em segundos inteiros (o valor faz ida e volta pelo JSON/JS a cada correção); `FueledOn` é a data de negócio usada em filtros e agrupamentos.
+
+## Pneus (Fase 5) em uma tela
+
+- Módulo: `Fleet.Domain/Tires` (`TireCatalog.cs`, `Tire.cs`, `TireRules.cs`), `Fleet.Application/Tires` (`TireLifecycle` é o apoio comum de toda operação; `TireOperationsService` instala/remove/substitui/transfere/rodízio/baixa; `TireInspectionService`; `TireServiceOrderService` consertos/recapagens/custos; `TireService` cadastro e leituras; `TireAnalyticsService`), `Api/Controllers/TireControllers.cs`, `Persistence/Configurations/TireConfigurations.cs`, `Persistence/DevTireSeeder.cs`; frontend em `features/tires/` (+ `lib/tires.ts`). Testes: `TireServices` (builders com contexto opcional) e `TireTestBase`.
+- **Posições não são tabela**: são geradas da configuração de eixos (`TirePositions.For`; espelho `lib/tires.previewPositions`). A vigência guarda código + rótulo da posição (snapshot).
+- **Um pneu, uma posição — no banco**: índices únicos filtrados em `TireInstallations` e token `Tires.Version` (incremente com `TireLifecycle.Touch`). Liberar e ocupar posição na mesma operação = dois `SaveChanges` em `TireLifecycle.RunAsync` (transação + tradução para 409).
+- Km do pneu vem do `MileageService` (`TireLifecycle.OdometerAsync`); salto suspeito recusa a operação. Estepe soma 0; implemento = km desconhecido (`HasUnmeasuredDistance`), e o custo/km some (`TireCostPolicy`, mínimo 5.000 km).
+- Medição nunca sobrescreve: toda medição é uma `TireInspection` (inclusive na remoção e no retorno da recapagem); os campos rápidos do pneu seguem só a mais recente (`TireMonitoring.RecordAsync`).
+- Alertas são calculados (`TireAlertPolicy` + forma SQL em `TireService.WhereAlert` — mude as duas juntas); "requer revisão" é gravado (`TireAnomaly`, um aberto por tipo). Textos: "configurado pela empresa", nunca "legal", nunca causa.
+- Valores em R$ só com `tires.viewcosts`; digitar valor também exige a permissão. Eventos `Tire*` levam `TireId` (linha do tempo do pneu) e não levam R$.
 
 ## Regras que não são óbvias pelo código
 

@@ -54,6 +54,8 @@ public class Implement : AuditableEntity, ITenantScoped, ISoftDeletable, IAudita
     public decimal? TareWeightKg { get; set; }
 
     public ImplementStatus Status { get; set; } = ImplementStatus.Available;
+    /// <summary>Axle configuration (Phase 5) — same concept as the vehicle's. Changed only by TireService.</summary>
+    public Guid? TireLayoutId { get; set; }
     public string? Notes { get; set; }
 
     public DateTime? DeletedAt { get; set; }

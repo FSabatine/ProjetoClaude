@@ -64,6 +64,8 @@ public sealed class ImplementService(IFleetDbContext db, IValidator<ImplementReq
             throw new BusinessRuleException("Não é possível excluir um implemento em uso. Altere a situação do implemento antes de excluí-lo.");
         if (await db.Occurrences.AnyAsync(o => o.ImplementId == id, ct))
             throw new BusinessRuleException("Este implemento tem ocorrências registradas e não pode ser excluído. Inative-o.");
+        if (await db.TireInstallations.AnyAsync(i => i.ImplementId == id, ct))
+            throw new BusinessRuleException("Este implemento tem histórico de pneus e não pode ser excluído. Inative-o.");
         foreach (var document in await db.Documents.Where(d => d.ImplementId == id).ToListAsync(ct)) db.Documents.Remove(document);
         db.Implements.Remove(implement);
         await db.SaveChangesAsync(ct);

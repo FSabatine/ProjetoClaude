@@ -45,6 +45,28 @@ public enum OperationalEventType
     FuelConsumptionAnomalyDetected,
     FuelingMileageInconsistencyDetected,
     FuelPriceChanged,
+
+    // Phase 5 — tires
+    TireRegistered,
+    TireInstalled,
+    TireRemoved,
+    TireRotated,
+    TireInspected,
+    TireInspectionFailed,
+    TireTreadLow,
+    TirePressureLow,
+    TireRepairStarted,
+    TireRepairCompleted,
+    TireRetreadStarted,
+    TireRetreadCompleted,
+    TireServiceCancelled,
+    TireReturnedToStock,
+    TireSentToEvaluation,
+    TireEndOfLife,
+    TireAnomalyDetected,
+    TireCostRecorded,
+    TireHistoryCorrected,
+    TireLayoutChanged,
 }
 
 /// <summary>
@@ -68,6 +90,8 @@ public class OperationalEvent : ITenantScoped
     public Guid? VehicleId { get; set; }
     public Guid? DriverId { get; set; }
     public Guid? ImplementId { get; set; }
+    /// <summary>Tire timeline (Phase 5): every lifecycle event of a tire carries it.</summary>
+    public Guid? TireId { get; set; }
 
     /// <summary>Record that caused the event ("VehicleAssignment", "Occurrence"…) — for drill-down.</summary>
     public string SubjectType { get; set; } = string.Empty;

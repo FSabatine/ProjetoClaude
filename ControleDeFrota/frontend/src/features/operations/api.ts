@@ -375,6 +375,6 @@ export const occurrencesApi = {
 };
 
 export const historyApi = {
-  useFor: (owner: 'vehicles' | 'drivers', id: string, params: ListParams) =>
+  useFor: (owner: 'vehicles' | 'drivers' | 'tires', id: string, params: ListParams) =>
     usePaged<HistoryEntry>(['history', owner, id], `/${owner}/${id}/history`, params),
 };

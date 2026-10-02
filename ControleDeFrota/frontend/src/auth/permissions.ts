@@ -32,6 +32,20 @@ export const PERMISSIONS = {
     configure: 'fuel.configure',
     viewcosts: 'fuel.viewcosts',
   },
+  tires: {
+    view: 'tires.view',
+    create: 'tires.create',
+    edit: 'tires.edit',
+    install: 'tires.install',
+    remove: 'tires.remove',
+    rotate: 'tires.rotate',
+    inspect: 'tires.inspect',
+    repair: 'tires.repair',
+    retread: 'tires.retread',
+    dispose: 'tires.dispose',
+    viewcosts: 'tires.viewcosts',
+    managesettings: 'tires.managesettings',
+  },
 } as const;
 
 type Values<T> = T[keyof T];

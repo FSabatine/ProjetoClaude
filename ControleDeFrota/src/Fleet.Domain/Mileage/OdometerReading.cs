@@ -13,6 +13,8 @@ public enum OdometerReadingSource
     Fueling,
     /// <summary>Audited correction by a manager; may be lower than the previous reading.</summary>
     Correction,
+    /// <summary>Odometer informed in a tire operation (Phase 5) — installation/removal km come from the same history.</summary>
+    TireService,
 }
 
 public enum OdometerReadingStatus

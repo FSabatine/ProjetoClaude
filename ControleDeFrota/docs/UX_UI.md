@@ -177,3 +177,33 @@ Alvos de toque de no mínimo 40px. O motorista vai usar o celular nas fases futu
 
 ### Revisão desta fase
 - Revisão de UX e responsividade feita no código (cada tela com `PageHeader`, estados de carregando/vazio/erro, cards no celular via `DataTable`, `SimpleGrid` responsivo). **Sem revisão visual automatizada** (o navegador headless travou a máquina na Fase 1): conferir manualmente em 375px, tablet e desktop, nos temas claro e escuro.
+
+## Fase 5 — pneus
+
+### Diagrama do veículo (o centro do módulo)
+- Aba **Pneus** no hub do veículo e seção **Pneus do implemento** na página do implemento — o mesmo componente (`AssetTirePanel`).
+- Veículo visto de cima, "FRENTE" no topo e "TRASEIRA" embaixo, **gerado da configuração de eixos** (nunca desenhado para um tipo de veículo): um eixo por linha, rodas duplas com o externo na borda, estepes separados. Cada roda é um botão (58×92 px) com o código da posição, um **ícone** do estado e o sulco; `aria-label` completo ("Eixo 2 — Esquerdo externo: pneu PN-000123, sulco 8 mm, perto do mínimo") e `aria-pressed`.
+- Estado por cor **+ ícone + texto** (legenda abaixo do diagrama): ✓ sulco normal (teal), ⚠ perto do mínimo (laranja), ⛔ requer ação — sulco no mínimo ou dano (vermelho), ? sulco não medido (cinza), círculo tracejado = posição vazia. Só variáveis de cor do tema Mantine.
+- Tocar numa posição abre o detalhe ao lado (desktop) ou abaixo (celular): número de fogo (link para o pneu), marca/modelo/medida, sulco atual × original, km do pneu e na posição, instalação, última inspeção, recapagens, alertas, avisos de compatibilidade; ações **Inspecionar** (primária) e "Mais ações" (remover, substituir, transferir, conserto no veículo, abrir o pneu). Posição vazia: "Instalar pneu".
+- **Celular**: o diagrama vira uma lista de cards por eixo (sem zoom); as operações abrem em modal de tela cheia, com inputs `size="md"`, teclado numérico, chips grandes para danos e foto pela câmera.
+- Sem configuração: estado vazio explicando e (com permissão) o seletor "Usar configuração".
+
+### Operações
+- Instalar mostra só pneus em estoque da medida da posição e a **compatibilidade antes de salvar** (verde conferida, laranja "confira", vermelho "não pode", cinza "não pôde ser verificada automaticamente").
+- Remover/Substituir: motivo + destino; campos condicionais ao destino (local de armazenamento, fornecedor e tipo de conserto, motivo da baixa e documento); medição opcional; baixa com aviso "definitiva" e botão vermelho.
+- Rodízio: tabela "pneu · posição atual · nova posição", validação **enquanto se monta** (`lib/tires.rotationProblems`, espelho do servidor), botão desabilitado com problema, texto "ou o rodízio inteiro é registrado, ou nada muda".
+- Inspeção: sulco com feedback ao vivo ("perto do mínimo", com o mínimo da empresa), pressão com a unidade em `SegmentedControl` e checagem contra a referência do eixo, condição em três botões, desgaste "registre o que viu — a causa é avaliada depois".
+- Hodômetro e data são opcionais em todas ("em branco = agora / usa o histórico"), com o km atual do veículo como referência.
+
+### Página do pneu (hub)
+- Cabeçalho: situação, onde está (link ao veículo), sulco (% gasto), km, custo/km (com permissão). Uma ação primária conforme a situação (Inspecionar, Instalar, Concluir serviço, Liberar para uso); o resto em "Ações".
+- Abas: Visão geral (alertas, "requer revisão" com "Marcar como revisado", identificação, vida, custo do ciclo de vida), Histórico (linha do tempo reutilizada do veículo), Instalações (km por posição; lápis de correção de km), Inspeções, Consertos e recapagens, Custos, Anexos.
+- `[?]` contextual em número de fogo, DOT, sulco e custo/km; textos sempre "configurado pela empresa", nunca "legal".
+
+### Painel, lista e relatórios
+- Lista de pneus: filtros na URL (situação, alerta, inspeção, marca, veículo; "Mais filtros" com implemento, posição, medida, local, fabricação, instalação, recapagens) e atalhos; cards no celular.
+- Painel: KPIs clicáveis (cada número abre a lista filtrada), "o que requer atenção" com ícone de gravidade, desgaste anormal, próximas inspeções, maior custo/km (com permissão) e movimentações recentes. Sem gráficos (listas acionáveis respondem melhor às perguntas do módulo).
+- Relatórios em abas na URL (`?relatorio=`), `ReportTable` compartilhado com combustível.
+
+### Revisão desta fase
+Revisão de UX e responsividade feita no código. **Sem revisão visual automatizada** (o navegador headless travou a máquina na Fase 1): conferir manualmente o diagrama em 375px, tablet e desktop, nos temas claro e escuro, em especial o cavalo 6x2 (10 pneus + estepe) e o semirreboque de 3 eixos.

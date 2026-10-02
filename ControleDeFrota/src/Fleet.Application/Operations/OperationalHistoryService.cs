@@ -45,6 +45,14 @@ public sealed class OperationalHistoryService(IFleetDbContext db, IClock clock, 
         return await ListAsync(db.OperationalEvents.Where(e => e.DriverId == driverId), request, ct);
     }
 
+    /// <summary>Lifecycle timeline of a tire (Phase 5): every tire event carries TireId.</summary>
+    public async Task<PagedResult<HistoryEntryResponse>> ForTireAsync(Guid tireId, HistoryRequest request, CancellationToken ct)
+    {
+        if (!await db.Tires.AnyAsync(t => t.Id == tireId, ct))
+            throw new NotFoundException("Pneu não encontrado. Ele pode ter sido excluído.");
+        return await ListAsync(db.OperationalEvents.Where(e => e.TireId == tireId), request, ct);
+    }
+
     private async Task<PagedResult<HistoryEntryResponse>> ListAsync(IQueryable<OperationalEvent> query, HistoryRequest request, CancellationToken ct)
     {
         await validator.ValidateAndThrowAsync(request, ct);

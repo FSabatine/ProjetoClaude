@@ -64,6 +64,9 @@ function OccurrenceDetail({ occurrence: o }: { occurrence: Occurrence }) {
               <StatusBadge value={o.severity} map={OCCURRENCE_SEVERITY} />
             </Group>
             <Group gap="xs">
+              {o.vehicleId && o.type === 'TireProblem' && can(PERMISSIONS.tires.inspect) && (
+                <Button variant="default" component={Link} to={`/veiculos/${o.vehicleId}?aba=pneus`}>Inspecionar pneus do veículo</Button>
+              )}
               {o.vehicleId && can(PERMISSIONS.maintenance.createrequest) && (
                 <Button variant="default" onClick={() => setRequestingMaintenance(true)}>Abrir solicitação de manutenção</Button>
               )}

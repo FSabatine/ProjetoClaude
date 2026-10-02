@@ -120,6 +120,9 @@ public class Vehicle : AuditableEntity, ITenantScoped, ISoftDeletable, IAuditabl
     /// <summary>Configured expected consumption (km per unit). When set, it is the consumption baseline (ADR-032).</summary>
     public decimal? ExpectedConsumption { get; set; }
 
+    /// <summary>Axle configuration (Phase 5, ADR-036): which wheel positions the vehicle has. Changed only by TireService.</summary>
+    public Guid? TireLayoutId { get; set; }
+
     /// <summary>Fast read of the latest applied odometer reading. Changed only by MileageService (ADR-019).</summary>
     public int CurrentOdometerKm { get; set; }
     /// <summary>When the current odometer value was read (null = never read since registration).</summary>

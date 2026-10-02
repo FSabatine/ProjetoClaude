@@ -1338,6 +1338,9 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         .HasPrecision(12, 2)
                         .HasColumnType("decimal(12,2)");
 
+                    b.Property<Guid?>("TireLayoutId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Type")
                         .IsRequired()
                         .HasMaxLength(30)
@@ -1350,6 +1353,8 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TireLayoutId");
 
                     b.HasIndex("CompanyId", "Chassis")
                         .IsUnique()
@@ -2239,6 +2244,9 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
 
+                    b.Property<Guid?>("TireId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Type")
                         .IsRequired()
                         .HasMaxLength(40)
@@ -2258,11 +2266,953 @@ namespace Fleet.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CompanyId", "DriverId", "OccurredAt");
 
+                    b.HasIndex("CompanyId", "TireId", "OccurredAt");
+
                     b.HasIndex("CompanyId", "Type", "OccurredAt");
 
                     b.HasIndex("CompanyId", "VehicleId", "OccurredAt");
 
                     b.ToTable("OperationalEvents", (string)null);
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Tires.Tire", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("AccumulatedKm")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("CurrentTreadDepthMm")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("DisposalDestination")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("DisposalNotes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("DisposalReason")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTime?>("DisposedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DisposedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Dot")
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<bool>("HasUnmeasuredDistance")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("InspectionReferenceAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("LastInspectedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("LastInspectionHasDamage")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastMovementAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("LastPressureCheck")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("LastWearPattern")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateOnly?>("ManufacturedOn")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<decimal?>("OriginalTreadDepthMm")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal?>("PurchasePrice")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("decimal(14,2)");
+
+                    b.Property<DateOnly?>("PurchasedOn")
+                        .HasColumnType("date");
+
+                    b.Property<int>("RepairCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RetreadCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Sequence")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SerialNumber")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("StorageLocation")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("Supplier")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<Guid>("TireModelId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("TreadMeasuredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TireModelId");
+
+                    b.HasIndex("CompanyId", "Code")
+                        .IsUnique()
+                        .HasFilter("[DeletedAt] IS NULL");
+
+                    b.HasIndex("CompanyId", "Sequence")
+                        .IsUnique()
+                        .HasFilter("[DeletedAt] IS NULL");
+
+                    b.HasIndex("CompanyId", "Status");
+
+                    b.HasIndex("CompanyId", "TireModelId");
+
+                    b.ToTable("Tires", (string)null);
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Tires.TireAnomaly", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("DetectedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(400)
+                        .HasColumnType("nvarchar(400)");
+
+                    b.Property<string>("ReviewNotes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ReviewedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("TireId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TireId");
+
+                    b.HasIndex("CompanyId", "ReviewedAt");
+
+                    b.HasIndex("CompanyId", "TireId");
+
+                    b.ToTable("TireAnomalies", (string)null);
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Tires.TireCost", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("decimal(14,2)");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<DateOnly>("IncurredOn")
+                        .HasColumnType("date");
+
+                    b.Property<Guid?>("ServiceOrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("TireId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ServiceOrderId");
+
+                    b.HasIndex("TireId");
+
+                    b.HasIndex("CompanyId", "IncurredOn");
+
+                    b.HasIndex("CompanyId", "TireId", "Type");
+
+                    b.ToTable("TireCosts", (string)null);
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Tires.TireInspection", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Condition")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ImplementId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("InspectedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("InstallationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("MaintenanceRequestId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<Guid?>("OccurrenceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("OdometerKm")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PositionCode")
+                        .HasMaxLength(10)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(10)");
+
+                    b.Property<string>("PositionLabel")
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<decimal?>("Pressure")
+                        .HasPrecision(7, 2)
+                        .HasColumnType("decimal(7,2)");
+
+                    b.Property<string>("PressureCheck")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("PressureUnit")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid>("TireId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("TireKm")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("TreadDepthMm")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("VehicleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("WearPattern")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ImplementId");
+
+                    b.HasIndex("InstallationId");
+
+                    b.HasIndex("TireId");
+
+                    b.HasIndex("VehicleId");
+
+                    b.HasIndex("CompanyId", "InspectedAt");
+
+                    b.HasIndex("CompanyId", "TireId", "InspectedAt");
+
+                    b.HasIndex("CompanyId", "VehicleId", "InspectedAt");
+
+                    b.ToTable("TireInspections", (string)null);
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Tires.TireInspectionDamage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("InspectionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId", "Type");
+
+                    b.HasIndex("InspectionId", "Type")
+                        .IsUnique();
+
+                    b.ToTable("TireInspectionDamages", (string)null);
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Tires.TireInstallation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("AxleNumber")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("DistanceKm")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("ImplementId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("InstallReason")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("InstalledAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal?>("InstalledHourMeter")
+                        .HasPrecision(10, 1)
+                        .HasColumnType("decimal(10,1)");
+
+                    b.Property<int?>("InstalledOdometerKm")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsSpare")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("PositionCode")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(10)");
+
+                    b.Property<string>("PositionLabel")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<string>("RemovalDestination")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("RemovalNotes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("RemovalReason")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<Guid?>("RemovalRotationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("RemovedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("RemovedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("RemovedHourMeter")
+                        .HasPrecision(10, 1)
+                        .HasColumnType("decimal(10,1)");
+
+                    b.Property<int?>("RemovedOdometerKm")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("RotationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("TireId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("VehicleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RemovalRotationId");
+
+                    b.HasIndex("RotationId");
+
+                    b.HasIndex("TireId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_TireInstallations_OpenByTire")
+                        .HasFilter("[RemovedAt] IS NULL");
+
+                    b.HasIndex("CompanyId", "InstalledAt");
+
+                    b.HasIndex("ImplementId", "PositionCode")
+                        .IsUnique()
+                        .HasDatabaseName("IX_TireInstallations_OpenByImplementPosition")
+                        .HasFilter("[RemovedAt] IS NULL AND [ImplementId] IS NOT NULL");
+
+                    b.HasIndex("VehicleId", "PositionCode")
+                        .IsUnique()
+                        .HasDatabaseName("IX_TireInstallations_OpenByVehiclePosition")
+                        .HasFilter("[RemovedAt] IS NULL AND [VehicleId] IS NOT NULL");
+
+                    b.HasIndex("CompanyId", "ImplementId", "InstalledAt");
+
+                    b.HasIndex("CompanyId", "TireId", "InstalledAt");
+
+                    b.HasIndex("CompanyId", "VehicleId", "InstalledAt");
+
+                    b.ToTable("TireInstallations", (string)null);
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Tires.TireLayout", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<int>("SpareCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Target")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId", "Name")
+                        .IsUnique()
+                        .HasFilter("[DeletedAt] IS NULL");
+
+                    b.ToTable("TireLayouts", (string)null);
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Tires.TireLayoutAxle", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AllowedSize")
+                        .HasMaxLength(30)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsDual")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsRequired")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("RecommendedPressurePsi")
+                        .HasPrecision(6, 1)
+                        .HasColumnType("decimal(6,1)");
+
+                    b.Property<Guid>("TireLayoutId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId");
+
+                    b.HasIndex("TireLayoutId", "Number")
+                        .IsUnique();
+
+                    b.ToTable("TireLayoutAxles", (string)null);
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Tires.TireModel", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Application")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Brand")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Construction")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LoadIndex")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal?>("OriginalTreadDepthMm")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("Size")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<string>("SpeedRating")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId", "Brand", "Name", "Size")
+                        .IsUnique()
+                        .HasFilter("[DeletedAt] IS NULL");
+
+                    b.ToTable("TireModels", (string)null);
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Tires.TireRotation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ImplementId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int?>("OdometerKm")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("PerformedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<int>("TireCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("VehicleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ImplementId");
+
+                    b.HasIndex("VehicleId");
+
+                    b.HasIndex("CompanyId", "ImplementId", "PerformedAt");
+
+                    b.HasIndex("CompanyId", "VehicleId", "PerformedAt");
+
+                    b.ToTable("TireRotations", (string)null);
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Tires.TireServiceOrder", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal?>("Cost")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("decimal(14,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<bool>("InPlace")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<decimal?>("NewTreadDepthMm")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("ProviderName")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("RepairType")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Result")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("ResultNotes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int?>("RetreadNumber")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("SentAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid>("TireId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("TreadPattern")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateOnly?>("WarrantyUntil")
+                        .HasColumnType("date");
+
+                    b.Property<Guid?>("WorkshopId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TireId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_TireServiceOrders_OpenByTire")
+                        .HasFilter("[Status] = 'Open'");
+
+                    b.HasIndex("WorkshopId");
+
+                    b.HasIndex("CompanyId", "Status");
+
+                    b.HasIndex("CompanyId", "TireId", "SentAt");
+
+                    b.ToTable("TireServiceOrders", (string)null);
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Tires.TireSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("AutoMaintenanceRequestOnUnfit")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("InspectionIntervalDays")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MaxAgeYears")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MinExpectedLifeKm")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("MinTreadDepthMm")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<int>("PressureTolerancePercent")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PressureUnit")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<decimal>("RapidWearMmPer1000Km")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal>("TreadWarningDepthMm")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId")
+                        .IsUnique();
+
+                    b.ToTable("TireSettings", (string)null);
                 });
 
             modelBuilder.Entity("Fleet.Domain.Users.Permission", b =>
@@ -2623,6 +3573,90 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                             Description = "Visualizar custos de combustível",
                             Key = "fuel.viewcosts",
                             Module = "fuel"
+                        },
+                        new
+                        {
+                            Id = 180,
+                            Description = "Visualizar pneus, histórico, painel e relatórios de pneus",
+                            Key = "tires.view",
+                            Module = "tires"
+                        },
+                        new
+                        {
+                            Id = 181,
+                            Description = "Cadastrar pneus",
+                            Key = "tires.create",
+                            Module = "tires"
+                        },
+                        new
+                        {
+                            Id = 182,
+                            Description = "Editar pneus e corrigir o histórico de pneus",
+                            Key = "tires.edit",
+                            Module = "tires"
+                        },
+                        new
+                        {
+                            Id = 183,
+                            Description = "Instalar, substituir e transferir pneus",
+                            Key = "tires.install",
+                            Module = "tires"
+                        },
+                        new
+                        {
+                            Id = 184,
+                            Description = "Remover pneus",
+                            Key = "tires.remove",
+                            Module = "tires"
+                        },
+                        new
+                        {
+                            Id = 185,
+                            Description = "Fazer rodízio de pneus",
+                            Key = "tires.rotate",
+                            Module = "tires"
+                        },
+                        new
+                        {
+                            Id = 186,
+                            Description = "Inspecionar pneus (sulco, pressão, danos)",
+                            Key = "tires.inspect",
+                            Module = "tires"
+                        },
+                        new
+                        {
+                            Id = 187,
+                            Description = "Registrar consertos de pneus",
+                            Key = "tires.repair",
+                            Module = "tires"
+                        },
+                        new
+                        {
+                            Id = 188,
+                            Description = "Registrar recapagens de pneus",
+                            Key = "tires.retread",
+                            Module = "tires"
+                        },
+                        new
+                        {
+                            Id = 189,
+                            Description = "Dar baixa em pneus",
+                            Key = "tires.dispose",
+                            Module = "tires"
+                        },
+                        new
+                        {
+                            Id = 190,
+                            Description = "Visualizar custos de pneus",
+                            Key = "tires.viewcosts",
+                            Module = "tires"
+                        },
+                        new
+                        {
+                            Id = 191,
+                            Description = "Configurar eixos, modelos e limites de pneus",
+                            Key = "tires.managesettings",
+                            Module = "tires"
                         });
                 });
 
@@ -2726,7 +3760,7 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = 3,
-                            Description = "Gerencia a frota e a operação: cadastros, alocações, hodômetro, documentos, checklists, ocorrências, manutenção e combustível.",
+                            Description = "Gerencia a frota e a operação: cadastros, alocações, hodômetro, documentos, checklists, ocorrências, manutenção, combustível e pneus.",
                             IsSystem = true,
                             Key = "FleetManager",
                             Name = "Gestor de frota"
@@ -2734,7 +3768,7 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = 4,
-                            Description = "Operação diária: motoristas, alocações, hodômetro, documentos, checklists, ocorrências e registro de abastecimentos.",
+                            Description = "Operação diária: motoristas, alocações, hodômetro, documentos, checklists, ocorrências, abastecimentos e inspeção de pneus.",
                             IsSystem = true,
                             Key = "Operations",
                             Name = "Operações"
@@ -2742,7 +3776,7 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = 5,
-                            Description = "Atualiza a situação de veículos e implementos, acompanha ocorrências e executa a manutenção da frota.",
+                            Description = "Atualiza a situação de veículos e implementos, acompanha ocorrências e executa a manutenção da frota, inclusive a borracharia.",
                             IsSystem = true,
                             Key = "Maintenance",
                             Name = "Manutenção"
@@ -2750,7 +3784,7 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = 6,
-                            Description = "Consulta a frota e os custos de manutenção e combustível.",
+                            Description = "Consulta a frota e os custos de manutenção, combustível e pneus.",
                             IsSystem = true,
                             Key = "Finance",
                             Name = "Financeiro"
@@ -3025,6 +4059,66 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         },
                         new
                         {
+                            RoleId = 1,
+                            PermissionId = 180
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 181
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 182
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 183
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 184
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 185
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 186
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 187
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 188
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 189
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 190
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 191
+                        },
+                        new
+                        {
                             RoleId = 2,
                             PermissionId = 1
                         },
@@ -3255,6 +4349,66 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         },
                         new
                         {
+                            RoleId = 2,
+                            PermissionId = 180
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 181
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 182
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 183
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 184
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 185
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 186
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 187
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 188
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 189
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 190
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 191
+                        },
+                        new
+                        {
                             RoleId = 3,
                             PermissionId = 1
                         },
@@ -3475,6 +4629,66 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         },
                         new
                         {
+                            RoleId = 3,
+                            PermissionId = 180
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 181
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 182
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 183
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 184
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 185
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 186
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 187
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 188
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 189
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 190
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 191
+                        },
+                        new
+                        {
                             RoleId = 4,
                             PermissionId = 1
                         },
@@ -3585,6 +4799,16 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         },
                         new
                         {
+                            RoleId = 4,
+                            PermissionId = 180
+                        },
+                        new
+                        {
+                            RoleId = 4,
+                            PermissionId = 186
+                        },
+                        new
+                        {
                             RoleId = 5,
                             PermissionId = 1
                         },
@@ -3650,6 +4874,66 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         },
                         new
                         {
+                            RoleId = 5,
+                            PermissionId = 180
+                        },
+                        new
+                        {
+                            RoleId = 5,
+                            PermissionId = 181
+                        },
+                        new
+                        {
+                            RoleId = 5,
+                            PermissionId = 182
+                        },
+                        new
+                        {
+                            RoleId = 5,
+                            PermissionId = 183
+                        },
+                        new
+                        {
+                            RoleId = 5,
+                            PermissionId = 184
+                        },
+                        new
+                        {
+                            RoleId = 5,
+                            PermissionId = 185
+                        },
+                        new
+                        {
+                            RoleId = 5,
+                            PermissionId = 186
+                        },
+                        new
+                        {
+                            RoleId = 5,
+                            PermissionId = 187
+                        },
+                        new
+                        {
+                            RoleId = 5,
+                            PermissionId = 188
+                        },
+                        new
+                        {
+                            RoleId = 5,
+                            PermissionId = 189
+                        },
+                        new
+                        {
+                            RoleId = 5,
+                            PermissionId = 190
+                        },
+                        new
+                        {
+                            RoleId = 5,
+                            PermissionId = 191
+                        },
+                        new
+                        {
                             RoleId = 6,
                             PermissionId = 1
                         },
@@ -3687,6 +4971,16 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         {
                             RoleId = 6,
                             PermissionId = 177
+                        },
+                        new
+                        {
+                            RoleId = 6,
+                            PermissionId = 180
+                        },
+                        new
+                        {
+                            RoleId = 6,
+                            PermissionId = 190
                         },
                         new
                         {
@@ -3742,6 +5036,11 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         {
                             RoleId = 8,
                             PermissionId = 170
+                        },
+                        new
+                        {
+                            RoleId = 8,
+                            PermissionId = 180
                         });
                 });
 
@@ -3949,6 +5248,9 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         .HasPrecision(12, 2)
                         .HasColumnType("decimal(12,2)");
 
+                    b.Property<Guid?>("TireLayoutId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Type")
                         .IsRequired()
                         .HasMaxLength(30)
@@ -3961,6 +5263,8 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TireLayoutId");
 
                     b.HasIndex("CompanyId", "Chassis")
                         .IsUnique()
@@ -4429,6 +5733,11 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         .HasForeignKey("CompanyId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("Fleet.Domain.Tires.TireLayout", null)
+                        .WithMany()
+                        .HasForeignKey("TireLayoutId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("Fleet.Domain.Maintenance.HourMeterReading", b =>
@@ -4733,6 +6042,239 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                     b.Navigation("Vehicle");
                 });
 
+            modelBuilder.Entity("Fleet.Domain.Tires.Tire", b =>
+                {
+                    b.HasOne("Fleet.Domain.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Fleet.Domain.Tires.TireModel", "Model")
+                        .WithMany()
+                        .HasForeignKey("TireModelId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Model");
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Tires.TireAnomaly", b =>
+                {
+                    b.HasOne("Fleet.Domain.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Fleet.Domain.Tires.Tire", null)
+                        .WithMany()
+                        .HasForeignKey("TireId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Tires.TireCost", b =>
+                {
+                    b.HasOne("Fleet.Domain.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Fleet.Domain.Tires.TireServiceOrder", null)
+                        .WithMany()
+                        .HasForeignKey("ServiceOrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Fleet.Domain.Tires.Tire", null)
+                        .WithMany()
+                        .HasForeignKey("TireId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Tires.TireInspection", b =>
+                {
+                    b.HasOne("Fleet.Domain.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Fleet.Domain.Implements.Implement", "Implement")
+                        .WithMany()
+                        .HasForeignKey("ImplementId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Fleet.Domain.Tires.TireInstallation", null)
+                        .WithMany()
+                        .HasForeignKey("InstallationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Fleet.Domain.Tires.Tire", "Tire")
+                        .WithMany()
+                        .HasForeignKey("TireId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Fleet.Domain.Vehicles.Vehicle", "Vehicle")
+                        .WithMany()
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Implement");
+
+                    b.Navigation("Tire");
+
+                    b.Navigation("Vehicle");
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Tires.TireInspectionDamage", b =>
+                {
+                    b.HasOne("Fleet.Domain.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Fleet.Domain.Tires.TireInspection", null)
+                        .WithMany("Damages")
+                        .HasForeignKey("InspectionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Tires.TireInstallation", b =>
+                {
+                    b.HasOne("Fleet.Domain.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Fleet.Domain.Implements.Implement", "Implement")
+                        .WithMany()
+                        .HasForeignKey("ImplementId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Fleet.Domain.Tires.TireRotation", null)
+                        .WithMany()
+                        .HasForeignKey("RemovalRotationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Fleet.Domain.Tires.TireRotation", null)
+                        .WithMany()
+                        .HasForeignKey("RotationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Fleet.Domain.Tires.Tire", "Tire")
+                        .WithMany()
+                        .HasForeignKey("TireId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Fleet.Domain.Vehicles.Vehicle", "Vehicle")
+                        .WithMany()
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Implement");
+
+                    b.Navigation("Tire");
+
+                    b.Navigation("Vehicle");
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Tires.TireLayout", b =>
+                {
+                    b.HasOne("Fleet.Domain.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Tires.TireLayoutAxle", b =>
+                {
+                    b.HasOne("Fleet.Domain.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Fleet.Domain.Tires.TireLayout", null)
+                        .WithMany("Axles")
+                        .HasForeignKey("TireLayoutId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Tires.TireModel", b =>
+                {
+                    b.HasOne("Fleet.Domain.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Tires.TireRotation", b =>
+                {
+                    b.HasOne("Fleet.Domain.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Fleet.Domain.Implements.Implement", "Implement")
+                        .WithMany()
+                        .HasForeignKey("ImplementId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Fleet.Domain.Vehicles.Vehicle", "Vehicle")
+                        .WithMany()
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Implement");
+
+                    b.Navigation("Vehicle");
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Tires.TireServiceOrder", b =>
+                {
+                    b.HasOne("Fleet.Domain.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Fleet.Domain.Tires.Tire", "Tire")
+                        .WithMany()
+                        .HasForeignKey("TireId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Fleet.Domain.Maintenance.Workshop", "Workshop")
+                        .WithMany()
+                        .HasForeignKey("WorkshopId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Tire");
+
+                    b.Navigation("Workshop");
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Tires.TireSettings", b =>
+                {
+                    b.HasOne("Fleet.Domain.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Fleet.Domain.Users.RefreshToken", b =>
                 {
                     b.HasOne("Fleet.Domain.Users.User", "User")
@@ -4800,6 +6342,11 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         .HasForeignKey("CompanyId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("Fleet.Domain.Tires.TireLayout", null)
+                        .WithMany()
+                        .HasForeignKey("TireLayoutId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("Fleet.Domain.Checklists.ChecklistExecution", b =>
@@ -4831,6 +6378,16 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                     b.Navigation("Labor");
 
                     b.Navigation("Parts");
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Tires.TireInspection", b =>
+                {
+                    b.Navigation("Damages");
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Tires.TireLayout", b =>
+                {
+                    b.Navigation("Axles");
                 });
 
             modelBuilder.Entity("Fleet.Domain.Users.Role", b =>

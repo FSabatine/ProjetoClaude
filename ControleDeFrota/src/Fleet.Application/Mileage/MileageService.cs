@@ -254,6 +254,17 @@ public sealed class MileageService(
     }
 
     /// <summary>
+    /// Odometer of the vehicle at a past instant: the latest valid reading at or before it (Phase 5 — a tire operation typed
+    /// after the fact takes the km the history says the vehicle had then). Null when the history has nothing that early.
+    /// </summary>
+    public async Task<int?> OdometerAtAsync(Vehicle vehicle, DateTime at, CancellationToken ct) =>
+        await db.OdometerReadings
+            .Where(r => r.VehicleId == vehicle.Id && r.Status == OdometerReadingStatus.Valid && r.ReadAt <= at)
+            .OrderByDescending(r => r.ReadAt).ThenByDescending(r => r.CreatedAt)
+            .Select(r => (int?)r.OdometerKm)
+            .FirstOrDefaultAsync(ct);
+
+    /// <summary>
     /// The last valid reading. Vehicles registered before the reading history existed fall back to the stored
     /// current odometer, so the "never go backwards" rule holds for them too.
     /// </summary>

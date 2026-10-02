@@ -132,7 +132,8 @@ public sealed class VehicleService(IFleetDbContext db, IClock clock, Operational
         if (await db.VehicleAssignments.AnyAsync(a => a.VehicleId == id, ct) ||
             await db.ChecklistExecutions.AnyAsync(e => e.VehicleId == id, ct) ||
             await db.Occurrences.AnyAsync(o => o.VehicleId == id, ct) ||
-            await db.Fuelings.AnyAsync(f => f.VehicleId == id, ct))
+            await db.Fuelings.AnyAsync(f => f.VehicleId == id, ct) ||
+            await db.TireInstallations.AnyAsync(i => i.VehicleId == id, ct))
             throw new BusinessRuleException("Este veículo tem histórico operacional (alocações, checklists, ocorrências ou abastecimentos) e não pode ser excluído. Inative-o.");
 
         foreach (var document in await db.Documents.Where(d => d.VehicleId == id).ToListAsync(ct)) db.Documents.Remove(document);

@@ -6,6 +6,7 @@ import * as dashboard from './dashboard';
 import * as documents from './documents';
 import * as drivers from './drivers';
 import * as faq from './faq';
+import * as fuel from './fuel';
 import * as gettingStarted from './gettingStarted';
 import * as implementsContent from './implements';
 import * as maintenance from './maintenance';
@@ -34,6 +35,7 @@ const MODULES = [
   checklists,
   occurrences,
   maintenance,
+  fuel,
   searchAndFilters,
   faq,
 ];

@@ -5,6 +5,7 @@ using Fleet.Application.Auth;
 using Fleet.Application.Checklists;
 using Fleet.Application.Documents;
 using Fleet.Application.Files;
+using Fleet.Application.Fuel;
 using Fleet.Application.Mileage;
 using Fleet.Application.Occurrences;
 using Fleet.Application.Operations;
@@ -61,6 +62,14 @@ public static class DependencyInjection
         services.AddScoped<HourMeterService>();
         services.AddScoped<WorkOrderService>();
         services.AddScoped<MaintenanceRequestService>();
+
+        // Phase 4 — fuel
+        services.AddScoped<FuelTypeService>();
+        services.AddScoped<FuelStationService>();
+        services.AddScoped<FuelSettingsService>();
+        services.AddScoped<FuelConsumptionService>();
+        services.AddScoped<FuelingService>();
+        services.AddScoped<FuelAnalyticsService>();
         return services;
     }
 }

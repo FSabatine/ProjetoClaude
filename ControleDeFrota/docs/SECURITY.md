@@ -53,6 +53,16 @@ Princípio: **Segurança > Conveniência**. O backend é a única autoridade. Es
 - Checada no serviço (não dá para expressar como atributo): o início de uma ordem de serviço recusa um veículo em viagem ou inativo; a conclusão exige todos os itens obrigatórios resolvidos.
 - `MaintenanceApiTests` cobre o 403 por papel (Operações não aprova nem gerencia oficinas) e o 404 entre empresas para ordens de serviço.
 
+### Autorização na Fase 4
+
+- Permissões novas: `fuel.view`, `fuel.create`, `fuel.correct`, `fuel.cancel`, `fuel.reviewanomalies`, `fuel.managestations`, `fuel.configure` e `fuel.viewcosts` (matriz por papel em DOMAIN.md). O papel Motorista continua sem permissões.
+- **Custos de combustível são dado sensível** (seção 39): `fuel.viewcosts` é checada **no serviço**, por registro — sem ela, preço, total, custo do trecho, custo/km e todos os totais em R$ do painel e da aba do veículo voltam `null`; relatórios de custos e de preços exigem a permissão na rota; filtrar a lista por preço sem ela é 403 (o filtro revelaria valores). O **autor** de um abastecimento vê os valores do próprio registro.
+- Comprovantes de abastecimento (`FileOwnerType.Fueling`): abrir exige `fuel.view` **e** (`fuel.viewcosts` ou ser o autor do abastecimento) — o cupom mostra o valor pago; remover exige `fuel.correct`; anexar depois exige ser o autor ou ter `fuel.correct`.
+- Eventos da linha do tempo e mensagens de alerta de preço não carregam valores em R$ (são exibidos a quem vê o veículo). O preço de referência de posto (informação de mercado) pode aparecer no evento `FuelPriceChanged`, que não pertence a veículo.
+- Regras que dependem do alvo, no serviço: corrigir o km já aplicado exige `mileage.manage`; revisar um abastecimento com hodômetro pendente exige `mileage.manage` (a revisão aprova a leitura).
+- Isolamento de tenant: todas as tabelas novas são `ITenantScoped` (filtro global); id de outra empresa responde 404 (`FuelApiTests.OtherCompany_Gets404`, testes de serviço por entidade). Nenhum `IgnoreQueryFilters` novo fora do seed de desenvolvimento e da checagem de catálogo padrão (que filtra o `CompanyId` explicitamente, como o de tipos de documento).
+- Auditoria automática (`IAuditable`): `Fueling`, `FuelStation`, `FuelType`, `FuelPrice`, `FuelSettings`. Correções têm ainda o histórico próprio com motivo (`FuelingCorrection`); alertas guardam quem revisou.
+
 ## Upload de arquivos
 
 - O tipo é detectado pelos **magic bytes** (PDF, JPEG, PNG). A extensão e o `Content-Type` enviados pelo cliente são ignorados: um executável renomeado para `.pdf` é recusado.

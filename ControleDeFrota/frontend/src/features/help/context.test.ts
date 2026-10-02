@@ -19,6 +19,14 @@ describe('resolveContextualCategory', () => {
     expect(resolveContextualCategory('/oficinas', '')).toBe('maintenance');
   });
 
+  it('resolves fuel routes and the fuel tab of the vehicle hub', () => {
+    expect(resolveContextualCategory('/veiculos/123', '?aba=combustivel')).toBe('fuel');
+    expect(resolveContextualCategory('/abastecimentos/novo', '')).toBe('fuel');
+    expect(resolveContextualCategory('/combustivel/relatorios', '')).toBe('fuel');
+    expect(resolveContextualCategory('/postos/1', '')).toBe('fuel');
+    expect(resolveContextualCategory('/configuracoes/combustivel', '')).toBe('fuel');
+  });
+
   it('resolves the dashboard route exactly, not by prefix', () => {
     expect(resolveContextualCategory('/', '')).toBe('dashboard');
     expect(resolveContextualCategory('/veiculos', '')).not.toBe('dashboard');

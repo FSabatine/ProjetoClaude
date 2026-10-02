@@ -33,7 +33,8 @@ export const VEHICLE_CATEGORY = {
 };
 export type VehicleCategory = keyof typeof VEHICLE_CATEGORY;
 
-export const FUEL_TYPE = {
+/** What the engine runs on (registry attribute) — not the fuel catalog of the Fuel module (features/fuel). */
+export const VEHICLE_FUEL_TYPE = {
   DieselS10: { label: 'Diesel S10' },
   DieselS500: { label: 'Diesel S500' },
   Gasoline: { label: 'Gasolina' },
@@ -44,7 +45,7 @@ export const FUEL_TYPE = {
   Hybrid: { label: 'Híbrido' },
   Other: { label: 'Outro' },
 };
-export type FuelType = keyof typeof FUEL_TYPE;
+export type VehicleFuelType = keyof typeof VEHICLE_FUEL_TYPE;
 
 export interface VehicleListItem {
   id: string;
@@ -75,9 +76,12 @@ export interface Vehicle extends Omit<VehicleListItem, 'currentDriverId' | 'curr
   manufacturingYear: number;
   color: string | null;
   category: VehicleCategory | null;
-  fuelType: FuelType;
+  fuelType: VehicleFuelType;
   cargoCapacityKg: number | null;
   tareWeightKg: number | null;
+  fuelTankCapacity: number | null;
+  secondaryFuelTankCapacity: number | null;
+  expectedConsumption: number | null;
   hourMeter: number | null;
   acquisitionDate: string | null;
   acquisitionValue: number | null;
@@ -97,9 +101,12 @@ export interface VehicleRequest {
   color: string | null;
   type: VehicleType | null;
   category: VehicleCategory | null;
-  fuelType: FuelType | null;
+  fuelType: VehicleFuelType | null;
   cargoCapacityKg: number | null;
   tareWeightKg: number | null;
+  fuelTankCapacity: number | null;
+  secondaryFuelTankCapacity: number | null;
+  expectedConsumption: number | null;
   currentOdometerKm: number | null;
   hourMeter: number | null;
   status: VehicleStatus;

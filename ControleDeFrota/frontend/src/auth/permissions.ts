@@ -22,6 +22,16 @@ export const PERMISSIONS = {
     manageworkshops: 'maintenance.manageworkshops',
     viewcosts: 'maintenance.viewcosts',
   },
+  fuel: {
+    view: 'fuel.view',
+    create: 'fuel.create',
+    correct: 'fuel.correct',
+    cancel: 'fuel.cancel',
+    reviewanomalies: 'fuel.reviewanomalies',
+    managestations: 'fuel.managestations',
+    configure: 'fuel.configure',
+    viewcosts: 'fuel.viewcosts',
+  },
 } as const;
 
 type Values<T> = T[keyof T];

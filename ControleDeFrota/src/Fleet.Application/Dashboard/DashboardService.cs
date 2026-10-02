@@ -8,6 +8,7 @@ using Fleet.Domain.Authorization;
 using Fleet.Domain.Common;
 using Fleet.Domain.Documents;
 using Fleet.Domain.Drivers;
+using Fleet.Domain.Fuel;
 using Fleet.Domain.Maintenance;
 using Fleet.Domain.Mileage;
 using Fleet.Domain.Occurrences;
@@ -60,6 +61,8 @@ public enum AlertType
     CriticalOccurrence,
     MileagePendingReview,
     CriticalWorkOrder,
+    /// <summary>Phase 4: a fueling with an anomaly nobody reviewed yet.</summary>
+    FuelingPendingReview,
 }
 
 public enum AlertSeverity
@@ -117,6 +120,8 @@ public sealed class DashboardService(IFleetDbContext db, IClock clock, ICurrentU
             Can(Permissions.Occurrences.View) ? await GetCriticalOccurrenceAlertsAsync(ct) : NoAlerts,
             Can(Permissions.Mileage.Manage) ? await GetMileageReviewAlertsAsync(ct) : NoAlerts,
             Can(Permissions.Maintenance.View) ? await GetCriticalWorkOrderAlertsAsync(ct) : NoAlerts,
+            // Only who can act on it (review) sees it; the fuel dashboard shows the same queue to fuel.view.
+            Can(Permissions.Fuel.ReviewAnomalies) ? await GetFuelingReviewAlertsAsync(ct) : NoAlerts,
         };
         var alerts = sources.SelectMany(s => s.Alerts)
             .OrderByDescending(a => a.Severity).ThenBy(a => a.DueDate)
@@ -335,6 +340,24 @@ public sealed class DashboardService(IFleetDbContext db, IClock clock, ICurrentU
             AlertType.MileagePendingReview, AlertSeverity.Warning, "Leitura de hodômetro suspeita",
             $"{LicensePlate.Format(r.LicensePlate)}: {BrazilianFormat.Number(r.OdometerKm)} km aguardando revisão.",
             "Vehicle", r.VehicleId, clock.ToBusinessDate(r.ReadAt), "mileage")).ToList();
+        return new AlertSource(alerts, total);
+    }
+
+    private async Task<AlertSource> GetFuelingReviewAlertsAsync(CancellationToken ct)
+    {
+        var query = db.Fuelings.Where(f => f.Status == FuelingStatus.PendingReview);
+        var total = await query.CountAsync(ct);
+        var fuelings = await query.OrderBy(f => f.FueledAt).Take(MaxAlerts)
+            .Select(f => new
+            {
+                f.Id, f.Vehicle.LicensePlate, f.FueledAt,
+                Message = f.Anomalies.Where(a => a.ReviewedAt == null).OrderBy(a => a.DetectedAt).Select(a => a.Message).FirstOrDefault(),
+            })
+            .ToListAsync(ct);
+        var alerts = fuelings.Select(f => new DashboardAlert(
+            AlertType.FuelingPendingReview, AlertSeverity.Warning, "Abastecimento requer revisão",
+            $"{LicensePlate.Format(f.LicensePlate)}: {Short(f.Message ?? "alerta pendente")}",
+            "Fueling", f.Id, clock.ToBusinessDate(f.FueledAt))).ToList();
         return new AlertSource(alerts, total);
     }
 

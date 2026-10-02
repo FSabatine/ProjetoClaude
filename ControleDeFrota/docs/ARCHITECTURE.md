@@ -190,10 +190,44 @@ GET  /audit/{entity}/{id}  + VehicleAssignment, OdometerReading, DocumentType, D
 
 Os erros dos itens do checklist voltam como `errors["answers.{templateItemId}"]`. O conflito de alocação volta como 409, com a explicação no `title`.
 
+### Fase 4 — combustível
+
+```
+GET  /fuel-types?includeInactive                                                  [fuel.view | fuel.create | fuel.configure]
+POST /fuel-types, PUT|DELETE /fuel-types/{id}                                      [fuel.configure]
+GET  /fuel-stations?isActive&isInternal&search&…, /fuel-stations/{id}              [fuel.view | fuel.managestations] (lista também fuel.create)
+POST /fuel-stations, PUT|DELETE /fuel-stations/{id}                                [fuel.managestations]
+GET  /fuel-stations/{id}/prices                                                    [fuel.viewcosts | fuel.managestations]
+POST /fuel-stations/{id}/prices, DELETE /fuel-stations/{id}/prices/{priceId}       [fuel.managestations]
+GET  /fuel-settings  [fuel.view | fuel.configure]      PUT /fuel-settings  [fuel.configure]
+
+GET  /fuelings?vehicleId&driverId&fuelStationId&fuelTypeId&from&to&paymentMethod&status&minQuantity&maxQuantity
+              &minUnitPrice&maxUnitPrice&hasAnomaly&anomalyType&search&sortBy&…    [fuel.view]   (filtro por preço exige fuel.viewcosts, no serviço)
+GET  /fuelings/{id}                                                                [fuel.view]
+GET  /fuelings/form-defaults?vehicleId, /fuelings/price-hint?fuelStationId&fuelTypeId   [fuel.create | fuel.correct]  (price-hint: 204 sem preço conhecido)
+POST /fuelings (vehicleId, fuelTypeId, odometerKm, quantity, unitPrice, totalAmount?, isFullTank, paymentMethod, …, fileIds)   [fuel.create]
+POST /fuelings/{id}/correct (campos + reason)                                      [fuel.correct]  (km já aplicado exige mileage.manage, no serviço)
+POST /fuelings/{id}/cancel (reason)                                                [fuel.cancel]
+POST /fuelings/{id}/review (reason)                                                [fuel.reviewanomalies]  (hodômetro pendente exige mileage.manage, no serviço)
+POST /fuelings/{id}/files (fileIds)                                                [fuel.create | fuel.correct] + autor ou fuel.correct, no serviço
+
+GET  /fuel/dashboard?from&to                                                       [fuel.view]
+GET  /vehicles/{id}/fuel?from&to&granularity=Day|Week|Month                        [fuel.view]
+GET  /fuel/reports/consumption?from&to&vehicleId&sortBy&page…                      [fuel.view]
+GET  /fuel/reports/stations?from&to&…                                              [fuel.view]
+GET  /fuel/reports/costs?from&to&groupBy=Vehicle|Driver|Station|FuelType&…         [fuel.viewcosts]
+GET  /fuel/reports/prices?from&to&fuelTypeId&fuelStationId&…                       [fuel.viewcosts]
+GET  /audit/{entity}/{id}  + Fueling, FuelStation, FuelType, FuelPrice, FuelSettings   [audit.view]
+```
+
+Valores em R$ voltam `null` sem `fuel.viewcosts` (exceto nos abastecimentos do próprio autor). Os relatórios agrupam no banco e paginam o resultado agrupado (linhas ≤ veículos/postos do período). Período até 2 anos (padrão 30 dias).
+
+Módulo no backend: `Fleet.Domain/Fuel` (entidades + `FuelRules.cs`: `FuelingAmounts`, `FuelingWorkflow`, `ConsumptionCalculator`, `ConsumptionBaseline`, `FuelAnomalyRules`, `FuelCompatibility`), `Fleet.Application/Fuel` (`FuelCatalogServices` — tipos, postos/preços, limites; `FuelingService`; `FuelConsumptionService` — fatos para as regras e recálculo dos trechos; `FuelAnalyticsService` — painel, aba do veículo e relatórios), `Api/Controllers/FuelControllers.cs`, `Persistence/Configurations/FuelConfigurations.cs`, `Persistence/DevFuelSeeder.cs`.
+
 ## Eventos operacionais e notificações (ADR-025)
 
 ```
-Serviço (Assignment, Mileage, Document, Checklist, Occurrence, Vehicle)
+Serviço (Assignment, Mileage, Document, Checklist, Occurrence, Vehicle, WorkOrder, Fueling…)
    └── OperationalEventLog.Record(tipo, sujeito, resumo, dados)    ← adiciona ao unit of work
          └── SaveChangesAsync: mudança + evento na MESMA transação
 DocumentExpirationJob (BackgroundService, a cada Jobs:DocumentExpirationScan:IntervalMinutes)
@@ -218,14 +252,15 @@ As listagens retornam `{ items, page, pageSize, totalCount, totalPages }` e orde
 frontend/src/
 ├── api/           client.ts (axios + refresh single-flight), crud.ts (createResource: list/get/save/remove com React Query), errors.ts (ProblemDetails → mensagem + erros por campo)
 ├── auth/          AuthContext (sessão, can()), guards (RequireAuth, RequirePermission, Can), permissions.ts (espelho do catálogo)
-├── components/    AppLayout, PageHeader, DataTable, States (vazio/erro/sem resultado), forms (MaskedInput, FormSection, FormActions, guarda de alterações, confirmDelete), AddressFields, common (StatusBadge, ListToolbar, RowActions)
+├── components/    ColumnChart (gráfico de colunas de uma série, acessível, com tabela), AppLayout, PageHeader, DataTable, States (vazio/erro/sem resultado), forms (MaskedInput, FormSection, FormActions, guarda de alterações, confirmDelete), AddressFields, common (StatusBadge, ListToolbar, RowActions)
 ├── features/<m>/  <m>.ts (tipos + mapas de rótulos/cores + resource), <M>ListPage.tsx, <M>FormPage.tsx, <M>DetailPage.tsx (hub com abas)
 ├── features/operations/  labels.ts (rótulos/cores dos enums da Fase 2) e api.ts (tipos + hooks: alocação, hodômetro, documentos, arquivos, checklists, ocorrências, histórico)
 ├── features/{assignments,mileage,documents,checklists,occurrences,history}/  painéis reutilizados nos hubs + páginas próprias
 ├── features/maintenance/  maintenance.ts (tipos + rótulos), api.ts (hooks), páginas de oficinas/planos/solicitações/ordens de serviço e o painel de manutenção do hub do veículo
+├── features/fuel/  fuel.ts (tipos + rótulos), api.ts (hooks), components.tsx (ajuda [?], período na URL, KPI, alertas), páginas de abastecimento (lista, registro/correção, detalhe), postos, configuração, painel, relatórios e a aba Combustível do hub do veículo
 ├── features/help/ Central de Ajuda (manual do usuário, ver abaixo) — content/ (dado estático por categoria), search.ts, context.ts, analytics.ts, HelpButton/HelpDrawer/HelpArticleView
 ├── hooks/         useListParams (busca/filtros/ordem/página na URL)
-├── lib/           validators.ts (espelho do Domain), format.ts, mileage.ts (espelho do OdometerPolicy para feedback imediato), images.ts (redução das fotos antes do upload)
+├── lib/           validators.ts (espelho do Domain), format.ts, mileage.ts (espelho do OdometerPolicy para feedback imediato), fuel.ts (espelho de FuelingAmounts e da regra do tanque), images.ts (redução das fotos antes do upload)
 └── theme.ts       tema Mantine (única fonte de cores)
 ```
 

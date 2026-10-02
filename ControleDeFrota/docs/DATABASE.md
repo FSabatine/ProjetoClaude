@@ -4,7 +4,7 @@
 
 - **SQL Server** (produção) / **SQL Server LocalDB** (desenvolvimento, `(localdb)\MSSQLLocalDB`, banco `ControleDeFrota`).
 - **EF Core 8**, com o modelo definido em código (code-first). Uma `IEntityTypeConfiguration<T>` por entidade, em `Fleet.Infrastructure/Persistence/Configurations/`.
-- Os testes automatizados usam **SQLite em memória** (ADR-004). Por isso o modelo evita recursos que o SQLite não traduz: não há `DateTimeOffset` (usamos `DateTime` UTC) e não há ordenação por colunas `decimal`.
+- Os testes automatizados usam **SQLite em memória** (ADR-004). Por isso o modelo evita recursos que o SQLite não traduz: não há `DateTimeOffset` (usamos `DateTime` UTC) e não há ordenação por colunas `decimal`. Desde a Fase 4, `decimal` é gravado como REAL **só no SQLite** para permitir agregações no banco (ADR-033) — some colunas, não expressões calculadas.
 
 ## Estratégia de migrations
 
@@ -356,3 +356,99 @@ Permissões 160–165 e o mapeamento dos papéis via `InsertData`/`UpdateData` n
 
 ### Revisão da migration `Maintenance`
 O `Up` é **somente aditivo**: 10 tabelas novas, a coluna `Vehicles.HourMeterUpdatedAt` (nullable) e o seed de permissões/papéis. Nenhuma coluna existente foi alterada ou removida. O aviso "may result in the loss of data" refere-se só ao `Down`.
+
+## Entidades e relacionamentos (Fase 4 — migration `FuelManagement`)
+
+```
+Companies 1───N FuelTypes                (único CompanyId+Code e CompanyId+Name, filtrados)
+Companies 1───N FuelStations 1───N FuelPrices N───1 FuelTypes
+Companies 1───0..1 FuelSettings          (único CompanyId)
+Vehicles  1───N Fuelings N───0..1 Drivers, N───0..1 FuelStations, N───1 FuelTypes
+Fuelings  1───N FuelingAnomalies (cascade)
+Fuelings  1───N FuelingCorrections (cascade)
+Fuelings  1───N OdometerReadings (FuelingId NULL, FK Restrict)
+Fuelings  1───N StoredFiles (OwnerType = 'Fueling', sem FK — mesmo padrão dos outros donos)
+```
+
+Todas as tabelas têm `CompanyId` com FK `Restrict` para `Companies` e filtro global de tenant. `Fuelings` **não é soft-deletável** (nunca é excluído: é cancelado); `FuelTypes`, `FuelStations` e `FuelPrices` são.
+
+### Vehicles (alterações)
+| Coluna | Tipo | Regras |
+|---|---|---|
+| FuelTankCapacity | decimal(10,2) NULL | ≥ 0, ≤ 10.000 (na unidade do combustível) |
+| SecondaryFuelTankCapacity | decimal(10,2) NULL | ≥ 0, ≤ 10.000 |
+| ExpectedConsumption | decimal(10,2) NULL | > 0, ≤ 100 (km por unidade) |
+
+A coluna `Vehicles.FuelType` **não mudou** (o enum foi renomeado só no C# para `VehicleFuelType`; valores gravados como texto).
+
+### OdometerReadings (alterações)
+`FuelingId uniqueidentifier NULL` (FK Restrict para `Fuelings`) + índice. `Source` ganhou o valor `Fueling`.
+
+### FuelTypes
+`Name nvarchar(60)`, `Code varchar(20)` (maiúsculas), `Category nvarchar(20)`, `Unit nvarchar(20)`, `IsActive bit`, `Description nvarchar(300) NULL`, auditoria + soft delete. Únicos filtrados `(CompanyId, Code)` e `(CompanyId, Name)`.
+
+### FuelStations
+`Name nvarchar(150)`, `Cnpj varchar(14) NULL` (normalizado), endereço (`Address`, owned type, todo opcional), `Phone varchar(11) NULL`, `ContactName nvarchar(100) NULL`, `IsInternal bit`, `IsActive bit`, `Notes nvarchar(2000) NULL`, auditoria + soft delete. Índices: `(CompanyId, Name)`; único `(CompanyId, Cnpj)` filtrado por `[DeletedAt] IS NULL AND [Cnpj] IS NOT NULL`.
+
+### FuelPrices
+`FuelStationId`, `FuelTypeId` (FK Restrict), `Price decimal(10,4)`, `EffectiveFrom date`, `Notes nvarchar(300) NULL`, auditoria + soft delete. Índice `(CompanyId, FuelStationId, FuelTypeId, EffectiveFrom)` — "preço vigente" = maior `EffectiveFrom` ≤ data.
+
+### FuelSettings
+`TankTolerancePercent`, `PriceDeviationPercent`, `ConsumptionDeviationPercent`, `MinHoursBetweenFuelings` (int), `RequireDriver bit`, auditoria. Único `CompanyId`. Ausente = padrões do Domain.
+
+### Fuelings
+| Coluna | Tipo | Observação |
+|---|---|---|
+| VehicleId / DriverId / FuelStationId / FuelTypeId | uniqueidentifier | FKs Restrict (motorista e posto opcionais) |
+| FueledAt | datetime2 | UTC, segundos inteiros |
+| FueledOn | date | data de negócio (Brasil) — filtros de período e agrupamentos sem aritmética de fuso no SQL |
+| OdometerKm | int | |
+| Quantity | decimal(12,3) | |
+| UnitPrice | decimal(10,4) | preço **pago** (nunca recalculado) |
+| TotalAmount | decimal(14,2) | sempre calculado pelo servidor |
+| IsFullTank | bit | |
+| PaymentMethod / Source / Status | nvarchar(20) | enums como texto |
+| ReceiptNumber | nvarchar(60) NULL | |
+| Notes | nvarchar(1000) NULL | |
+| ReviewedAt/By, ReviewNotes | NULL | revisão |
+| CancelledAt/By, CancellationReason | NULL | cancelamento |
+| ConsumptionResult | nvarchar(20) | `PartialFill/FirstFullTank/Calculated/NotReliable` |
+| SegmentDistanceKm | int NULL | **snapshot do trecho** — só preenchidos quando `Calculated` |
+| SegmentQuantity | decimal(12,3) NULL | |
+| SegmentCost | decimal(14,2) NULL | |
+| Consumption | decimal(10,2) NULL | km/unidade |
+| ExpectedConsumption | decimal(10,2) NULL | esperado usado no cálculo |
+| SegmentExpectedQuantity | decimal(12,3) NULL | distância ÷ esperado (soma direta nos relatórios) |
+| BaselineSource | nvarchar(30) NULL | |
+| ConsumptionDeviationPercent | decimal(8,1) NULL | |
+
+Índices (escolhidos pelas consultas reais, não um por coluna):
+
+| Índice | Consulta que atende |
+|---|---|
+| `(CompanyId, VehicleId, FueledAt)` | cadeia de trechos do veículo, aba Combustível, regra de frequência |
+| `(CompanyId, FueledOn)` | listas por período, painel, relatórios |
+| `(CompanyId, Status)` | fila "requer revisão" e contador do painel |
+| `(CompanyId, FuelTypeId, FueledOn)` | preço de referência (média 30 dias por combustível), relatório de preços |
+| `(CompanyId, FuelStationId, FueledOn)` | histórico do posto, relatório de postos |
+| `(CompanyId, DriverId, FueledOn)` | filtro e custo por motorista |
+
+Quantidade, preço, total e hodômetro **não** são indexados: são filtros secundários aplicados sobre um período ou veículo já restrito pelos índices acima.
+
+### FuelingAnomalies / FuelingCorrections
+- Alertas (cascade): `Type nvarchar(30)`, `Message nvarchar(400)`, `ExpectedValue/ActualValue decimal(14,4) NULL`, `DetectedAt`, `ReviewedAt/By NULL`. Índice `(CompanyId, Type)`.
+- Correções (cascade, append-only): `CorrectedAt`, `CorrectedBy`, `Reason nvarchar(1000)`, `Changes nvarchar(4000)` (JSON `[{field,label,from,to}]`).
+
+### Agregações e o SQLite dos testes (ADR-033)
+- Totais e relatórios são agregados **no banco** (`GROUP BY` + `SUM` só de colunas simples). As colunas de trecho ficam `NULL` quando não há trecho medido, então `SUM` já devolve só os trechos medidos, sem `CASE`. Somas "só litros" agrupam também por unidade e consolidam as ≤ 3 linhas em memória.
+- O SQLite não tem `decimal` e recusa `SUM/AVG/MIN/MAX` sobre ele. **Só quando o provedor é SQLite** (testes), o `FleetDbContext` grava `decimal` como `REAL`; o SQL Server mantém `decimal(p,s)` exato. Expressões calculadas (`SUM(a / b)`, `SUM(x ?? 0)`, casts) continuam não traduzindo no SQLite — some colunas, não expressões.
+- Teste de volume: 12.000 abastecimentos de 300 veículos — painel em ~130 ms e as quatro consultas analíticas em ~180 ms no SQLite em memória (`FuelVolumeTests`). Todas as consultas foram executadas também no SQL Server (LocalDB) com os dados de desenvolvimento.
+
+### Seed
+Permissões 170–177 e o mapeamento dos papéis via `InsertData` na migration. O catálogo padrão de combustíveis é criado na primeira leitura de cada empresa (como os tipos de documento). Em desenvolvimento, o `DevFuelSeeder` cria 3 postos (um tanque próprio), preços de referência e ~4 meses de abastecimentos dos veículos de exemplo, com a leitura de hodômetro de cada um e dois alertas para revisão.
+
+### Revisão da migration `FuelManagement`
+O `Up` é **somente aditivo**: 7 tabelas novas, 3 colunas nullable em `Vehicles`, `OdometerReadings.FuelingId` (nullable) + índice, o seed de permissões/papéis e a atualização das descrições de três papéis. Nenhuma coluna existente foi alterada ou removida. O aviso "may result in the loss of data" refere-se só ao `Down`.
+
+### Retenção
+Abastecimentos, alertas, correções e leituras geradas são histórico operacional: não há exclusão nem expurgo nesta fase (o cancelado permanece). Arquivos anexados seguem a política geral (bytes no storage até existir o job de limpeza).

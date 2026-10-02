@@ -17,7 +17,7 @@ O escopo foi redefinido pelo usuário: controle operacional do dia a dia, **sem*
 - Dashboard operacional.
 
 ## FASE 2.5 — Viagens e composição (adiada)
-Itens previstos originalmente para a Fase 2 que ficaram fora do escopo redefinido. Era a próxima fase recomendada, mas o usuário decidiu conscientemente pular para a Fase 3 primeiro (2026-10-01, ver ADR-026 em `DECISIONS.md`) — continua no backlog, antes da Fase 4:
+itens previstos originalmente para a Fase 2 que ficaram fora do escopo redefinido. Era a próxima fase recomendada, mas o usuário decidiu conscientemente pular para a Fase 3 (2026-10-01, ADR-026) e depois pediu a Fase 4 (2026-10-02, ADR-031) — continua no backlog e é a **próxima fase recomendada**:
 - Viagens e ordens de transporte: origem, destino, motorista, veículo e composição.
 - **Vínculo veículo ↔ implemento com vigência** (`VehicleImplementCoupling`).
 - `OnTrip`/`InUse` controlados pelas viagens; bloqueio de motorista com CNH vencida para iniciar viagem.
@@ -29,8 +29,9 @@ Itens previstos originalmente para a Fase 2 que ficaram fora do escopo redefinid
 Planos de manutenção preventiva (por km, horas e tempo, com carência configurável e precedência veículo > tipo de veículo > padrão da empresa), solicitações de manutenção (motorista/checklist/ocorrência/gestor → aprovação → ordem de serviço), ordens de serviço com máquina de estados (itens, peças, mão de obra, custo, tempo de indisponibilidade), oficinas e histórico de horímetro (mesma forma do hodômetro). `UnderMaintenance` passa a ser controlado pelas ordens de serviço (ADR-028), sem sobrescrever uma mudança manual do veículo. Ocorrências abertas (e itens reprovados de checklist, via ocorrência) viram solicitações de manutenção por ação manual do gestor; as leituras de hodômetro alimentam a preventiva por km.
 **Fora do escopo desta fase** (pontos de extensão deixados prontos): inventário/estoque de peças, ordens de compra, entidade de mecânico/técnico interno (técnico é texto livre), calendário visual de manutenções (lista agrupada por dia no lugar), manutenção preditiva/IA, notificações por e-mail/WhatsApp (só o evento operacional fica pronto para a Fase 9).
 
-## FASE 4 — Gestão de combustível
-Abastecimentos, postos, consumo médio (km/l), detecção de anomalias e tanque próprio.
+## FASE 4 — Gestão de combustível (concluída em 2026-10-02)
+Tipos de combustível configuráveis, postos (com tanque próprio identificado) e preços de referência, abastecimentos com total calculado no servidor e integração com o histórico de hodômetro, consumo tanque cheio a tanque cheio com consumo esperado (configurado > histórico do veículo > tipo de veículo), alertas neutros para revisão (quantidade acima do tanque, preço, hodômetro, frequência, combustível incompatível, consumo abaixo/acima do esperado) com limites configuráveis, correção auditada e cancelamento, painel de Combustível, aba Combustível do veículo e relatórios (abastecimentos, consumo, custos, postos, preços). Pedida diretamente pelo usuário, com a Fase 2.5 ainda no backlog (ADR-031).
+**Fora do escopo desta fase** (pontos de extensão deixados prontos): estoque do tanque próprio, cartão combustível e integração com fornecedores (só `PaymentMethod.FuelCard` e `Fueling.Source`), exportação de relatórios (Fase 8), notificações (eventos prontos para a Fase 9), telemetria/GPS (Fase 7), acesso do motorista.
 
 ## FASE 5 — Pneus
 Cadastro por número de fogo, posições por eixo, rodízio, recapagem, sulco e CPK.
@@ -45,7 +46,7 @@ Integração com rastreadores/telemetria, posição, cercas eletrônicas e telem
 Relatórios gerenciais, exportação (Excel/PDF) e KPIs de frota no dashboard (disponibilidade, custo/km, consumo).
 
 ## FASE 9 — Automação
-Notificações por e-mail, push e WhatsApp a partir dos `OperationalEvents` (outbox já existente: `DocumentExpiring`, `DocumentExpired`, `ChecklistFailed`, `OccurrenceCreated`, `MileageAnomalyDetected`…), preferências por usuário e regras configuráveis.
+Notificações por e-mail, push e WhatsApp a partir dos `OperationalEvents` (outbox já existente: `DocumentExpiring`, `DocumentExpired`, `ChecklistFailed`, `OccurrenceCreated`, `MileageAnomalyDetected`, `FuelingMarkedForReview`, `FuelConsumptionAnomalyDetected`…), preferências por usuário e regras configuráveis.
 
 ## FASE 10 — Integrações
 ERP, WhatsApp, consulta de CEP, CNPJ e placa em serviços externos, SSO, API pública para parceiros e reset de senha por e-mail.

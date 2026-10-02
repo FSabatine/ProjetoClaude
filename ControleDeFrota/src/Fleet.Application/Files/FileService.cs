@@ -86,7 +86,7 @@ public sealed class FileService(IFleetDbContext db, IFileStorage storage, ICurre
     public async Task<FileDownload> OpenAsync(Guid id, CancellationToken ct)
     {
         var file = await LoadAsync(id, ct);
-        if (!CanView(file))
+        if (!await CanViewAsync(file, ct))
             throw new ForbiddenException("Você não tem permissão para abrir este arquivo.");
         return new FileDownload(file.FileName, file.ContentType, await storage.OpenReadAsync(file.StorageKey, ct));
     }
@@ -100,6 +100,7 @@ public sealed class FileService(IFleetDbContext db, IFileStorage storage, ICurre
             null => file.CreatedBy == currentUser.UserId,
             FileOwnerType.Document => currentUser.HasPermission(Permissions.Documents.Manage),
             FileOwnerType.Occurrence => currentUser.HasPermission(Permissions.Occurrences.Manage),
+            FileOwnerType.Fueling => currentUser.HasPermission(Permissions.Fuel.Correct),
             // Evidence of a submitted inspection is immutable.
             _ => false,
         };
@@ -109,6 +110,20 @@ public sealed class FileService(IFleetDbContext db, IFileStorage storage, ICurre
                 : "Você não tem permissão para remover este arquivo.");
         db.StoredFiles.Remove(file);
         await db.SaveChangesAsync(ct);
+    }
+
+    private async Task<bool> CanViewAsync(StoredFile file, CancellationToken ct) => file.OwnerType switch
+    {
+        FileOwnerType.Fueling => await CanViewFuelingFileAsync(file.OwnerId, ct),
+        _ => CanView(file),
+    };
+
+    /// <summary>A receipt shows what was paid: same rule as the fueling's money fields (fuel.viewcosts or its author).</summary>
+    private async Task<bool> CanViewFuelingFileAsync(Guid? fuelingId, CancellationToken ct)
+    {
+        if (!currentUser.HasPermission(Permissions.Fuel.View)) return false;
+        if (currentUser.HasPermission(Permissions.Fuel.ViewCosts)) return true;
+        return await db.Fuelings.AnyAsync(f => f.Id == fuelingId && f.CreatedBy == currentUser.UserId, ct);
     }
 
     private bool CanView(StoredFile file) => file.OwnerType switch

@@ -120,7 +120,7 @@ public sealed class MileageService(
     /// reading and the inspection are saved together. Valid readings update the vehicle; suspicious ones wait for review.
     /// </summary>
     public async Task<OdometerReading> AddReadingAsync(Vehicle vehicle, int odometerKm, DateTime readAt, OdometerReadingSource source,
-        string? notes, Guid? checklistExecutionId, string field, CancellationToken ct)
+        string? notes, Guid? checklistExecutionId, string field, CancellationToken ct, Guid? fuelingId = null)
     {
         var baseline = await BaselineAsync(vehicle, ct);
         if (readAt < baseline.ReadAt)
@@ -137,6 +137,7 @@ public sealed class MileageService(
             Source = source,
             Notes = notes,
             ChecklistExecutionId = checklistExecutionId,
+            FuelingId = fuelingId,
         };
         var plate = LicensePlate.Format(vehicle.LicensePlate);
 
@@ -184,18 +185,7 @@ public sealed class MileageService(
     {
         await reviewValidator.ValidateAndThrowAsync(request, ct);
         var reading = await LoadPendingAsync(readingId, ct);
-        var baseline = await BaselineAsync(reading.Vehicle, ct);
-        // Approving is only safe while this is still the newest reading and does not go backwards.
-        if (baseline.ReadAt > reading.ReadAt || reading.OdometerKm < baseline.OdometerKm)
-            throw new BusinessRuleException(
-                "Há leituras válidas posteriores a esta, então ela não pode mais ser aplicada. Rejeite-a ou registre uma correção.");
-
-        reading.Status = OdometerReadingStatus.Valid;
-        Review(reading, request.Notes);
-        Apply(reading.Vehicle, reading);
-        events.Record(OperationalEventType.MileageReviewed, Subject(reading),
-            $"Leitura de {Km(reading.OdometerKm)} em {LicensePlate.Format(reading.Vehicle.LicensePlate)} confirmada após revisão.",
-            new { reading.OdometerKm, approved = true });
+        await ApprovePendingAsync(reading, request.Notes, ct);
         await db.SaveChangesAsync(ct);
         return (await ToResponsesAsync([reading], ct)).Single();
     }
@@ -206,21 +196,68 @@ public sealed class MileageService(
         if (string.IsNullOrWhiteSpace(request.Notes))
             throw ValidationErrors.ForField("notes", "Informe o motivo da rejeição.");
         var reading = await LoadPendingAsync(readingId, ct);
+        RejectPending(reading, request.Notes);
+        await db.SaveChangesAsync(ct);
+        return (await ToResponsesAsync([reading], ct)).Single();
+    }
 
+    /// <summary>
+    /// Applies a pending reading in the caller's unit of work (not saved here) — also used when a fueling with a suspicious
+    /// odometer is reviewed (Phase 4). The caller checks mileage.manage. The reading must be loaded with its Vehicle.
+    /// </summary>
+    public async Task ApprovePendingAsync(OdometerReading reading, string? notes, CancellationToken ct)
+    {
+        var baseline = await BaselineAsync(reading.Vehicle, ct);
+        // Approving is only safe while this is still the newest reading and does not go backwards.
+        if (baseline.ReadAt > reading.ReadAt || reading.OdometerKm < baseline.OdometerKm)
+            throw new BusinessRuleException(
+                "Há leituras válidas posteriores a esta, então ela não pode mais ser aplicada. Rejeite-a ou registre uma correção.");
+
+        reading.Status = OdometerReadingStatus.Valid;
+        Review(reading, notes);
+        Apply(reading.Vehicle, reading);
+        events.Record(OperationalEventType.MileageReviewed, Subject(reading),
+            $"Leitura de {Km(reading.OdometerKm)} em {LicensePlate.Format(reading.Vehicle.LicensePlate)} confirmada após revisão.",
+            new { reading.OdometerKm, approved = true });
+    }
+
+    /// <summary>Rejects a pending reading in the caller's unit of work (not saved). It was never applied, so nothing else changes.</summary>
+    public void RejectPending(OdometerReading reading, string? notes)
+    {
         reading.Status = OdometerReadingStatus.Rejected;
-        Review(reading, request.Notes);
+        Review(reading, notes);
         events.Record(OperationalEventType.MileageReviewed, Subject(reading),
             $"Leitura de {Km(reading.OdometerKm)} em {LicensePlate.Format(reading.Vehicle.LicensePlate)} rejeitada: {reading.ReviewNotes}",
             new { reading.OdometerKm, approved = false });
-        await db.SaveChangesAsync(ct);
-        return (await ToResponsesAsync([reading], ct)).Single();
+    }
+
+    /// <summary>
+    /// A record dated before the latest reading (a receipt typed days later) does not create a reading — the history has
+    /// already moved on — but its odometer must fit between the valid readings around it (Phase 4, ADR-032).
+    /// </summary>
+    public async Task EnsureFitsHistoryAsync(Vehicle vehicle, int odometerKm, DateTime at, string field, CancellationToken ct)
+    {
+        var valid = db.OdometerReadings.Where(r => r.VehicleId == vehicle.Id && r.Status == OdometerReadingStatus.Valid);
+        var before = await valid.Where(r => r.ReadAt <= at).OrderByDescending(r => r.ReadAt).ThenByDescending(r => r.CreatedAt)
+            .Select(r => new OdometerBaseline(r.OdometerKm, r.ReadAt)).FirstOrDefaultAsync(ct);
+        var after = await valid.Where(r => r.ReadAt > at).OrderBy(r => r.ReadAt).ThenBy(r => r.CreatedAt)
+            .Select(r => new OdometerBaseline(r.OdometerKm, r.ReadAt)).FirstOrDefaultAsync(ct);
+
+        if (before is not null && odometerKm < before.OdometerKm)
+            throw ValidationErrors.ForField(field,
+                $"O hodômetro informado ({Km(odometerKm)}) é menor que a leitura anterior a esta data ({Km(before.OdometerKm)} em " +
+                $"{clock.FormatDateTime(before.ReadAt)}). Confira o valor e a data.");
+        if (after is not null && odometerKm > after.OdometerKm)
+            throw ValidationErrors.ForField(field,
+                $"O hodômetro informado ({Km(odometerKm)}) é maior que a leitura seguinte a esta data ({Km(after.OdometerKm)} em " +
+                $"{clock.FormatDateTime(after.ReadAt)}). Confira o valor e a data.");
     }
 
     /// <summary>
     /// The last valid reading. Vehicles registered before the reading history existed fall back to the stored
     /// current odometer, so the "never go backwards" rule holds for them too.
     /// </summary>
-    private async Task<OdometerBaseline> BaselineAsync(Vehicle vehicle, CancellationToken ct)
+    public async Task<OdometerBaseline> BaselineAsync(Vehicle vehicle, CancellationToken ct)
     {
         var last = await db.OdometerReadings
             .Where(r => r.VehicleId == vehicle.Id && r.Status == OdometerReadingStatus.Valid)

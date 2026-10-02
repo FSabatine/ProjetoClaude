@@ -66,7 +66,11 @@ public enum VehicleCategory
     Heavy,
 }
 
-public enum FuelType
+/// <summary>
+/// What the vehicle's engine runs on (registry attribute). Not the product bought at the pump: that is the configurable
+/// <c>Fleet.Domain.Fuel.FuelType</c> catalog (ADR-031). Flex/Hybrid are vehicle traits, which is why this stays an enum.
+/// </summary>
+public enum VehicleFuelType
 {
     DieselS10,
     DieselS500,
@@ -104,9 +108,17 @@ public class Vehicle : AuditableEntity, ITenantScoped, ISoftDeletable, IAuditabl
 
     public VehicleType Type { get; set; }
     public VehicleCategory? Category { get; set; }
-    public FuelType FuelType { get; set; }
+    public VehicleFuelType FuelType { get; set; }
     public decimal? CargoCapacityKg { get; set; }
     public decimal? TareWeightKg { get; set; }
+
+    // Fuel profile (Phase 4). Attributes of the vehicle, not operational records — fuelings are their own entity.
+    /// <summary>Main tank capacity in the fuel's unit (L, m³ or kWh). Used to flag fuelings above capacity.</summary>
+    public decimal? FuelTankCapacity { get; set; }
+    /// <summary>Second tank, when the vehicle has one (common on trucks). The fueling limit is the sum of both.</summary>
+    public decimal? SecondaryFuelTankCapacity { get; set; }
+    /// <summary>Configured expected consumption (km per unit). When set, it is the consumption baseline (ADR-032).</summary>
+    public decimal? ExpectedConsumption { get; set; }
 
     /// <summary>Fast read of the latest applied odometer reading. Changed only by MileageService (ADR-019).</summary>
     public int CurrentOdometerKm { get; set; }

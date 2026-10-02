@@ -15,6 +15,9 @@ public static class BrazilianFormat
     /// <summary>Used where fractional precision matters (engine hours, money) — defaults to no decimals like <see cref="Number(double)"/>.</summary>
     public static string Number(decimal value, int decimals = 0) => value.ToString(decimals == 0 ? "N0" : $"N{decimals}", Numbers);
 
+    /// <summary>Up to one decimal, no thousands separator ("26,5", "3") — percentages and hours in messages.</summary>
+    public static string Compact(decimal value) => value.ToString("0.#", Numbers);
+
     public static string Date(DateOnly date) => date.ToString("dd'/'MM'/'yyyy", CultureInfo.InvariantCulture);
 
     public static string DateTime(DateTime local) => local.ToString("dd'/'MM'/'yyyy HH':'mm", CultureInfo.InvariantCulture);

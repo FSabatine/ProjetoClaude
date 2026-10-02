@@ -229,3 +229,52 @@ Formato: **Problema · Alternativas · Decisão · Motivo · Impacto**. Um ADR n
 - **Testes de interação** (abrir/fechar o drawer, clicar numa categoria, navegar para um artigo): não implementados — o projeto hoje só tem Vitest para função pura no frontend, sem Testing Library/jsdom de componente configurado. Os testes cobrem `search.ts`, `context.ts` e a integridade do conteúdo; a interação, a responsividade e os dois temas foram verificados manualmente.
 - **Analytics** (`HelpArticleViewed`, `HelpSearchPerformed`, `HelpSearchNoResult`): só o ponto de extensão (`trackHelpEvent`, hoje loga em desenvolvimento). Sem destino real (produto de analytics) ainda.
 - **Screenshots/imagens nos artigos**: a estrutura do artigo (`HelpArticle`) não tem campo de imagem ainda — texto e exemplo em bloco cobrem o conteúdo inicial. Se precisar, adiciona-se um campo opcional sem quebrar os artigos existentes.
+
+---
+
+# Fase 4 — Combustível (2026-10-02)
+
+## ADR-031 — Modelo de combustível: catálogo configurável, posto operacional, abastecimento como snapshot
+- **Status**: aceito.
+- **Contexto**: o usuário enviou a especificação da Fase 4 diretamente. O roadmap registrava a Fase 2.5 (Viagens) "antes da Fase 4" (ADR-026); seguimos o pedido explícito e a Fase 2.5 continua no backlog — mesmo tratamento do ADR-026. Consequência: não há viagem para associar um abastecimento nem transferência de veículo entre operações.
+- **Decisão**:
+  - **`FuelType` é um catálogo por empresa** (nome, código, categoria, unidade, ativo), com padrão criado na primeira leitura (mesmo molde do `DocumentType`). O enum `Vehicle.FuelType` (DieselS10, Flex, Híbrido…) **foi mantido** como atributo do motor e renomeado no C# para `VehicleFuelType` — "Flex" e "Híbrido" são características do veículo, não produtos de bomba. A coluna e a API não mudaram (enum como texto). A relação entre os dois é a tabela de compatibilidade `FuelCompatibility` (gera alerta, não bloqueia).
+  - **`FuelStation`** é entidade operacional (não fornecedor); `IsInternal` marca o tanque próprio. Estoque do tanque fica fora (a especificação proíbe inventário).
+  - **`FuelPrice`** é histórico manual de preço de referência; o preço pago é sempre o do abastecimento.
+  - **Forma de pagamento é enum**, não catálogo: conjunto pequeno e estável, sem regra dependente; virar catálogo depois é aditivo.
+  - **Sem `FuelingItem`**: um abastecimento = um produto (dois produtos = dois registros), o que mantém o consumo por unidade sem ambiguidade.
+  - **Capacidade do tanque e consumo esperado são colunas do `Vehicle`**: são atributos do veículo (como `CargoCapacityKg`), não registros operacionais — a regra "entidade própria com VehicleId" do skill vale para registros com vida (o abastecimento).
+- **Preparação para cartão combustível/integrações**: `PaymentMethod.FuelCard` e `Fueling.Source` (`Manual`) existem; um `FuelCard` futuro entra como entidade própria + FK nula `Fueling.FuelCardId`, e importação de fornecedor como novo `Source` + identificador externo — tudo aditivo.
+
+## ADR-032 — Consumo tanque cheio a tanque cheio, com snapshot no abastecimento que fecha o trecho
+- **Status**: aceito.
+- **Problema**: um abastecimento sozinho não mede consumo (seção 18). Precisamos de uma regra que trate primeiro abastecimento, complementos, correções de hodômetro e registros fora de ordem, e de resultados históricos estáveis (seção 43).
+- **Alternativas**: (a) consumo entre abastecimentos consecutivos quaisquer (errado com complementos); (b) calcular na leitura, sempre, a partir dos registros (resultado muda quando a configuração muda; caro em relatórios); (c) **tanque cheio a tanque cheio**, resultado gravado no abastecimento que fecha o trecho.
+- **Decisão**: (c). `ConsumptionCalculator` (Domain, função pura) calcula; `FuelConsumptionService` recalcula **só os dois primeiros trechos a partir do ponto alterado**, depois do `SaveChanges`, na mesma transação. O esperado usado (configurado > histórico do veículo > média do tipo — `ConsumptionBaseline`) e o combustível esperado do trecho são gravados junto. Trecho com correção de hodômetro externa, hodômetro em revisão, unidades misturadas ou distância ≤ 0 fica `NotReliable` em vez de mostrar um número enganoso.
+- **Abastecimento × hodômetro**: fonte única de verdade continua o `OdometerReading`. Abastecimento atual vira leitura `Source=Fueling` pelas regras do `MileageService` (reaproveitado, não duplicado); abastecimento lançado depois de leituras mais recentes não gera leitura, mas precisa caber entre as vizinhas. O `MileageService` ganhou só métodos aditivos (aprovar/rejeitar dentro da unidade de trabalho do chamador, linha de base pública, checagem histórica) — o comportamento da Fase 2 é o mesmo (todos os testes anteriores passam).
+- **Correção do km**: leitura pendente → rejeitada e substituída; leitura válida → leitura `Correction` auditada (exige `mileage.manage` e que seja a mais recente); a data de um abastecimento com leitura não muda (cancelar e registrar de novo) — reordenar o histórico de hodômetro não é uma correção, é outra coisa.
+- **Impacto**: relatórios somam colunas gravadas (rápidos e estáveis). Recalcular o passado depois de mudar o esperado de um veículo é uma ação que não existe — de propósito.
+
+## ADR-033 — Agregação no banco; `decimal` como REAL só no SQLite dos testes
+- **Status**: aceito.
+- **Problema**: a seção 44 exige agregação no banco ("não carregar milhares de abastecimentos para somar"). O SQLite usado nos testes (ADR-004) recusa `SUM/AVG/MIN/MAX` sobre `decimal` — verificado com um teste exploratório antes do desenho.
+- **Alternativas**: (a) somar em memória (contraria a seção 44); (b) gravar valores como inteiros escalados (centavos, mililitros) no domínio (modelo estranho, conversões espalhadas); (c) converter `decimal` para `REAL` **apenas quando o provedor é SQLite**.
+- **Decisão**: (c), em `FleetDbContext.ConfigureConventions`. SQL Server continua com `decimal(p,s)` exato; as migrations não mudam. Regra derivada: some **colunas**, não expressões calculadas (o SQLite também recusa `SUM(a/b)`) — por isso o combustível esperado do trecho é uma coluna (`SegmentExpectedQuantity`) e as colunas de trecho ficam `NULL` fora dos trechos medidos.
+- **Impacto**: as consultas foram validadas nos dois provedores (testes no SQLite + execução real no LocalDB). A restrição antiga "não ordene por decimal" deixa de valer nos testes, mas continua sendo uma boa prática evitar ordenar listas grandes por colunas não indexadas.
+
+## ADR-034 — Visibilidade de custos por registro e alertas neutros
+- **Status**: aceito.
+- **Decisão**: `fuel.viewcosts` controla todo valor em R$ (preço, total, custo de trecho, custo/km, relatórios de custos e preços); sem ela os campos voltam `null`. **Exceção**: o autor de um abastecimento sempre vê o que registrou (quem digita o preço precisa conferir o que salvou), atendendo à seção 41 ("motorista registra sem ver o gasto da frota"). Comprovantes seguem a mesma regra (mostram o valor pago). Eventos operacionais e mensagens de alerta de preço **não carregam R$**, porque aparecem em telas sem esse controle.
+- **Alertas**: nunca bloqueiam (exceto o hodômetro que retrocede, que já era recusado pelo ADR-019); ficam como "Requer revisão" com texto factual, sem acusar ninguém e sem ranking de motoristas (seção 48). Nenhum alerta abre manutenção automaticamente (seção 36).
+- **Permissões**: 8 em vez das 11 sugeridas — `Fuel.Edit` virou `fuel.correct` (não há edição livre de um registro operacional) e `Fuel.ViewReports` foi absorvida por `fuel.view` + `fuel.viewcosts` (mesmo molde de `maintenance.viewcosts`). O papel Motorista continua sem permissões (decisão da Fase 2).
+
+## Pontos em aberto da Fase 4
+- **Fase 2.5 (Viagens)** continua pendente; abastecimento não se liga a viagem e não há "transferência de veículo" a tratar no consumo.
+- **Acesso do motorista**: a tela de abastecimento já é mobile-first, mas o papel Motorista segue sem permissões. Ligar `fuel.create` nele é a mudança quando o acesso do motorista for decidido.
+- **Exportação** (Excel/PDF) dos relatórios: não existe no sistema; prevista para a Fase 8.
+- **Estoque do tanque próprio** (entradas, saldo, perdas): fora do escopo (sem inventário nesta fase).
+- **Cartão combustível e integração com fornecedores**: só a preparação (ADR-031).
+- **Recalcular o histórico** depois de mudar o consumo esperado de um veículo: não existe (decisão consciente — os resultados são snapshots). Se o negócio pedir, vira uma ação explícita e auditada.
+- **Corretor sem `fuel.viewcosts`** que não é o autor: o preço chega vazio no formulário de correção e precisa ser redigitado. Hoje nenhum papel do sistema tem `fuel.correct` sem `fuel.viewcosts`.
+- **Limites por tipo de veículo** (ex.: tolerância diferente para leves e pesados): hoje são por empresa.
+- **Revisão visual automatizada**: não executada (o navegador headless travou esta máquina na Fase 1); a revisão de UX/responsividade foi feita no código e precisa de conferência manual em 375px, tablet e desktop, nos dois temas.

@@ -47,6 +47,9 @@ internal sealed class VehicleConfiguration : IEntityTypeConfiguration<Vehicle>
         builder.Property(v => v.CargoCapacityKg).HasPrecision(12, 2);
         builder.Property(v => v.TareWeightKg).HasPrecision(12, 2);
         builder.Property(v => v.HourMeter).HasPrecision(10, 1);
+        builder.Property(v => v.FuelTankCapacity).HasPrecision(10, 2);
+        builder.Property(v => v.SecondaryFuelTankCapacity).HasPrecision(10, 2);
+        builder.Property(v => v.ExpectedConsumption).HasPrecision(10, 2);
         builder.Property(v => v.AcquisitionValue).HasPrecision(18, 2);
         builder.Property(v => v.Notes).HasMaxLength(Vehicle.NotesMaxLength);
 

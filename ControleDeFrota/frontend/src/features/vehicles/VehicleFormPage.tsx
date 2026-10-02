@@ -13,12 +13,12 @@ import { formatPlate, fromApiDate, toApiDate } from '../../lib/format';
 import { combine, required, rules } from '../../lib/validators';
 import { AuditHistoryButton } from '../audit/AuditHistoryButton';
 import {
-  FUEL_TYPE,
+  VEHICLE_FUEL_TYPE,
   VEHICLE_CATEGORY,
   VEHICLE_STATUS,
   VEHICLE_TYPE,
   vehiclesApi,
-  type FuelType,
+  type VehicleFuelType,
   type Vehicle,
   type VehicleCategory,
   type VehicleStatus,
@@ -52,9 +52,12 @@ function VehicleForm({ vehicle }: { vehicle?: Vehicle }) {
     color: vehicle?.color ?? '',
     type: (vehicle?.type ?? null) as VehicleType | null,
     category: (vehicle?.category ?? null) as VehicleCategory | null,
-    fuelType: (vehicle?.fuelType ?? 'DieselS10') as FuelType | null,
+    fuelType: (vehicle?.fuelType ?? 'DieselS10') as VehicleFuelType | null,
     cargoCapacityKg: (vehicle?.cargoCapacityKg ?? '') as NumberValue,
     tareWeightKg: (vehicle?.tareWeightKg ?? '') as NumberValue,
+    fuelTankCapacity: (vehicle?.fuelTankCapacity ?? '') as NumberValue,
+    secondaryFuelTankCapacity: (vehicle?.secondaryFuelTankCapacity ?? '') as NumberValue,
+    expectedConsumption: (vehicle?.expectedConsumption ?? '') as NumberValue,
     currentOdometerKm: (vehicle?.currentOdometerKm ?? 0) as NumberValue,
     hourMeter: (vehicle?.hourMeter ?? '') as NumberValue,
     status: (vehicle?.status ?? 'Available') as VehicleStatus,
@@ -101,6 +104,9 @@ function VehicleForm({ vehicle }: { vehicle?: Vehicle }) {
       color: v.color || null,
       cargoCapacityKg: toNumber(v.cargoCapacityKg),
       tareWeightKg: toNumber(v.tareWeightKg),
+      fuelTankCapacity: toNumber(v.fuelTankCapacity),
+      secondaryFuelTankCapacity: toNumber(v.secondaryFuelTankCapacity),
+      expectedConsumption: toNumber(v.expectedConsumption),
       // ADR-019: after registration the odometer only changes through readings (Quilometragem tab).
       currentOdometerKm: vehicle ? null : toNumber(v.currentOdometerKm),
       hourMeter: toNumber(v.hourMeter),
@@ -139,9 +145,18 @@ function VehicleForm({ vehicle }: { vehicle?: Vehicle }) {
             <FormSection title="Características" cols={3}>
               <Select label="Tipo" withAsterisk data={toSelectData(VEHICLE_TYPE)} placeholder="Selecione" searchable {...form.getInputProps('type')} />
               <Select label="Categoria" data={toSelectData(VEHICLE_CATEGORY)} placeholder="Selecione" clearable allowDeselect description="Classe de peso" {...form.getInputProps('category')} />
-              <Select label="Combustível" withAsterisk data={toSelectData(FUEL_TYPE)} {...form.getInputProps('fuelType')} />
+              <Select label="Combustível" withAsterisk data={toSelectData(VEHICLE_FUEL_TYPE)} {...form.getInputProps('fuelType')} />
               <NumberInput label="Capacidade de carga" suffix=" kg" thousandSeparator="." decimalSeparator="," decimalScale={2} allowNegative={false} {...form.getInputProps('cargoCapacityKg')} />
               <NumberInput label="Tara" suffix=" kg" thousandSeparator="." decimalSeparator="," decimalScale={2} allowNegative={false} {...form.getInputProps('tareWeightKg')} />
+            </FormSection>
+
+            <FormSection title="Combustível" description="Usado para identificar abastecimentos acima da capacidade e comparar o consumo." cols={3}>
+              <NumberInput label="Capacidade do tanque" suffix=" L" thousandSeparator="." decimalSeparator="," decimalScale={2} allowNegative={false}
+                description="Na unidade do combustível (L, m³ ou kWh)" {...form.getInputProps('fuelTankCapacity')} />
+              <NumberInput label="Segundo tanque" suffix=" L" thousandSeparator="." decimalSeparator="," decimalScale={2} allowNegative={false}
+                description="Deixe em branco se não houver" {...form.getInputProps('secondaryFuelTankCapacity')} />
+              <NumberInput label="Consumo esperado" suffix=" km/L" decimalSeparator="," decimalScale={2} allowNegative={false}
+                description="Opcional. Sem ele, o sistema usa a média do próprio veículo" {...form.getInputProps('expectedConsumption')} />
             </FormSection>
 
             <FormSection title="Controle" cols={3}>

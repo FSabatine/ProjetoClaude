@@ -119,6 +119,23 @@ public static class Permissions
         /// <summary>See parts/labor/total cost figures.</summary>
         public const string ViewCosts = "maintenance.viewcosts";
     }
+
+    public static class Fuel
+    {
+        /// <summary>Fuelings, consumption, stations, fuel types and reports — without money values (see ViewCosts).</summary>
+        public const string View = "fuel.view";
+        public const string Create = "fuel.create";
+        /// <summary>Audited correction of a fueling (reason required). Changing its odometer also needs mileage.manage.</summary>
+        public const string Correct = "fuel.correct";
+        public const string Cancel = "fuel.cancel";
+        public const string ReviewAnomalies = "fuel.reviewanomalies";
+        /// <summary>Fuel stations and their reference prices.</summary>
+        public const string ManageStations = "fuel.managestations";
+        /// <summary>Fuel type catalog and anomaly thresholds.</summary>
+        public const string Configure = "fuel.configure";
+        /// <summary>Prices, totals and every cost figure (dashboard, reports, cost/km). Own records are always visible to their author.</summary>
+        public const string ViewCosts = "fuel.viewcosts";
+    }
 }
 
 public sealed record PermissionDefinition(int Id, string Key, string Description)
@@ -170,6 +187,14 @@ public static class PermissionCatalog
         new(163, Permissions.Maintenance.ManageWorkOrders, "Aprovar solicitações e gerenciar ordens de serviço"),
         new(164, Permissions.Maintenance.ManageWorkshops, "Cadastrar e editar oficinas"),
         new(165, Permissions.Maintenance.ViewCosts, "Visualizar custos de manutenção"),
+        new(170, Permissions.Fuel.View, "Visualizar abastecimentos, consumo e relatórios de combustível"),
+        new(171, Permissions.Fuel.Create, "Registrar abastecimentos"),
+        new(172, Permissions.Fuel.Correct, "Corrigir abastecimentos"),
+        new(173, Permissions.Fuel.Cancel, "Cancelar abastecimentos"),
+        new(174, Permissions.Fuel.ReviewAnomalies, "Revisar abastecimentos com alerta"),
+        new(175, Permissions.Fuel.ManageStations, "Cadastrar postos e preços de referência"),
+        new(176, Permissions.Fuel.Configure, "Configurar tipos de combustível e limites de alerta"),
+        new(177, Permissions.Fuel.ViewCosts, "Visualizar custos de combustível"),
     ];
 
     public static PermissionDefinition Get(string key) => All.Single(p => p.Key == key);

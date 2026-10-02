@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
 import { Anchor, Badge, Group, Paper, SimpleGrid, Skeleton, Stack, Text, ThemeIcon, Title, UnstyledButton } from '@mantine/core';
 import {
-  IconAlertTriangle, IconChecklist, IconCircleCheck, IconClock, IconFileAlert, IconFileText, IconGauge, IconHourglass, IconId, IconProgress,
+  IconAlertTriangle, IconChecklist, IconCircleCheck, IconClock, IconFileAlert, IconFileText, IconGasStation,
+  IconGauge, IconHourglass, IconId, IconProgress,
   IconRoute, IconSteeringWheel, IconTool, IconTruck, IconTruckDelivery, IconBan, IconArchive,
 } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
@@ -16,8 +17,8 @@ import classes from './DashboardPage.module.css';
 
 type AlertType =
   | 'LicenseExpired' | 'LicenseExpiringSoon' | 'DocumentExpired' | 'DocumentExpiringSoon' | 'CriticalOccurrence' | 'MileagePendingReview'
-  | 'CriticalWorkOrder';
-type EntityType = 'Driver' | 'Vehicle' | 'Implement' | 'Company' | 'Occurrence' | 'WorkOrder';
+  | 'CriticalWorkOrder' | 'FuelingPendingReview';
+type EntityType = 'Driver' | 'Vehicle' | 'Implement' | 'Company' | 'Occurrence' | 'WorkOrder' | 'Fueling';
 
 interface DashboardAlert {
   type: AlertType;
@@ -73,6 +74,7 @@ const alertLink = (a: DashboardAlert) => {
     case 'Implement': return `/implementos/${a.entityId}`;
     case 'Occurrence': return `/ocorrencias/${a.entityId}`;
     case 'WorkOrder': return `/ordens-servico/${a.entityId}`;
+    case 'Fueling': return `/abastecimentos/${a.entityId}`;
     default: return '/minha-empresa';
   }
 };
@@ -85,6 +87,7 @@ const ALERT_ICON: Record<AlertType, typeof IconId> = {
   CriticalOccurrence: IconAlertTriangle,
   MileagePendingReview: IconGauge,
   CriticalWorkOrder: IconTool,
+  FuelingPendingReview: IconGasStation,
 };
 
 /** A number that leads to the filtered list behind it (one click from the KPI to the records). */

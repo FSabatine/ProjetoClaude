@@ -34,9 +34,13 @@ public sealed record VehicleRequest : IRegisteredAssetRequest
 
     public VehicleType? Type { get; init; }
     public VehicleCategory? Category { get; init; }
-    public FuelType? FuelType { get; init; }
+    public VehicleFuelType? FuelType { get; init; }
     public decimal? CargoCapacityKg { get; init; }
     public decimal? TareWeightKg { get; init; }
+    public decimal? FuelTankCapacity { get; init; }
+    public decimal? SecondaryFuelTankCapacity { get; init; }
+    /// <summary>Expected km per unit of fuel; when set it is the consumption baseline (ADR-032).</summary>
+    public decimal? ExpectedConsumption { get; init; }
 
     /// <summary>Initial odometer on registration. On update it must be omitted or unchanged: mileage changes go through readings (ADR-019).</summary>
     public int? CurrentOdometerKm { get; init; }
@@ -74,9 +78,12 @@ public sealed record VehicleResponse(
     string? Color,
     VehicleType Type,
     VehicleCategory? Category,
-    FuelType FuelType,
+    VehicleFuelType FuelType,
     decimal? CargoCapacityKg,
     decimal? TareWeightKg,
+    decimal? FuelTankCapacity,
+    decimal? SecondaryFuelTankCapacity,
+    decimal? ExpectedConsumption,
     int CurrentOdometerKm,
     DateTime? OdometerUpdatedAt,
     decimal? HourMeter,
@@ -102,6 +109,12 @@ public sealed class VehicleRequestValidator : AbstractValidator<VehicleRequest>
         RuleFor(x => x.FuelType).NotNull().WithMessage("Combustível: campo obrigatório.").IsInEnum().WithMessage("Combustível inválido.");
         RuleFor(x => x.CargoCapacityKg).NonNegative("Capacidade de carga");
         RuleFor(x => x.TareWeightKg).NonNegative("Tara");
+        RuleFor(x => x.FuelTankCapacity).NonNegative("Capacidade do tanque").LessThanOrEqualTo(10_000m)
+            .WithMessage("Capacidade do tanque muito alta. Confira o valor.");
+        RuleFor(x => x.SecondaryFuelTankCapacity).NonNegative("Capacidade do segundo tanque").LessThanOrEqualTo(10_000m)
+            .WithMessage("Capacidade do segundo tanque muito alta. Confira o valor.");
+        RuleFor(x => x.ExpectedConsumption).GreaterThan(0).WithMessage("O consumo esperado deve ser maior que zero.")
+            .LessThanOrEqualTo(100m).WithMessage("Consumo esperado muito alto. Informe km por litro (ex.: 2,8).");
         RuleFor(x => x.CurrentOdometerKm)
             .InclusiveBetween(0, MaxOdometerKm).WithMessage($"Hodômetro deve estar entre 0 e {BrazilianFormat.Number(MaxOdometerKm)} km.");
         RuleFor(x => x.HourMeter).NonNegative("Horímetro");

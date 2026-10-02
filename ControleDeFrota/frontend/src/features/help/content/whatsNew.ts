@@ -6,6 +6,12 @@ import type { HelpWhatsNewEntry } from '../types';
  */
 export const WHATS_NEW: HelpWhatsNewEntry[] = [
   {
+    id: 'whats-new-fuel',
+    title: 'Gestão de combustível',
+    description: 'Abastecimentos com total calculado, consumo de tanque cheio a tanque cheio, postos e preços de referência, alertas para revisão, painel e relatórios de combustível.',
+    date: 'outubro de 2026',
+  },
+  {
     id: 'whats-new-maintenance',
     title: 'Manutenção da frota',
     description: 'Planos preventivos, solicitações de manutenção, ordens de serviço, oficinas e histórico de horímetro.',

@@ -3,6 +3,7 @@ using Fleet.Application.Auth;
 using Fleet.Application.Checklists;
 using Fleet.Application.Documents;
 using Fleet.Application.Files;
+using Fleet.Application.Fuel;
 using Fleet.Application.Mileage;
 using Fleet.Application.Occurrences;
 using Fleet.Application.Operations;
@@ -62,6 +63,18 @@ public static class Services
     public static MaintenanceRequestService MaintenanceRequests(TestDb t) => new(
         t.Db, t.Clock, t.CurrentUser, Events(t), WorkOrders(t), new MaintenanceRequestRequestValidator(t.Clock),
         new MaintenanceRequestRejectRequestValidator());
+
+    // Phase 4
+    public static FuelTypeService FuelTypes(TestDb t) => new(t.Db, t.CurrentUser, new FuelTypeRequestValidator());
+    public static FuelStationService FuelStations(TestDb t) => new(
+        t.Db, Events(t), new FuelStationRequestValidator(), new FuelPriceRequestValidator(t.Clock));
+    public static FuelSettingsService FuelSettings(TestDb t) => new(t.Db, new FuelSettingsRequestValidator());
+    public static FuelConsumptionService FuelConsumption(TestDb t) => new(t.Db, t.Clock, Events(t));
+    public static FuelingService Fuelings(TestDb t) => new(
+        t.Db, t.Clock, t.CurrentUser, Mileage(t), Files(t), FuelConsumption(t), FuelSettings(t), Events(t),
+        new FuelingRequestValidator(t.Clock), new FuelingCorrectionRequestValidator(t.Clock), new FuelingListRequestValidator());
+    public static FuelAnalyticsService FuelAnalytics(TestDb t) => new(
+        t.Db, t.Clock, t.CurrentUser, Fuelings(t), new FuelPeriodRequestValidator());
 
     public static UserService Users(TestDb t) => new(
         t.Db, t.CurrentUser, Hasher, t.Clock, new UserCreateRequestValidator(), new UserUpdateRequestValidator());

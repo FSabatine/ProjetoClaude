@@ -128,7 +128,8 @@ public sealed class FilesController(FileService service) : ControllerBase
 {
     /// <summary>Multipart upload; the body limit is enforced here and the size/format again in the service.</summary>
     [HttpPost, RequestSizeLimit(FileRules.MaxSizeBytes + 64 * 1024),
-     HasPermission(Permissions.Documents.Manage, Permissions.Checklists.Execute, Permissions.Occurrences.Create, Permissions.Occurrences.Manage)]
+     HasPermission(Permissions.Documents.Manage, Permissions.Checklists.Execute, Permissions.Occurrences.Create, Permissions.Occurrences.Manage,
+         Permissions.Fuel.Create, Permissions.Fuel.Correct)]
     public async Task<ActionResult<FileResponse>> Upload(IFormFile? file, CancellationToken ct)
     {
         if (file is null) throw ValidationErrors.ForField("file", "Selecione um arquivo para enviar.");
@@ -139,7 +140,7 @@ public sealed class FilesController(FileService service) : ControllerBase
     /// <summary>Coarse gate here; the service checks the permission of the record the file belongs to.</summary>
     [HttpGet("{id:guid}"),
      HasPermission(Permissions.Documents.View, Permissions.Checklists.View, Permissions.Occurrences.View,
-         Permissions.Documents.Manage, Permissions.Checklists.Execute, Permissions.Occurrences.Create)]
+         Permissions.Documents.Manage, Permissions.Checklists.Execute, Permissions.Occurrences.Create, Permissions.Fuel.View)]
     public async Task<IActionResult> Download(Guid id, CancellationToken ct)
     {
         var download = await service.OpenAsync(id, ct);
@@ -148,7 +149,8 @@ public sealed class FilesController(FileService service) : ControllerBase
     }
 
     [HttpDelete("{id:guid}"),
-     HasPermission(Permissions.Documents.Manage, Permissions.Occurrences.Manage, Permissions.Checklists.Execute, Permissions.Occurrences.Create)]
+     HasPermission(Permissions.Documents.Manage, Permissions.Occurrences.Manage, Permissions.Checklists.Execute, Permissions.Occurrences.Create,
+         Permissions.Fuel.Create, Permissions.Fuel.Correct)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
         await service.RemoveAsync(id, ct);

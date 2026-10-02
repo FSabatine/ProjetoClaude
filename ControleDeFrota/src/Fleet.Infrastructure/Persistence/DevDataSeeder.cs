@@ -29,8 +29,12 @@ public sealed class DevDataSeeder(FleetDbContext db, IPasswordHasher passwordHas
     {
         if (await db.Companies.IgnoreQueryFilters().AnyAsync(ct))
         {
-            // Databases created in Phase 1 get the Phase 2 samples once.
-            if (includeSampleData) await SeedOperationsAsync(ct);
+            // Databases created in earlier phases get the newer samples once (each step is idempotent).
+            if (includeSampleData)
+            {
+                await SeedOperationsAsync(ct);
+                await SeedFuelAsync(ct);
+            }
             return;
         }
 
@@ -48,7 +52,20 @@ public sealed class DevDataSeeder(FleetDbContext db, IPasswordHasher passwordHas
 
         await db.SaveChangesAsync(ct);
         logger.LogWarning("Development data seeded (demo users with password documented in docs/README.md)");
-        if (includeSampleData) await SeedOperationsAsync(ct);
+        if (includeSampleData)
+        {
+            await SeedOperationsAsync(ct);
+            await SeedFuelAsync(ct);
+        }
+    }
+
+    /// <summary>Phase 4 samples on the main demo company (see DevFuelSeeder).</summary>
+    private async Task SeedFuelAsync(CancellationToken ct)
+    {
+        var main = await db.Companies.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Cnpj == MainCnpj, ct);
+        if (main is null) return;
+        if (await new DevFuelSeeder(db, clock).SeedAsync(main.Id, ct))
+            logger.LogWarning("Development fuel samples seeded (Phase 4)");
     }
 
     private const string MainCnpj = "11222333000181";
@@ -263,7 +280,7 @@ public sealed class DevDataSeeder(FleetDbContext db, IPasswordHasher passwordHas
         Color = "Branco",
         Type = type,
         Category = type == VehicleType.Pickup ? VehicleCategory.Light : VehicleCategory.Heavy,
-        FuelType = FuelType.DieselS10,
+        FuelType = VehicleFuelType.DieselS10,
         CurrentOdometerKm = odometer,
         Status = status,
     };

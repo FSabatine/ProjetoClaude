@@ -98,6 +98,7 @@ export const ODOMETER_SOURCE = {
   Registration: { label: 'Cadastro' },
   Manual: { label: 'Registro manual' },
   Checklist: { label: 'Checklist' },
+  Fueling: { label: 'Abastecimento' },
   Correction: { label: 'Correção' },
 };
 export type OdometerSource = keyof typeof ODOMETER_SOURCE;

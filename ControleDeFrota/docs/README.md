@@ -27,7 +27,9 @@ Plataforma de **gestão e controle de frotas** multiempresa: veículos, implemen
 | Documentos com vencimento e arquivos | Fase 2 |
 | Checklists configuráveis (celular) e ocorrências operacionais | Fase 2 |
 | Histórico operacional, eventos para notificações, dashboard operacional | Fase 2 |
-| Operação, manutenção, combustível, pneus, financeiro, rastreamento, relatórios, automação, integrações | ver [ROADMAP.md](ROADMAP.md) |
+| Manutenção preventiva e corretiva (planos, solicitações, ordens de serviço, oficinas, horímetro) | Fase 3 |
+| Combustível (abastecimentos, postos, preços, consumo, alertas, painel e relatórios) | Fase 4 |
+| Viagens, pneus, financeiro, rastreamento, relatórios gerenciais, automação, integrações | ver [ROADMAP.md](ROADMAP.md) |
 
 ## Stack
 
@@ -66,7 +68,7 @@ Em Development, a API aplica as migrations e cria o banco `ControleDeFrota` no L
 |---|---|---|---|
 | admin@frota.local | Rodoxisto (Dev) | Administrador da plataforma | tudo, inclusive a gestão de empresas |
 | gestor@frota.local | Rodoxisto (Dev) | Gestor de frota | cadastros, operação completa (alocação, revisão de hodômetro, configuração de checklists e tipos de documento) |
-| operacao@frota.local | Rodoxisto (Dev) | Operações | operação diária sem correção de hodômetro, exclusão de documento nem configuração (Fase 2) |
+| operacao@frota.local | Rodoxisto (Dev) | Operações | operação diária sem correção de hodômetro, exclusão de documento nem configuração (Fase 2); registra abastecimentos sem ver o gasto da frota (Fase 4) |
 | manutencao@frota.local | Rodoxisto (Dev) | Manutenção | acompanhamento das ocorrências, somente leitura (Fase 2) |
 | consulta@frota.local | Rodoxisto (Dev) | Visualizador | telas somente leitura e 403 |
 | operacao@exemplo.local | Exemplo Transportes | Administrador | isolamento entre empresas e estados vazios |
@@ -113,8 +115,12 @@ ControleDeFrota/
 
 ## Status
 
-**Fase 1 — Fundação: concluída** (2026-09-29). Próximo passo: Fase 2 — Controle operacional. Ver [CHANGELOG.md](CHANGELOG.md) e [ROADMAP.md](ROADMAP.md).
+**Fases 1 (Fundação), 2 (Controle operacional), 3 (Manutenção) e 4 (Combustível): concluídas** (até 2026-10-02). Próximo passo recomendado: Fase 2.5 — Viagens e composição. Ver [CHANGELOG.md](CHANGELOG.md) e [ROADMAP.md](ROADMAP.md).
 
 ## Documentos
 
 [ARCHITECTURE](ARCHITECTURE.md) · [DATABASE](DATABASE.md) · [DOMAIN](DOMAIN.md) · [SECURITY](SECURITY.md) · [UX_UI](UX_UI.md) · [DEVELOPMENT_GUIDELINES](DEVELOPMENT_GUIDELINES.md) · [ROADMAP](ROADMAP.md) · [DECISIONS](DECISIONS.md) · [CHANGELOG](CHANGELOG.md)
+
+### Dados de exemplo da Fase 4
+
+Com `Database:SeedSampleData`, a primeira execução (ou a próxima, em bancos de fases anteriores) cria 3 postos — um deles o tanque próprio —, preços de referência e cerca de 4 meses de abastecimentos dos veículos RDX2B34, RDX3C45 e ABC1234, terminando no hodômetro atual de cada um. Dois abastecimentos ficam em "Requer revisão" de propósito (760 L num tanque de 700 L e um trecho com consumo bem abaixo do esperado) para demonstrar o fluxo de revisão.

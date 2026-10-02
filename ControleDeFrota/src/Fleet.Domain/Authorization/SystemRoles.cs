@@ -58,6 +58,12 @@ public static class SystemRoles
         Permissions.Maintenance.ManageWorkOrders, Permissions.Maintenance.ManageWorkshops, Permissions.Maintenance.ViewCosts,
     ];
 
+    private static readonly string[] FuelFull =
+    [
+        Permissions.Fuel.View, Permissions.Fuel.Create, Permissions.Fuel.Correct, Permissions.Fuel.Cancel,
+        Permissions.Fuel.ReviewAnomalies, Permissions.Fuel.ManageStations, Permissions.Fuel.Configure, Permissions.Fuel.ViewCosts,
+    ];
+
     public static readonly IReadOnlyList<RoleDefinition> All =
     [
         new(1, PlatformAdministrator, "Administrador da plataforma",
@@ -66,25 +72,31 @@ public static class SystemRoles
             "Acesso total à própria empresa.",
             AllPermissions.Where(p => p != Permissions.Companies.Manage).ToArray()),
         new(3, FleetManager, "Gestor de frota",
-            "Gerencia a frota e a operação: cadastros, alocações, hodômetro, documentos, checklists, ocorrências e manutenção.",
+            "Gerencia a frota e a operação: cadastros, alocações, hodômetro, documentos, checklists, ocorrências, manutenção e combustível.",
             [Permissions.Dashboard.View, Permissions.Companies.View, Permissions.Users.View, Permissions.Roles.View,
-             Permissions.Audit.View, .. FleetRegistryFull, .. OperationsFull, .. MaintenanceFull]),
+             Permissions.Audit.View, .. FleetRegistryFull, .. OperationsFull, .. MaintenanceFull, .. FuelFull]),
         new(4, Operations, "Operações",
-            "Operação diária: motoristas, alocações, hodômetro, documentos, checklists e ocorrências.",
+            "Operação diária: motoristas, alocações, hodômetro, documentos, checklists, ocorrências e registro de abastecimentos.",
             [Permissions.Dashboard.View, Permissions.Drivers.View, Permissions.Drivers.Create, Permissions.Drivers.Update,
              Permissions.Vehicles.View, Permissions.Vehicles.Update, Permissions.Implements.View, Permissions.Implements.Update,
-             .. OperationsDaily, Permissions.Maintenance.View, Permissions.Maintenance.CreateRequest]),
+             .. OperationsDaily, Permissions.Maintenance.View, Permissions.Maintenance.CreateRequest,
+             // Registers fuelings (and sees what they typed), but not the fleet's fuel spending.
+             Permissions.Fuel.View, Permissions.Fuel.Create]),
         new(5, Maintenance, "Manutenção",
             "Atualiza a situação de veículos e implementos, acompanha ocorrências e executa a manutenção da frota.",
             [Permissions.Dashboard.View, Permissions.Vehicles.View, Permissions.Vehicles.Update,
-             Permissions.Implements.View, Permissions.Implements.Update, Permissions.Occurrences.View, .. MaintenanceFull]),
+             Permissions.Implements.View, Permissions.Implements.Update, Permissions.Occurrences.View, .. MaintenanceFull,
+             // Consumption is a maintenance signal (seção 36); money is not their concern.
+             Permissions.Fuel.View]),
         new(6, Finance, "Financeiro",
-            "Consulta a frota para fins financeiros.",
-            [Permissions.Dashboard.View, .. FleetRegistryRead, Permissions.Maintenance.View, Permissions.Maintenance.ViewCosts]),
+            "Consulta a frota e os custos de manutenção e combustível.",
+            [Permissions.Dashboard.View, .. FleetRegistryRead, Permissions.Maintenance.View, Permissions.Maintenance.ViewCosts,
+             Permissions.Fuel.View, Permissions.Fuel.ViewCosts]),
         new(7, Driver, "Motorista",
             "Reservado para o app do motorista (fases futuras).", []),
         new(8, Viewer, "Visualizador",
             "Somente leitura.",
-            [Permissions.Dashboard.View, Permissions.Companies.View, .. FleetRegistryRead, .. OperationsRead, Permissions.Maintenance.View]),
+            [Permissions.Dashboard.View, Permissions.Companies.View, .. FleetRegistryRead, .. OperationsRead, Permissions.Maintenance.View,
+             Permissions.Fuel.View]),
     ];
 }

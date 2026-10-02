@@ -2,6 +2,38 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Datas no padrão AAAA-MM-DD.
 
+## [0.4.0] — 2026-10-02 — Fase 4: Combustível
+
+### Adicionado
+- **Tipos de combustível** configuráveis por empresa, com catálogo padrão (Diesel S10/S500, gasolinas, etanol, GNV em m³, recarga elétrica em kWh) e unidade travada depois de usado (ADR-031).
+- **Postos de combustível** (com o tanque próprio identificado) e **preços de referência** por posto × combustível com vigência; evento `FuelPriceChanged`.
+- **Abastecimentos**: total calculado no servidor (o total do cupom é só conferido), validação de veículo/motorista/combustível/posto, comprovantes (foto pela câmera, PDF), forma de pagamento, tanque cheio ou complemento. Nunca excluídos: **correção auditada** (motivo, quem, quando, campo de → para) e **cancelamento** com motivo.
+- **Integração com o hodômetro** (fonte única): o abastecimento vira leitura `Fueling` pelas regras da Fase 2; abastecimento lançado depois é validado contra as leituras vizinhas sem gerar leitura; correção do km vira correção de hodômetro auditada (ADR-032).
+- **Consumo tanque cheio a tanque cheio** com snapshot no abastecimento que fecha o trecho e **consumo esperado** (configurado no veículo > histórico do veículo > média do tipo de veículo).
+- **Alertas para revisão** com limites configuráveis: quantidade acima do tanque, preço fora da média/referência, hodômetro em revisão, abastecimentos muito próximos, combustível incompatível com o veículo, consumo abaixo/acima do esperado. Textos neutros; nenhum alerta abre manutenção sozinho.
+- **Painel de Combustível**, **aba Combustível no veículo** (histórico por dia/semana/mês) e **relatórios** (abastecimentos, consumo, custos por veículo/motorista/posto/combustível, postos, preços por mês), agregados no banco.
+- Alerta "Abastecimento requer revisão" no painel principal (para quem pode revisar).
+- Cadastro do veículo: capacidade do tanque principal e do segundo tanque, consumo esperado.
+- Permissões `fuel.view/create/correct/cancel/reviewanomalies/managestations/configure/viewcosts` e mapeamento nos papéis (Operações registra sem ver o gasto da frota; Financeiro vê custos; Motorista continua sem acesso).
+- Eventos `FuelingRecorded`, `FuelingCorrected`, `FuelingCancelled`, `FuelingMarkedForReview`, `FuelingReviewed`, `FuelConsumptionAnomalyDetected`, `FuelingMileageInconsistencyDetected`, `FuelPriceChanged` (sem valores em R$ nos resumos).
+- **Central de Ajuda**: categoria Combustível com 14 artigos, ajuda contextual nas telas de combustível e na aba do veículo, "Novidades" atualizada; `[?]` nas métricas de consumo e custo/km.
+- Dados de desenvolvimento da Fase 4 (`DevFuelSeeder`).
+- **Testes**: +50 no Domain (regras puras; 194 → 244), +60 de serviço (180 → 240, incluindo tenant, permissões, estabilidade histórica e volume com 12 mil abastecimentos), +14 HTTP (28 → 42) e +10 no frontend (55 → 65).
+
+### Alterado
+- O enum `FuelType` do veículo passou a se chamar `VehicleFuelType` no código (o banco e a API não mudaram).
+- `MileageService` ganhou operações aditivas para outros módulos (aprovar/rejeitar leitura pendente dentro da transação do chamador, linha de base pública, checagem contra o histórico). Sem mudança de comportamento da Fase 2.
+- `FleetDbContext`: `decimal` é gravado como REAL **apenas no SQLite dos testes**, para permitir agregação no banco (ADR-033). SQL Server inalterado.
+- Não se exclui veículo com abastecimentos (inative).
+
+### Corrigido
+- O histórico de auditoria (`/audit/{entidade}/{id}`) recusava as entidades da Fase 3 (oficina, plano, solicitação, ordem de serviço, horímetro), embora a tela oferecesse o botão "Histórico". Agora aceita essas e as da Fase 4.
+
+### Limitações conhecidas
+- Sem exportação de relatórios (o sistema ainda não tem exportação; Fase 8).
+- Sem estoque do tanque próprio, cartão combustível ou integração com fornecedores (só a preparação).
+- Sem revisão visual automatizada (headless desaconselhado nesta máquina): conferir telas em 375px/tablet/desktop e nos dois temas.
+
 ## [0.3.1] — 2026-10-01 — Central de Ajuda (manual do usuário)
 
 ### Adicionado

@@ -29,13 +29,14 @@ Linguagem ubíqua: o código usa **inglês** e a interface usa **português**. E
 Company ─┬─< User >─< Role >─< Permission
          ├─< DocumentType ─< Document >── (Vehicle | Driver | Implement | Company)
          ├─< Driver ──┐
-         ├─< Vehicle ─┴─< VehicleAssignment (vigência)      ···(futuro)··· Fueling, Tires, Trips, Costs
+         ├─< Vehicle ─┴─< VehicleAssignment (vigência)      ···(futuro)··· Tires, Trips, Costs
          │    ├─< OdometerReading
          │    ├─< HourMeterReading
          │    ├─< ChecklistExecution ─< ChecklistAnswer (snapshot) ──> Occurrence
          │    ├─< Occurrence ─< StoredFile (fotos) ──> MaintenanceRequest (manual)
          │    ├─< MaintenanceRequest ──> WorkOrder (aprovação)
          │    ├─< WorkOrder ─< WorkOrderItem | WorkOrderPart | WorkOrderLabor
+         │    ├─< Fueling ─< FuelingAnomaly | FuelingCorrection (Fase 4) >── FuelStation, FuelType
          │    └─< MaintenanceSchedule >─ MaintenancePlanItem
          ├─< ChecklistTemplate ─< ChecklistTemplateItem
          ├─< MaintenancePlan ─< MaintenancePlanItem (padrão | por VehicleType | por Vehicle)
@@ -146,6 +147,7 @@ Company ─┬─< User >─< Role >─< Permission
 - Um veículo com motorista alocado não pode ser inativado: encerre a alocação antes.
 - O hodômetro é informado **só no cadastro**, como a primeira leitura do histórico. Depois disso, muda apenas pelo registro de leituras (ver "Leituras de hodômetro").
 - Mudar a condição gera o evento `VehicleStatusChanged`.
+- **Fase 4**: o combustível do cadastro passou a se chamar `VehicleFuelType` no código (o que o motor aceita); capacidade do tanque principal e do segundo tanque e consumo esperado (km/unidade, opcional) são atributos do veículo. Não se exclui veículo com abastecimentos.
 
 ## Implement (Implemento)
 
@@ -350,3 +352,188 @@ Papel **Manutenção** (`SystemRoles.Maintenance`) ganhou todas as permissões a
 
 - **Manutenção**: Due Today / Due Soon / Overdue (calculados a partir das `MaintenanceSchedule` existentes — veículos nunca atendidos não entram nessa contagem, só aparecem na própria aba do veículo), Em andamento, Aguardando peças, Concluídas no mês, Veículos em manutenção.
 - **Alertas**: ordens de serviço com prioridade `Critical` ainda abertas (`maintenance.view`).
+
+---
+
+# Fase 4 — Combustível
+
+## Linguagem
+
+| Código | Interface | Significado |
+|---|---|---|
+| FuelType | Combustível (tipo) | Produto comprado na bomba (Diesel S10, Gasolina aditivada, GNV…) — catálogo por empresa |
+| VehicleFuelType | Combustível do veículo | O que o motor aceita (DieselS10, Flex, Híbrido…) — atributo do cadastro do veículo (era `FuelType` até a Fase 3; ADR-031) |
+| FuelStation | Posto de combustível | Onde se abastece; `IsInternal` = tanque próprio da empresa |
+| FuelPrice | Preço de referência | Preço praticado/negociado de um combustível num posto a partir de uma data |
+| Fueling | Abastecimento | O registro central: veículo, hodômetro, quantidade, preço, total |
+| FuelingAnomaly | Alerta do abastecimento | Algo fora do padrão que pede revisão (nunca uma acusação) |
+| FuelingCorrection | Correção | Histórico de uma correção: quem, quando, motivo, campo de → para |
+| FuelSettings | Limites dos alertas | Tolerâncias por empresa |
+| Segment (trecho) | Trecho | Intervalo entre dois tanques cheios — a unidade de medida do consumo |
+| Baseline | Consumo esperado | Referência de consumo do veículo para comparar cada trecho |
+
+## Modelo
+
+```
+Company ─┬─< FuelType (catálogo, padrão em FuelTypeDefaults)
+         ├─< FuelStation ─< FuelPrice >── FuelType
+         ├── FuelSettings (0..1 por empresa; ausente = padrões)
+         └─< Fueling >── Vehicle, Driver?, FuelStation?, FuelType
+                ├─< FuelingAnomaly
+                ├─< FuelingCorrection
+                ├─< StoredFile (OwnerType = Fueling: cupom, nota, foto)
+                └─< OdometerReading (Source = Fueling | Correction, FuelingId) — a quilometragem continua com fonte única
+Vehicle: + FuelTankCapacity, SecondaryFuelTankCapacity, ExpectedConsumption (atributos, não registros)
+```
+
+Entidades sugeridas na especificação e **não** criadas: `FuelingItem` (um abastecimento é de um único combustível; dois produtos = dois registros), `FuelConsumption` (o consumo é um snapshot no próprio `Fueling` que fecha o trecho — ADR-032), `FuelAnomaly` como entidade solta (é filha do abastecimento: `FuelingAnomaly`).
+
+## FuelType (Combustível) — ADR-031
+
+- Nome e código únicos por empresa (código em maiúsculas: `S10`, `GAS`…), categoria (`Diesel`, `Gasoline`, `Ethanol`, `Cng`, `Electric`, `Other`), unidade (`Liter`, `CubicMeter`, `KilowattHour`), ativo e descrição.
+- Toda empresa começa com o catálogo padrão na primeira leitura (Diesel S10, Diesel S500, Gasolina comum, Gasolina aditivada, Etanol, GNV em m³, Recarga elétrica em kWh). Empresas excluem/inativam/criam os seus.
+- Um tipo com abastecimentos **não é excluído** (inative) e **não muda de unidade** (mudaria o sentido do km/unidade já calculado). Tipo inativo é recusado em novos abastecimentos.
+- **Compatibilidade** (`FuelCompatibility`): Diesel S10/S500 → Diesel; Gasolina → Gasolina; Etanol → Etanol; Flex → Gasolina/Etanol; GNV → GNV/Gasolina/Etanol; Elétrico → Elétrico; Híbrido → Gasolina/Etanol/Elétrico; `Other` (dos dois lados) aceita tudo. Incompatível = alerta `FuelTypeMismatch`, nunca bloqueio.
+
+## FuelStation (Posto) e FuelPrice
+
+- Nome obrigatório; CNPJ opcional (numérico ou alfanumérico, DV válido, **único por empresa** entre postos não excluídos); endereço, telefone e contato opcionais; `IsInternal` (tanque próprio); ativo; observações.
+- Não é cadastro de fornecedor. O tanque próprio é só identificado: **controle de estoque fora do escopo**.
+- Posto com abastecimentos não é excluído (inative). Posto inativo é recusado em novos abastecimentos (uma correção pode manter o posto antigo).
+- **FuelPrice**: (posto, combustível, preço por unidade, vigente a partir de `EffectiveFrom`, até 30 dias à frente). Histórico manual; excluir é soft delete auditado. Gera `FuelPriceChanged` com o preço anterior. **Nunca altera abastecimentos**: cada abastecimento guarda o preço pago.
+- Preço vigente em uma data = maior `EffectiveFrom` ≤ data.
+
+## Fueling (Abastecimento) — ADR-032
+
+Campos: veículo, motorista (opcional), posto (opcional), combustível, `FueledAt` (UTC, segundos inteiros) e `FueledOn` (data de negócio no Brasil, usada em filtros e agrupamentos), hodômetro, quantidade (3 casas), preço por unidade (4 casas), **total calculado**, tanque cheio (padrão sim), forma de pagamento, número do cupom, observações, `Source` (`Manual`; integrações futuras acrescentam valores), situação, revisão, cancelamento e o snapshot do consumo.
+
+### Regras de validação (seção 8)
+
+1. Quantidade > 0 (máx. 100.000) e preço > 0 (máx. R$ 1.000/unidade).
+2. **Total** = `round(quantidade × preço, 2, half away from zero)` (`FuelingAmounts.Total`). O cliente pode enviar o total do cupom: ele é **conferido** (tolerância de R$ 0,05) e recusado se divergir, mas o valor gravado é sempre o calculado.
+3. Data não futura (tolerância de 5 min do relógio). Sem data = agora.
+4. **Veículo**: precisa existir na empresa. `Inactive` é recusado; `Available`, `OnTrip`, `UnderMaintenance` e `Unavailable` são aceitos (teste de rodagem, manobra no pátio, veículo aguardando papelada ainda abastece) — mesma linha do histórico de hodômetro (ADR-019). Seção 37.
+5. **Motorista**: opcional por padrão; obrigatório se `FuelSettings.RequireDriver`. Se informado, precisa estar `Active` (afastado/desligado recusado). Numa correção, manter o mesmo motorista não é revalidado (é histórico).
+6. Combustível e posto precisam existir e estar ativos (exceto manter o mesmo numa correção).
+7. Pagamento: `Cash, Pix, DebitCard, CreditCard, FuelCard, Invoice (faturado), InternalTank (tanque próprio), Other` — enum, não catálogo (conjunto estável; nenhuma regra depende dele). Só informação operacional: sem conciliação.
+
+### Integração com o hodômetro (seções 9, 10, 35)
+
+Fonte única: o abastecimento **não** tem quilometragem própria fora do `OdometerReading`.
+
+- **Abastecimento atual** (data ≥ última leitura válida): vira uma leitura `Source = Fueling` com `FuelingId`, pelas regras do `MileageService.AddReadingAsync`: menor que a última → **400** ("peça uma correção"); salto suspeito → leitura `PendingReview` **não aplicada**, o abastecimento ganha o alerta `MileageJump` e o evento `FuelingMileageInconsistencyDetected`.
+- Tolerância de 5 minutos: um abastecimento digitado com hora "redonda" logo depois de outra leitura (ex.: cadastro do veículo) não conta como retroativo; a leitura fica no instante da linha de base.
+- **Abastecimento lançado depois** (data anterior à última leitura, ex.: cupom digitado dias depois): não gera leitura (o histórico já avançou), mas o km precisa caber **entre as leituras válidas vizinhas** (`MileageService.EnsureFitsHistoryAsync`), senão 400.
+- Cancelar um abastecimento rejeita a leitura dele se ainda estiver pendente; uma leitura já válida **fica** (o histórico não é reescrito) e a tela orienta corrigir o hodômetro.
+
+### Situação e transições (seção 13)
+
+| De \ Para | Valid | PendingReview | Cancelled |
+|---|---|---|---|
+| (criação) | sem alerta | com alerta | — |
+| Valid | — | recálculo/correção detecta alerta novo | cancelar |
+| PendingReview | revisar (todos os alertas revisados) ou correção remove os alertas | — | cancelar |
+| Cancelled | final | final | — |
+
+- A situação é derivada dos alertas (`Fueling.RefreshStatus`): algum alerta sem revisão = `PendingReview`. "Corrigido" e "Suspeito" não são situações: correção é histórico; suspeito = `PendingReview`.
+- `PendingReview` **conta nos custos** (o dinheiro foi gasto) e no consumo; `Cancelled` não conta em nada.
+- A API devolve `actions { canCorrect, canCancel, canReview }` (workflow + permissão); a UI não decide regra.
+
+### Correção (seção 14)
+
+- Exige `fuel.correct` e motivo. Pelo menos um campo precisa mudar. Veículo não muda (cancele e registre de novo).
+- Grava um `FuelingCorrection` (quem, quando, motivo e cada campo **de → para**, já formatado em pt-BR) + auditoria genérica + evento `FuelingCorrected`. Total, alertas e consumo são recalculados (posição antiga e nova).
+- **Hodômetro/data** de abastecimento com leitura:
+  - leitura **pendente**: a data não muda; a leitura pendente é rejeitada ("corrigido no abastecimento") e o km corrigido passa pelas regras de novo;
+  - leitura **válida**: a data não muda; corrigir o km exige também `mileage.manage` e que essa leitura ainda seja a mais recente do veículo — vira uma leitura `Correction` (com `FuelingId`) no mesmo instante, com `MileageCorrected`. Com leituras posteriores: 422, orientando a corrigir pela aba Quilometragem.
+  - sem leitura (lançado depois): o km/data novos precisam caber entre as leituras vizinhas.
+- Valores monetários da correção aparecem como "—" para quem não vê custos.
+
+### Revisão e cancelamento
+
+- **Revisar** (`fuel.reviewanomalies`, texto obrigatório): marca todos os alertas como revisados (quem/quando) e grava `ReviewedAt/By/Notes`. Se o hodômetro está pendente, a revisão também aprova a leitura (exige `mileage.manage`, senão 403) e o consumo é recalculado. Evento `FuelingReviewed`. **Nunca abre manutenção** (seção 36): se for o caso, o usuário abre uma solicitação.
+- **Cancelar** (`fuel.cancel`, motivo obrigatório): final; o trecho seguinte é recalculado sem o abastecimento. Evento `FuelingCancelled`.
+
+## Consumo (seções 17, 18, 56) — ADR-032
+
+**Método tanque cheio a tanque cheio** (`ConsumptionCalculator`):
+
+- Um abastecimento **completo** fecha o trecho aberto pelo completo anterior (não cancelado) do mesmo veículo:
+  `distância = km(completo) − km(completo anterior)`; `combustível = soma das quantidades depois do completo anterior até este, inclusive`; `consumo = distância ÷ combustível` (2 casas).
+- Resultado gravado no abastecimento que fecha o trecho (`ConsumptionResult`):
+  - `PartialFill` — complemento: sem número próprio, entra no próximo completo;
+  - `FirstFullTank` — primeiro completo do veículo: só abre o primeiro trecho;
+  - `Calculated` — trecho medido;
+  - `NotReliable` — distância ≤ 0, unidades diferentes no trecho, hodômetro em revisão (alerta `MileageJump` não revisado) em qualquer ponta/abastecimento do trecho, ou **correção de hodômetro** (feita pela aba Quilometragem) dentro do trecho. Correções feitas pelo próprio abastecimento não invalidam o trecho.
+- Unidade principal: **km por unidade** (km/L, km/m³, km/kWh). L/100 km aparece só no detalhe do abastecimento (combustível líquido).
+- **Recálculo**: só os trechos tocados por uma mudança — os dois primeiros completos a partir do ponto alterado (criação, correção nas posições antiga e nova, cancelamento, revisão que aprova hodômetro). Trechos antigos não são recalculados por mudança de configuração.
+- **Snapshot** (seção 43): distância, quantidade, custo do trecho, consumo, consumo esperado usado, fonte do esperado, desvio % e combustível esperado do trecho (`SegmentExpectedQuantity = distância ÷ esperado`) ficam gravados. Mudar o esperado do veículo ou os limites não altera o passado.
+- Média de um período = Σ distância ÷ Σ combustível dos trechos medidos fechados no período (média ponderada, nunca a média das razões). Esperado do período = Σ distância ÷ Σ combustível esperado.
+- Casos documentados: abastecimento **não registrado** dentro de um trecho infla o consumo (km/L acima do esperado → alerta `HighConsumption`, que sugere essa causa); **troca de veículo** (transferência) não existe nesta fase; leituras inválidas ficam fora porque só leituras válidas entram no hodômetro.
+
+### Consumo esperado (seção 20, `ConsumptionBaseline`)
+
+Precedência: `Vehicle.ExpectedConsumption` (configurado) > média do próprio veículo (últimos 10 trechos medidos, mínimo 3, mesma unidade) > média dos veículos do mesmo `VehicleType` e unidade nos últimos 180 dias (mínimo 5 trechos). Sem dados suficientes, não há esperado nem alerta de consumo — "dados insuficientes" nunca vira alerta.
+
+## Alertas (seções 11, 12, 21, 33) — `FuelAnomalyRules`
+
+| Tipo | Regra | Limite padrão (`FuelSettings`) |
+|---|---|---|
+| `ExcessiveQuantity` | quantidade > (tanque principal + segundo tanque) × (1 + tolerância). Sem capacidade cadastrada, não avalia | 5% |
+| `AbnormalPrice` | \|preço − referência\| / referência > limite. Referência: preço de referência vigente do posto; senão média ponderada da empresa para o mesmo combustível nos últimos 30 dias (mínimo 3 abastecimentos) | 20% |
+| `MileageJump` | a leitura de hodômetro do abastecimento ficou em revisão (regra do ADR-019) | 1.500 km/dia (OdometerPolicy) |
+| `HighFrequency` | outro abastecimento não cancelado do veículo a menos de N horas (antes ou depois) | 2 h (0 desliga) |
+| `FuelTypeMismatch` | combustível incompatível com o motor do veículo | — |
+| `LowConsumption` | consumo do trecho abaixo do esperado além do limite | 20% |
+| `HighConsumption` | consumo do trecho acima do esperado além do limite (possível abastecimento não registrado/hodômetro errado) | 20% |
+
+- Textos neutros e factuais ("Revisão recomendada", "Confira o valor digitado"); nunca "fraude", "defeito" ou ranking de motorista. Mensagens de preço **não contêm valores em R$** (são exibidas a quem pode não ver custos); valores esperado/real de preço voltam nulos sem permissão de custo.
+- Os alertas são reavaliados a cada correção: tipos que deixaram de ocorrer somem, tipos que continuam mantêm a revisão já feita, tipos novos voltam a exigir revisão.
+- Limites: 0–200% (variação de preço/consumo ≥ 1%), intervalo 0–48 h. Valem para as próximas avaliações.
+
+## Custos (seção 24)
+
+- Custo total = Σ `TotalAmount` dos abastecimentos não cancelados do período (inclui `PendingReview`).
+- Preço médio/L = Σ total ÷ Σ litros (só combustíveis em litros).
+- Custo/km = Σ custo dos trechos medidos ÷ Σ distância desses trechos.
+- Por veículo, motorista ("Sem motorista informado"), posto ("Sem posto informado") e combustível. Valores **operacionais**, não contábeis.
+
+## Eventos (seção 34) — ADR-025
+
+`FuelingRecorded`, `FuelingCorrected`, `FuelingCancelled`, `FuelingMarkedForReview`, `FuelingReviewed`, `FuelConsumptionAnomalyDetected`, `FuelingMileageInconsistencyDetected`, `FuelPriceChanged`. Os de abastecimento entram na linha do tempo do veículo (e do motorista, quando informado). **Os resumos não contêm valores em R$** — a linha do tempo é visível a quem vê o veículo. Nenhum canal (e-mail, WhatsApp, push) é acionado: o outbox (`PublishedAt`) fica pronto para a Fase 9.
+
+## Dashboard e relatórios
+
+- **Painel de Combustível** (`/combustivel`): custo total, litros, preço médio/L, consumo médio, custo/km, nº de abastecimentos (período escolhido); "o que requer atenção" (fila de revisão, todos os períodos); gasto mensal e consumo mensal (12 meses); por combustível; veículos com maior custo; veículos com consumo abaixo do esperado; últimos abastecimentos.
+- **Dashboard principal**: alerta `FuelingPendingReview` para quem tem `fuel.reviewanomalies`.
+- **Relatórios** (`/combustivel/relatorios`): abastecimentos; consumo (veículo, trechos, distância, combustível, consumo, esperado, variação); custos (por veículo/motorista/posto/combustível, com custo/km por veículo); postos (por posto × combustível: abastecimentos, quantidade, preço médio/mín./máx., custo); preços (combustível × mês). Período obrigatório de até 2 anos (padrão 30 dias), ordenação e paginação. **Sem exportação** (o sistema ainda não tem exportação; Fase 8).
+- **Aba Combustível do veículo**: consumo médio × esperado, custo/km, custo e volume do período, histórico por dia (30 dias), semana (120 dias) ou mês (12 meses) com períodos vazios sem número inventado, últimos abastecimentos.
+
+## Catálogo de permissões (Fase 4)
+
+| Permissão | Significado |
+|---|---|
+| `fuel.view` | abastecimentos, consumo, postos, combustíveis, painel e relatórios **sem valores em R$** |
+| `fuel.create` | registrar abastecimentos (e anexar comprovantes nos próprios) |
+| `fuel.correct` | corrigir abastecimentos (km já aplicado exige também `mileage.manage`) |
+| `fuel.cancel` | cancelar abastecimentos |
+| `fuel.reviewanomalies` | revisar abastecimentos com alerta (hodômetro pendente exige também `mileage.manage`) |
+| `fuel.managestations` | postos e preços de referência |
+| `fuel.configure` | catálogo de combustíveis e limites dos alertas |
+| `fuel.viewcosts` | preços, totais, custo/km, relatórios de custos e preços. **Exceção**: o autor de um abastecimento sempre vê os valores do que registrou |
+
+`Fuel.Edit` e `Fuel.ViewReports` da especificação foram absorvidos: editar = corrigir (não existe edição livre), e relatórios seguem `fuel.view` + `fuel.viewcosts` para os valores (mesmo molde de `maintenance.viewcosts`).
+
+| Papel | Permissões de combustível |
+|---|---|
+| Administrador / Administrador da plataforma | todas |
+| Gestor de frota | todas |
+| Operações | `fuel.view`, `fuel.create` (registra e vê o que registrou; não vê o gasto da frota) |
+| Manutenção | `fuel.view` (consumo é sinal de manutenção) |
+| Financeiro | `fuel.view`, `fuel.viewcosts` |
+| Visualizador | `fuel.view` |
+| Motorista | nenhuma (decisão da Fase 2 mantida). Quando existir o acesso do motorista, `fuel.create` sem `fuel.viewcosts` já atende a seção 41 |
+
+## Cartão combustível (preparação, seção 16)
+
+Não implementado. A forma de pagamento `FuelCard` e o `Source` do abastecimento já existem; um futuro `FuelCard` (número mascarado, fornecedor, situação, limite, vínculo com veículo/motorista) entra como entidade própria e uma FK nula `Fueling.FuelCardId` — migration aditiva, sem reestruturar o abastecimento. Importação de transações de fornecedor acrescenta `FuelingSource.Integration` + um identificador externo único.

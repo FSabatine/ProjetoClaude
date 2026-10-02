@@ -51,6 +51,7 @@ internal sealed class OdometerReadingConfiguration : IEntityTypeConfiguration<Od
         builder.HasOne<Company>().WithMany().HasForeignKey(r => r.CompanyId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(r => r.Vehicle).WithMany().HasForeignKey(r => r.VehicleId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<ChecklistExecution>().WithMany().HasForeignKey(r => r.ChecklistExecutionId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<Fleet.Domain.Fuel.Fueling>().WithMany().HasForeignKey(r => r.FuelingId).OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(r => new { r.CompanyId, r.VehicleId, r.ReadAt });
         builder.HasIndex(r => new { r.CompanyId, r.Status });

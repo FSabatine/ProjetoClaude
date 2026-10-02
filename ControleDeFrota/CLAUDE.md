@@ -2,7 +2,7 @@
 
 Guia rápido para agentes de IA neste repositório. **A fonte da verdade é `docs/`**: leia o documento da área antes de alterá-la e atualize-o no mesmo trabalho. Em qualquer implementação, siga a skill de projeto `fleet-development` (`.claude/skills/fleet-development/SKILL.md`).
 
-Controle de Frota é um sistema de gestão de frotas multiempresa em .NET 8 + React. A fase atual e o escopo estão em `docs/ROADMAP.md` (Fases 1 — Fundação, 2 — Controle operacional e 3 — Manutenção concluídas; a Fase 2.5 — Viagens e composição foi conscientemente adiada por decisão do usuário em 2026-10-01, ver ROADMAP.md e ADR-026). **Não implemente módulos de fases futuras** (combustível, pneus, viagens, rastreamento…); apenas deixe o ponto de extensão (normalmente um novo valor em `OperationalEventType`).
+Controle de Frota é um sistema de gestão de frotas multiempresa em .NET 8 + React. A fase atual e o escopo estão em `docs/ROADMAP.md` (Fases 1 — Fundação, 2 — Controle operacional, 3 — Manutenção e 4 — Combustível concluídas; a Fase 2.5 — Viagens e composição foi adiada por decisão do usuário, ADR-026/ADR-031, e é a próxima recomendada). **Não implemente módulos de fases futuras** (pneus, viagens, rastreamento, financeiro…); apenas deixe o ponto de extensão (normalmente um novo valor em `OperationalEventType`).
 
 ## Comandos (a partir de `ControleDeFrota/`)
 
@@ -57,6 +57,17 @@ Login de desenvolvimento: `admin@frota.local` / `FrotaDev!2026`. Os demais usuá
 - `MaintenanceSchedule` só existe (linha gravada) depois da primeira manutenção feita naquele item; antes disso, `MaintenanceScheduleService` calcula a "linha de base" a partir do cadastro do veículo (mesma ideia do `MileageService.BaselineAsync`). Sem técnico (`Mechanic`) ou inventário de peças nesta fase — ver DECISIONS.md.
 - Frontend: `features/maintenance/` (tipos/labels em `maintenance.ts`, hooks em `api.ts`); nova aba **"Manutenção"** no hub do veículo; bloco "Manutenção" no dashboard. Igual à Fase 2, `nextStatuses` da API decide os botões de transição — nunca hardcode regras de workflow no componente.
 
+## Combustível (Fase 4) em uma tela
+
+- Módulo: `Fleet.Domain/Fuel` (entidades + `FuelRules.cs`), `Fleet.Application/Fuel` (`FuelCatalogServices`, `FuelingService`, `FuelConsumptionService`, `FuelAnalyticsService`), `Api/Controllers/FuelControllers.cs`, `Persistence/Configurations/FuelConfigurations.cs`, `Persistence/DevFuelSeeder.cs`; frontend em `features/fuel/` (+ `lib/fuel.ts`, `components/ColumnChart.tsx`).
+- `FuelType` é o **catálogo** de produtos (por empresa); o enum do motor do veículo é `VehicleFuelType` (ADR-031). Não confunda os dois.
+- Regras puras no Domain e únicas fontes: `FuelingAmounts` (total = round(qtd × preço, 2) — o total do cliente só é conferido), `FuelingWorkflow`, `ConsumptionCalculator` (tanque cheio a tanque cheio), `ConsumptionBaseline` (configurado > histórico do veículo > tipo), `FuelAnomalyRules`, `FuelCompatibility`. O frontend espelha só o que precisa para feedback (`lib/fuel.ts`).
+- **Hodômetro tem fonte única**: o abastecimento passa pelo `MileageService` (`AddReadingAsync` com `Source=Fueling`/`FuelingId`; `EnsureFitsHistoryAsync` para lançamento tardio; `ApprovePendingAsync`/`RejectPending` dentro da transação). Nunca escreva `Vehicle.CurrentOdometerKm` a partir do combustível.
+- O consumo é um **snapshot** gravado no abastecimento que fecha o trecho (ADR-032). `FuelConsumptionService.RecalculateAsync` roda **depois** do `SaveChanges` (lê a cadeia do banco), dentro de `InTransactionAsync`, e só recalcula os dois primeiros tanques cheios a partir do ponto alterado. Colunas de trecho ficam `NULL` fora de `Calculated`.
+- Status do abastecimento é derivado dos alertas (`Fueling.RefreshStatus`): algum alerta sem revisão = `PendingReview`. Nada é excluído: corrigir (com `FuelingCorrection`) ou cancelar.
+- Dinheiro só com `fuel.viewcosts` **ou** sendo o autor do registro (ADR-034), decidido no serviço. Resumos de eventos e mensagens de alerta de preço não levam R$.
+- `FueledAt` é gravado em segundos inteiros (o valor faz ida e volta pelo JSON/JS a cada correção); `FueledOn` é a data de negócio usada em filtros e agrupamentos.
+
 ## Regras que não são óbvias pelo código
 
 - Autorização **só por permissão**, nunca pelo nome do papel. Anti-escalonamento: ninguém atribui um papel com permissão que ele próprio não tem.
@@ -64,7 +75,7 @@ Login de desenvolvimento: `admin@frota.local` / `FrotaDev!2026`. Os demais usuá
 - `User` **não** é `ITenantScoped`, porque o login precisa encontrá-lo antes de saber o tenant. O `UserService.ScopedUsers()` filtra manualmente.
 - Nunca preencha `CompanyId`, `CreatedAt`, `UpdatedAt` ou `DeletedAt` à mão.
 - Índices únicos são filtrados por `[DeletedAt] IS NULL`. A placa é única por empresa **entre veículos e implementos** (`RegisteredAssetRules`).
-- Enums são gravados como texto, datas com hora usam `DateTime` UTC, e não se ordena por `decimal` (limitação do SQLite usado nos testes).
+- Enums são gravados como texto e datas com hora usam `DateTime` UTC. No SQLite dos testes, `decimal` é gravado como REAL (ADR-033) para permitir `SUM/MIN/MAX` no banco — mas **some colunas, não expressões** (`SUM(a/b)`, `SUM(x ?? 0)` e casts não traduzem no SQLite). Consulta agregada nova: rode uma vez no SQL Server (LocalDB, com um banco temporário via `ConnectionStrings__Fleet`) antes de dar por pronta.
 - `Id` (GUID sequencial) **não é um desempate de ordenação confiável** nos testes: o gerador é sequencial para a ordenação especial do SQL Server, mas o SQLite dos testes compara os bytes em ordem simples. Quando duas linhas empatam na coluna principal (ex. dois registros no mesmo instante), desempate por algo com significado de negócio (ex. "ativo primeiro"), não por `Id`.
 - No frontend, o access token fica só em memória. O refresh token é um cookie HttpOnly rotativo: se um token antigo for reutilizado, todas as sessões do usuário são revogadas.
 - Os validadores do frontend (`src/lib/validators.ts`) espelham `Fleet.Domain/Validation`. Ao mudar um, mude o outro e os testes dos dois.

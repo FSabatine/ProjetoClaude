@@ -27,6 +27,8 @@ Prioridades: Clareza > Esperteza · Manutenibilidade > Complexidade · UX > Nº 
 - Fato operacional novo (ex.: "manutenção aberta", "abastecimento registrado"): acrescente um valor a `OperationalEventType` e chame `OperationalEventLog.Record(...)` no serviço, antes do `SaveChangesAsync` (ADR-025). Isso alimenta o histórico do veículo e as notificações futuras sem acoplar módulos.
 - Histórico nunca é sobrescrito nem apagado: use vigência (`StartedAt/EndedAt`), estados finais (cancelado/rejeitado) ou snapshots. Status que depende de data é **calculado** (não gravado).
 - Arquivos: `FileService` + `IFileStorage`; nunca `byte[]` em entidade.
+- Um módulo que produz quilometragem (abastecimento, viagem, telemetria…) **não tem hodômetro próprio**: passa pelo `MileageService` com um `OdometerReadingSource` novo. Resultados calculados que alimentam relatórios (consumo, custo do trecho) são **snapshots gravados** com a referência usada no momento — nunca recalculados do cadastro atual.
+- Totais e relatórios agregam **no banco** (sem carregar registros para somar), paginam o resultado agrupado e ganham um teste de volume.
 
 ## Código
 
@@ -42,7 +44,7 @@ Prioridades: Clareza > Esperteza · Manutenibilidade > Complexidade · UX > Nº 
 - Toda entidade de negócio herda `AuditableEntity` (Guid `Id`, `CreatedAt/By`, `UpdatedAt/By`) e normalmente implementa `ISoftDeletable`, `IAuditable` e, se pertencer a uma empresa, `ITenantScoped`.
 - **Nunca** setar `DeletedAt`, `CreatedAt` ou `CompanyId` à mão: o `FleetDbContext.SaveChangesAsync` faz isso. Para excluir, use `db.X.Remove(entity)`.
 - Índices únicos de entidades soft-deletáveis são **filtrados**: `.HasFilter("[DeletedAt] IS NULL")`. Índices de tenant começam por `CompanyId`.
-- Enums: `.HasConversion<string>().HasMaxLength(n)`. Datas com hora: `DateTime` UTC. Datas puras: `DateOnly`. Não ordene por `decimal` (o SQLite dos testes não suporta).
+- Enums: `.HasConversion<string>().HasMaxLength(n)`. Datas com hora: `DateTime` UTC. Datas puras: `DateOnly`. No SQLite dos testes `decimal` vira REAL (ADR-033): some **colunas**, não expressões calculadas; consulta agregada nova é executada uma vez no SQL Server (LocalDB, banco temporário) antes de dar por pronta.
 - Documentos são gravados normalizados (só dígitos; placa em maiúsculas sem hífen).
 - Migration: `dotnet ef migrations add <Nome> --project src/Fleet.Infrastructure --startup-project src/Fleet.Api`. Revise o SQL e nunca edite migration já aplicada.
 - `IgnoreQueryFilters()` só com comentário justificando (quebra o isolamento de tenant/soft delete).
@@ -55,6 +57,8 @@ Prioridades: Clareza > Esperteza · Manutenibilidade > Complexidade · UX > Nº 
 - Valide toda entrada no backend (FluentValidation + `Fleet.Domain/Validation`). Ordenação apenas por uma whitelist de colunas.
 - Anti-escalonamento: não se concede permissão que o próprio usuário não tem.
 - Regra que depende do **alvo** (ex.: correção só com `mileage.manage`, download conforme o dono do arquivo) é checada no serviço com `ICurrentUser.HasPermission`, além do `[HasPermission]` da rota.
+- Valores em R$ ficam atrás de uma permissão `*.viewcosts` decidida **no serviço** (campos `null` na resposta); eventos operacionais e mensagens exibidas fora desse controle nunca carregam valores em R$.
+- Entidade auditável nova: inclua o nome na whitelist do `AuditController` e no tipo `AuditEntity` do `AuditHistoryButton`.
 
 ## Testes
 
@@ -78,7 +82,9 @@ Detalhes em `docs/UX_UI.md`. O mínimo obrigatório de toda tela:
 - Registro com vida operacional ganha uma página **hub** com `DetailTabs` (aba na URL `?aba=`) e cabeçalho com `HeaderFact`; a edição do cadastro fica em `/:id/editar`.
 - Seleção de veículo/motorista: `VehiclePicker`/`DriverPicker` (busca no servidor). Anexos: `UploadButton` (com `camera` no celular) + `AttachmentList`.
 - Telas usadas em campo (checklist) são mobile-first: botões ≥ 48px, "marcar todos", foto pela câmera, barra de envio fixa e erro rolando até o item.
-- **Toda funcionalidade nova visível ao usuário final ganha um artigo na Central de Ajuda** (`frontend/src/features/help/content/<categoria>.ts`, aberta pelo `?` no cabeçalho) — pt-BR, linguagem de negócio, só do que já está implementado. É **diferente** de `docs/` (técnico, para quem desenvolve). Ver docs/DECISIONS.md (ADR-029/030).
+- Linguagem neutra em alertas: "requer revisão", "revisão recomendada" — nunca "fraude", "erro do motorista" ou ranking de pessoas; toda comparação nomeia a medida e o período. Número ausente é explicado ("primeiro tanque cheio…"), nunca mostrado como zero.
+- Gráficos: leia o skill de dataviz antes; use `components/ColumnChart` (uma série, cor validada, tooltip no hover e no foco, botão "Ver tabela"). Nunca dois eixos.
+- **Toda funcionalidade nova visível ao usuário final ganha um artigo na Central de Ajuda** (`frontend/src/features/help/content/<categoria>.ts`, aberta pelo `?` no cabeçalho) — pt-BR, linguagem de negócio, só do que já está implementado. Atualize também `context.ts` (ajuda contextual da rota/aba nova, com teste em `context.test.ts`), "Novidades" (`whatsNew.ts`) e ponha `[?]` (`InfoHint`) ao lado de métricas calculadas. É **diferente** de `docs/` (técnico, para quem desenvolve). Ver docs/DECISIONS.md (ADR-029/030).
 
 ## Quality gates (antes de dizer "pronto")
 

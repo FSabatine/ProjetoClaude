@@ -131,8 +131,9 @@ public sealed class VehicleService(IFleetDbContext db, IClock clock, Operational
         // so its history stays consistent and reportable.
         if (await db.VehicleAssignments.AnyAsync(a => a.VehicleId == id, ct) ||
             await db.ChecklistExecutions.AnyAsync(e => e.VehicleId == id, ct) ||
-            await db.Occurrences.AnyAsync(o => o.VehicleId == id, ct))
-            throw new BusinessRuleException("Este veículo tem histórico operacional (alocações, checklists ou ocorrências) e não pode ser excluído. Inative-o.");
+            await db.Occurrences.AnyAsync(o => o.VehicleId == id, ct) ||
+            await db.Fuelings.AnyAsync(f => f.VehicleId == id, ct))
+            throw new BusinessRuleException("Este veículo tem histórico operacional (alocações, checklists, ocorrências ou abastecimentos) e não pode ser excluído. Inative-o.");
 
         foreach (var document in await db.Documents.Where(d => d.VehicleId == id).ToListAsync(ct)) db.Documents.Remove(document);
         db.Vehicles.Remove(vehicle);
@@ -190,6 +191,9 @@ public sealed class VehicleService(IFleetDbContext db, IClock clock, Operational
         vehicle.FuelType = request.FuelType!.Value;
         vehicle.CargoCapacityKg = request.CargoCapacityKg;
         vehicle.TareWeightKg = request.TareWeightKg;
+        vehicle.FuelTankCapacity = request.FuelTankCapacity;
+        vehicle.SecondaryFuelTankCapacity = request.SecondaryFuelTankCapacity;
+        vehicle.ExpectedConsumption = request.ExpectedConsumption;
         vehicle.HourMeter = request.HourMeter;
         vehicle.Status = request.Status;
         vehicle.AcquisitionDate = request.AcquisitionDate;
@@ -204,7 +208,8 @@ public sealed class VehicleService(IFleetDbContext db, IClock clock, Operational
             .FirstOrDefaultAsync(ct);
         return new VehicleResponse(
             v.Id, v.LicensePlate, v.Renavam, v.Chassis, v.Manufacturer, v.Model, v.ManufacturingYear, v.ModelYear,
-            v.Color, v.Type, v.Category, v.FuelType, v.CargoCapacityKg, v.TareWeightKg, v.CurrentOdometerKm, v.OdometerUpdatedAt,
+            v.Color, v.Type, v.Category, v.FuelType, v.CargoCapacityKg, v.TareWeightKg,
+            v.FuelTankCapacity, v.SecondaryFuelTankCapacity, v.ExpectedConsumption, v.CurrentOdometerKm, v.OdometerUpdatedAt,
             v.HourMeter, v.Status, VehicleOperationalState.From(v.Status, current is not null), current,
             v.AcquisitionDate, v.AcquisitionValue, v.Notes, v.CreatedAt, v.UpdatedAt);
     }

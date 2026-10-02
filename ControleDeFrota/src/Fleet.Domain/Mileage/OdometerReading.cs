@@ -9,6 +9,8 @@ public enum OdometerReadingSource
     Registration,
     Manual,
     Checklist,
+    /// <summary>Odometer informed in a fueling (Phase 4) — fueling is one source of readings, not a second mileage system.</summary>
+    Fueling,
     /// <summary>Audited correction by a manager; may be lower than the previous reading.</summary>
     Correction,
 }
@@ -46,6 +48,8 @@ public class OdometerReading : AuditableEntity, ITenantScoped, IAuditable
     public string? ReviewNotes { get; set; }
 
     public Guid? ChecklistExecutionId { get; set; }
+    /// <summary>Fueling that produced this reading (Source = Fueling, or a Correction made from the fueling).</summary>
+    public Guid? FuelingId { get; set; }
 }
 
 /// <summary>The previous valid reading a new one is compared with.</summary>

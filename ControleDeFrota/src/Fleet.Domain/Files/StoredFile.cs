@@ -8,6 +8,8 @@ public enum FileOwnerType
     Document,
     Occurrence,
     ChecklistAnswer,
+    /// <summary>Receipt, invoice or photo of a fueling (Phase 4).</summary>
+    Fueling,
 }
 
 /// <summary>

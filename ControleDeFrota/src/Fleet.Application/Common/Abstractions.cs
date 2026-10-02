@@ -6,6 +6,7 @@ using Fleet.Domain.Companies;
 using Fleet.Domain.Documents;
 using Fleet.Domain.Drivers;
 using Fleet.Domain.Files;
+using Fleet.Domain.Fuel;
 using Fleet.Domain.Implements;
 using Fleet.Domain.Maintenance;
 using Fleet.Domain.Mileage;
@@ -51,6 +52,14 @@ public interface IFleetDbContext
     DbSet<HourMeterReading> HourMeterReadings { get; }
     DbSet<MaintenanceRequest> MaintenanceRequests { get; }
     DbSet<WorkOrder> WorkOrders { get; }
+
+    // Phase 4 — fuel
+    DbSet<FuelType> FuelTypes { get; }
+    DbSet<FuelStation> FuelStations { get; }
+    DbSet<FuelPrice> FuelPrices { get; }
+    DbSet<FuelSettings> FuelSettings { get; }
+    DbSet<Fueling> Fuelings { get; }
+    DbSet<FuelingAnomaly> FuelingAnomalies { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 

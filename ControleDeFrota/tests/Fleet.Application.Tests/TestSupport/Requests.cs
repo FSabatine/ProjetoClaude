@@ -24,7 +24,7 @@ public static class Requests
         ManufacturingYear = 2022,
         ModelYear = 2023,
         Type = VehicleType.TruckTractor,
-        FuelType = FuelType.DieselS10,
+        FuelType = VehicleFuelType.DieselS10,
         CurrentOdometerKm = 1000,
         Status = VehicleStatus.Available,
     };

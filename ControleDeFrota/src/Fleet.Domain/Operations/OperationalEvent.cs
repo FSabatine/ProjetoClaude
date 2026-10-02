@@ -35,6 +35,16 @@ public enum OperationalEventType
     WorkOrderOpened,
     WorkOrderStatusChanged,
     WorkOrderCompleted,
+
+    // Phase 4 — fuel
+    FuelingRecorded,
+    FuelingCorrected,
+    FuelingCancelled,
+    FuelingMarkedForReview,
+    FuelingReviewed,
+    FuelConsumptionAnomalyDetected,
+    FuelingMileageInconsistencyDetected,
+    FuelPriceChanged,
 }
 
 /// <summary>

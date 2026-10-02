@@ -148,3 +148,32 @@ Alvos de toque de no mínimo 40px. O motorista vai usar o celular nas fases futu
 
 ### Erros inesperados
 - Uma falha de renderização mostra "Algo deu errado nesta tela" com o botão "Recarregar a página" (`UnexpectedErrorPage` como `errorElement` da rota raiz), nunca a página técnica do roteador.
+
+## Fase 4 — combustível
+
+### Registro de abastecimento (uso frequente, mobile-first)
+- Ordem dos campos pela frequência de uso (seção 46): **veículo → hodômetro → combustível → quantidade → preço → total**; depois posto, motorista, data, tanque cheio, pagamento, cupom e foto. Inputs `size="md"` (≥ 40px), teclado numérico (`inputMode`), barra de salvar fixa (`FormActions`).
+- **Reaproveitar sem induzir erro** (seção 27): ao escolher o veículo, sugere o motorista alocado, o último combustível e o último posto (com a legenda "confira"); mostra o último hodômetro como referência. **Hodômetro e preço nunca vêm preenchidos** — são o fato sendo registrado. O preço conhecido do posto aparece como dica com o link "usar".
+- Feedback antes de salvar, espelhando o Domain (`lib/fuel.ts`, `lib/mileage.ts`): total calculado ao vivo, aviso de km menor que a última leitura (será recusado), de salto suspeito (será salvo para revisão) e de quantidade acima do tanque (será salvo para revisão).
+- Salvou com alerta? Notificação laranja explicando que o registro foi salvo e ficou para revisão, e a tela do abastecimento abre com o motivo.
+- A mesma tela serve para a **correção** (`/abastecimentos/:id/corrigir`): veículo travado, data travada quando o abastecimento já gerou leitura de hodômetro, motivo obrigatório.
+
+### Alertas e revisão (linguagem neutra)
+- Situação "**Requer revisão**" (laranja, com texto). Nunca "suspeito de fraude", "erro" ou ranking de motorista (seção 48). O detalhe explica que "um alerta não significa erro nem irregularidade" e oferece as três saídas: Revisar (está certo), Corrigir, Cancelar.
+- Ações (`actions` da API) decidem quais botões aparecem. Cancelar e revisar pedem texto num modal.
+
+### Números, gráficos e ajuda contextual
+- Consumo sempre em **km/unidade** (km/L); L/100 km só no detalhe do abastecimento. Desvio com sinal ("-26%"), nunca só por cor.
+- Ausência de número é explicada (`CONSUMPTION_RESULT`): "Primeiro tanque cheio…", "Abastecimento parcial…", "Não calculado…". Períodos sem trecho medido mostram "—", nunca zero ou estimativa.
+- `[?]` (`InfoHint`) ao lado de consumo e custo/km, com a explicação em linguagem simples (seção 49).
+- Gráficos (`components/ColumnChart`, regras do skill de dataviz): uma série, uma cor validada (indigo 6 no claro / 5 no escuro), colunas ≤ 24px com topo arredondado de 4px, linhas de grade finas, sem legenda (o título nomeia a série), um único rótulo direto no maior valor, tooltip por coluna no hover **e no foco do teclado**, e o botão "**Ver tabela**" com todos os números. Nenhum gráfico de dois eixos.
+- Comparações entre veículos sempre nomeiam a medida e o período ("Custo total no período (01/09 a 30/09)").
+- Valores em R$ somem (colunas, cards e gráficos) para quem não tem `fuel.viewcosts`; quem registrou vê o próprio valor.
+
+### Painel e relatórios
+- Painel de Combustível responde, nessa ordem: o que aconteceu (KPIs do período), o que requer atenção (fila de revisão), o que custa (gasto mensal, maior custo) e o consumo (mensal, abaixo do esperado).
+- Período na URL (`?de=&ate=`) com atalhos de 30/90/365 dias; o link "Relatórios de combustível" leva o mesmo período.
+- Relatórios em abas na URL (`?relatorio=`), ordenação no cabeçalho e paginação no servidor.
+
+### Revisão desta fase
+- Revisão de UX e responsividade feita no código (cada tela com `PageHeader`, estados de carregando/vazio/erro, cards no celular via `DataTable`, `SimpleGrid` responsivo). **Sem revisão visual automatizada** (o navegador headless travou a máquina na Fase 1): conferir manualmente em 375px, tablet e desktop, nos temas claro e escuro.

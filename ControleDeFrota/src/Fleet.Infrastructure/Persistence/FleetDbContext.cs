@@ -9,6 +9,7 @@ using Fleet.Domain.Companies;
 using Fleet.Domain.Documents;
 using Fleet.Domain.Drivers;
 using Fleet.Domain.Files;
+using Fleet.Domain.Fuel;
 using Fleet.Domain.Implements;
 using Fleet.Domain.Maintenance;
 using Fleet.Domain.Mileage;
@@ -63,6 +64,13 @@ public sealed class FleetDbContext : DbContext, IFleetDbContext
     public DbSet<MaintenanceRequest> MaintenanceRequests => Set<MaintenanceRequest>();
     public DbSet<WorkOrder> WorkOrders => Set<WorkOrder>();
 
+    public DbSet<FuelType> FuelTypes => Set<FuelType>();
+    public DbSet<FuelStation> FuelStations => Set<FuelStation>();
+    public DbSet<FuelPrice> FuelPrices => Set<FuelPrice>();
+    public DbSet<FuelSettings> FuelSettings => Set<FuelSettings>();
+    public DbSet<Fueling> Fuelings => Set<Fueling>();
+    public DbSet<FuelingAnomaly> FuelingAnomalies => Set<FuelingAnomaly>();
+
     /// <summary>Read by the tenant query filter on every query (EF parameterizes this per context instance).</summary>
     private Guid? CurrentCompanyId => _currentUser.CompanyId;
 
@@ -73,7 +81,15 @@ public sealed class FleetDbContext : DbContext, IFleetDbContext
             builder.Properties(enumType).HaveConversion<string>().HaveMaxLength(30);
 
         builder.Properties<DateTime>().HaveConversion<UtcDateTimeConverter>();
+
+        // SQLite (used only by the test suites, ADR-004) has no decimal type and refuses SUM/AVG/MIN/MAX over
+        // decimal columns. Fuel analytics aggregate in the database (ADR-033), so on SQLite decimals are stored as
+        // REAL. SQL Server keeps exact decimal(p,s) columns — production aggregation stays exact.
+        if (Database.ProviderName == SqliteProviderName)
+            builder.Properties<decimal>().HaveConversion<double>();
     }
+
+    private const string SqliteProviderName = "Microsoft.EntityFrameworkCore.Sqlite";
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

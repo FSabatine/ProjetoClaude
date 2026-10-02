@@ -1,6 +1,6 @@
 import { Alert, Anchor, Button, Group, Paper, SimpleGrid, Stack, Text } from '@mantine/core';
 import {
-  IconAlertTriangle, IconChecklist, IconFileText, IconGauge, IconHistory, IconInfoCircle, IconPencil, IconPlayerPlay, IconSteeringWheel, IconTool,
+  IconAlertTriangle, IconChecklist, IconFileText, IconGasStation, IconGauge, IconHistory, IconInfoCircle, IconPencil, IconPlayerPlay, IconSteeringWheel, IconTool,
 } from '@tabler/icons-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
@@ -16,12 +16,13 @@ import { AuditHistoryButton } from '../audit/AuditHistoryButton';
 import { ChecklistsPanel } from '../checklists/ChecklistsPanel';
 import { DocumentsPanel } from '../documents/DocumentsPanel';
 import { HistoryTimeline } from '../history/HistoryTimeline';
+import { VehicleFuelPanel } from '../fuel/VehicleFuelPanel';
 import { VehicleMaintenancePanel } from '../maintenance/VehicleMaintenancePanel';
 import { MileagePanel } from '../mileage/MileagePanel';
 import { OccurrencesPanel } from '../occurrences/OccurrencesPanel';
 import { documentsApi, mileageApi, occurrencesApi } from '../operations/api';
 import { VEHICLE_OPERATIONAL_STATUS } from '../operations/labels';
-import { FUEL_TYPE, VEHICLE_CATEGORY, VEHICLE_TYPE, vehiclesApi, type Vehicle } from './vehicles';
+import { VEHICLE_FUEL_TYPE, VEHICLE_CATEGORY, VEHICLE_TYPE, vehiclesApi, type Vehicle } from './vehicles';
 
 const STALE_DAYS = 7;
 
@@ -49,6 +50,7 @@ function VehicleHub({ vehicle: v }: { vehicle: Vehicle }) {
       content: <OccurrencesPanel filter={{ vehicleId: v.id }} defaults={{ vehicleId: v.id, vehicleLabel: plate, driverId: v.currentAssignment?.driverId, driverLabel: v.currentAssignment?.driverName }} />,
     }] : []),
     ...(can(PERMISSIONS.maintenance.view) ? [{ value: 'manutencao', label: 'Manutenção', icon: <IconTool size={16} />, content: <VehicleMaintenancePanel vehicleId={v.id} /> }] : []),
+    ...(can(PERMISSIONS.fuel.view) ? [{ value: 'combustivel', label: 'Combustível', icon: <IconGasStation size={16} />, content: <VehicleFuelPanel vehicleId={v.id} vehicleInactive={v.status === 'Inactive'} /> }] : []),
     { value: 'historico', label: 'Histórico', icon: <IconHistory size={16} />, content: <HistoryTimeline owner="vehicles" id={v.id} /> },
   ];
 
@@ -125,12 +127,14 @@ function Overview({ vehicle: v }: { vehicle: Vehicle }) {
           { label: 'Ano', value: `${v.manufacturingYear}/${v.modelYear}` },
           { label: 'Tipo', value: VEHICLE_TYPE[v.type].label },
           { label: 'Categoria', value: v.category && VEHICLE_CATEGORY[v.category].label },
-          { label: 'Combustível', value: FUEL_TYPE[v.fuelType].label },
+          { label: 'Combustível', value: VEHICLE_FUEL_TYPE[v.fuelType].label },
           { label: 'Cor', value: v.color },
           { label: 'RENAVAM', value: v.renavam },
           { label: 'Chassi', value: v.chassis },
           { label: 'Capacidade de carga', value: v.cargoCapacityKg !== null ? `${formatNumber(v.cargoCapacityKg)} kg` : null },
           { label: 'Horímetro', value: v.hourMeter !== null ? `${formatNumber(v.hourMeter)} h` : null },
+          { label: 'Tanque', value: v.fuelTankCapacity !== null ? `${formatNumber(v.fuelTankCapacity)}${v.secondaryFuelTankCapacity ? ` + ${formatNumber(v.secondaryFuelTankCapacity)}` : ''} L` : null },
+          { label: 'Consumo esperado', value: v.expectedConsumption !== null ? `${formatNumber(v.expectedConsumption)} km/L` : null },
           { label: 'Aquisição', value: v.acquisitionDate ? `${formatDate(v.acquisitionDate)} · ${formatCurrency(v.acquisitionValue)}` : null },
         ]} />
         {v.notes && <Text size="sm" c="dimmed" style={{ whiteSpace: 'pre-wrap' }}>{v.notes}</Text>}

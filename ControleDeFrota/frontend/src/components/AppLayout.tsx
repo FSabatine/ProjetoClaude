@@ -8,6 +8,9 @@ import {
   IconClipboardList,
   IconFileText,
   IconFiles,
+  IconGasStation,
+  IconBuildingStore,
+  IconGauge,
   IconListCheck,
   IconBuilding,
   IconBuildingSkyscraper,
@@ -48,6 +51,8 @@ const OPERATION: NavItem[] = [
   { label: 'Documentos', to: '/documentos', icon: IconFileText, permission: PERMISSIONS.documents.view },
   { label: 'Solicitações de manutenção', to: '/solicitacoes-manutencao', icon: IconClipboardList, permission: PERMISSIONS.maintenance.view },
   { label: 'Ordens de serviço', to: '/ordens-servico', icon: IconTool, permission: PERMISSIONS.maintenance.view },
+  { label: 'Combustível', to: '/combustivel', icon: IconGauge, permission: PERMISSIONS.fuel.view },
+  { label: 'Abastecimentos', to: '/abastecimentos', icon: IconGasStation, permission: PERMISSIONS.fuel.view },
 ];
 
 const SETTINGS: NavItem[] = [
@@ -55,6 +60,8 @@ const SETTINGS: NavItem[] = [
   { label: 'Tipos de documento', to: '/configuracoes/tipos-de-documento', icon: IconFiles, permission: PERMISSIONS.operations.configure },
   { label: 'Planos de manutenção', to: '/planos-manutencao', icon: IconListCheck, permission: PERMISSIONS.maintenance.manageplans },
   { label: 'Oficinas', to: '/oficinas', icon: IconBuildingFactory2, permission: PERMISSIONS.maintenance.manageworkshops },
+  { label: 'Postos de combustível', to: '/postos', icon: IconBuildingStore, permission: PERMISSIONS.fuel.managestations },
+  { label: 'Combustível', to: '/configuracoes/combustivel', icon: IconGasStation, permission: PERMISSIONS.fuel.configure },
 ];
 
 const ADMINISTRATION: NavItem[] = [

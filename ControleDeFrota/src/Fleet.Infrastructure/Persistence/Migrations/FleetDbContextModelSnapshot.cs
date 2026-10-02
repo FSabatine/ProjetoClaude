@@ -780,6 +780,486 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                     b.ToTable("StoredFiles", (string)null);
                 });
 
+            modelBuilder.Entity("Fleet.Domain.Fuel.FuelPrice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateOnly>("EffectiveFrom")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("FuelStationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("FuelTypeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(10, 4)
+                        .HasColumnType("decimal(10,4)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FuelStationId");
+
+                    b.HasIndex("FuelTypeId");
+
+                    b.HasIndex("CompanyId", "FuelStationId", "FuelTypeId", "EffectiveFrom");
+
+                    b.ToTable("FuelPrices", (string)null);
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Fuel.FuelSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("ConsumptionDeviationPercent")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("MinHoursBetweenFuelings")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PriceDeviationPercent")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("RequireDriver")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("TankTolerancePercent")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId")
+                        .IsUnique();
+
+                    b.ToTable("FuelSettings", (string)null);
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Fuel.FuelStation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Cnpj")
+                        .HasMaxLength(14)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(14)");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ContactName")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsInternal")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(11)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(11)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId", "Cnpj")
+                        .IsUnique()
+                        .HasFilter("[DeletedAt] IS NULL AND [Cnpj] IS NOT NULL");
+
+                    b.HasIndex("CompanyId", "Name");
+
+                    b.ToTable("FuelStations", (string)null);
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Fuel.FuelType", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<string>("Unit")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId", "Code")
+                        .IsUnique()
+                        .HasFilter("[DeletedAt] IS NULL");
+
+                    b.HasIndex("CompanyId", "Name")
+                        .IsUnique()
+                        .HasFilter("[DeletedAt] IS NULL");
+
+                    b.ToTable("FuelTypes", (string)null);
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Fuel.Fueling", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("BaselineSource")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CancelledBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("Consumption")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<decimal?>("ConsumptionDeviationPercent")
+                        .HasPrecision(8, 1)
+                        .HasColumnType("decimal(8,1)");
+
+                    b.Property<string>("ConsumptionResult")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("DriverId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("ExpectedConsumption")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<Guid?>("FuelStationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("FuelTypeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("FueledAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateOnly>("FueledOn")
+                        .HasColumnType("date");
+
+                    b.Property<bool>("IsFullTank")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("OdometerKm")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PaymentMethod")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(12, 3)
+                        .HasColumnType("decimal(12,3)");
+
+                    b.Property<string>("ReceiptNumber")
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<string>("ReviewNotes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ReviewedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("SegmentCost")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("decimal(14,2)");
+
+                    b.Property<int?>("SegmentDistanceKm")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("SegmentExpectedQuantity")
+                        .HasPrecision(12, 3)
+                        .HasColumnType("decimal(12,3)");
+
+                    b.Property<decimal?>("SegmentQuantity")
+                        .HasPrecision(12, 3)
+                        .HasColumnType("decimal(12,3)");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("decimal(14,2)");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasPrecision(10, 4)
+                        .HasColumnType("decimal(10,4)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("VehicleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DriverId");
+
+                    b.HasIndex("FuelStationId");
+
+                    b.HasIndex("FuelTypeId");
+
+                    b.HasIndex("VehicleId");
+
+                    b.HasIndex("CompanyId", "FueledOn");
+
+                    b.HasIndex("CompanyId", "Status");
+
+                    b.HasIndex("CompanyId", "DriverId", "FueledOn");
+
+                    b.HasIndex("CompanyId", "FuelStationId", "FueledOn");
+
+                    b.HasIndex("CompanyId", "FuelTypeId", "FueledOn");
+
+                    b.HasIndex("CompanyId", "VehicleId", "FueledAt");
+
+                    b.ToTable("Fuelings", (string)null);
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Fuel.FuelingAnomaly", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("ActualValue")
+                        .HasPrecision(14, 4)
+                        .HasColumnType("decimal(14,4)");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("DetectedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal?>("ExpectedValue")
+                        .HasPrecision(14, 4)
+                        .HasColumnType("decimal(14,4)");
+
+                    b.Property<Guid>("FuelingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(400)
+                        .HasColumnType("nvarchar(400)");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ReviewedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FuelingId");
+
+                    b.HasIndex("CompanyId", "Type");
+
+                    b.ToTable("FuelingAnomalies", (string)null);
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Fuel.FuelingCorrection", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Changes")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CorrectedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CorrectedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("FuelingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId");
+
+                    b.HasIndex("FuelingId");
+
+                    b.ToTable("FuelingCorrections", (string)null);
+                });
+
             modelBuilder.Entity("Fleet.Domain.Implements.Implement", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1565,6 +2045,9 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("CreatedBy")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("FuelingId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
@@ -1607,6 +2090,8 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ChecklistExecutionId");
+
+                    b.HasIndex("FuelingId");
 
                     b.HasIndex("VehicleId");
 
@@ -2082,6 +2567,62 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                             Description = "Visualizar custos de manutenção",
                             Key = "maintenance.viewcosts",
                             Module = "maintenance"
+                        },
+                        new
+                        {
+                            Id = 170,
+                            Description = "Visualizar abastecimentos, consumo e relatórios de combustível",
+                            Key = "fuel.view",
+                            Module = "fuel"
+                        },
+                        new
+                        {
+                            Id = 171,
+                            Description = "Registrar abastecimentos",
+                            Key = "fuel.create",
+                            Module = "fuel"
+                        },
+                        new
+                        {
+                            Id = 172,
+                            Description = "Corrigir abastecimentos",
+                            Key = "fuel.correct",
+                            Module = "fuel"
+                        },
+                        new
+                        {
+                            Id = 173,
+                            Description = "Cancelar abastecimentos",
+                            Key = "fuel.cancel",
+                            Module = "fuel"
+                        },
+                        new
+                        {
+                            Id = 174,
+                            Description = "Revisar abastecimentos com alerta",
+                            Key = "fuel.reviewanomalies",
+                            Module = "fuel"
+                        },
+                        new
+                        {
+                            Id = 175,
+                            Description = "Cadastrar postos e preços de referência",
+                            Key = "fuel.managestations",
+                            Module = "fuel"
+                        },
+                        new
+                        {
+                            Id = 176,
+                            Description = "Configurar tipos de combustível e limites de alerta",
+                            Key = "fuel.configure",
+                            Module = "fuel"
+                        },
+                        new
+                        {
+                            Id = 177,
+                            Description = "Visualizar custos de combustível",
+                            Key = "fuel.viewcosts",
+                            Module = "fuel"
                         });
                 });
 
@@ -2185,7 +2726,7 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = 3,
-                            Description = "Gerencia a frota e a operação: cadastros, alocações, hodômetro, documentos, checklists, ocorrências e manutenção.",
+                            Description = "Gerencia a frota e a operação: cadastros, alocações, hodômetro, documentos, checklists, ocorrências, manutenção e combustível.",
                             IsSystem = true,
                             Key = "FleetManager",
                             Name = "Gestor de frota"
@@ -2193,7 +2734,7 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = 4,
-                            Description = "Operação diária: motoristas, alocações, hodômetro, documentos, checklists e ocorrências.",
+                            Description = "Operação diária: motoristas, alocações, hodômetro, documentos, checklists, ocorrências e registro de abastecimentos.",
                             IsSystem = true,
                             Key = "Operations",
                             Name = "Operações"
@@ -2209,7 +2750,7 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = 6,
-                            Description = "Consulta a frota para fins financeiros.",
+                            Description = "Consulta a frota e os custos de manutenção e combustível.",
                             IsSystem = true,
                             Key = "Finance",
                             Name = "Financeiro"
@@ -2444,6 +2985,46 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         },
                         new
                         {
+                            RoleId = 1,
+                            PermissionId = 170
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 171
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 172
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 173
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 174
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 175
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 176
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 177
+                        },
+                        new
+                        {
                             RoleId = 2,
                             PermissionId = 1
                         },
@@ -2634,6 +3215,46 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         },
                         new
                         {
+                            RoleId = 2,
+                            PermissionId = 170
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 171
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 172
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 173
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 174
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 175
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 176
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 177
+                        },
+                        new
+                        {
                             RoleId = 3,
                             PermissionId = 1
                         },
@@ -2814,6 +3435,46 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         },
                         new
                         {
+                            RoleId = 3,
+                            PermissionId = 170
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 171
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 172
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 173
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 174
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 175
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 176
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 177
+                        },
+                        new
+                        {
                             RoleId = 4,
                             PermissionId = 1
                         },
@@ -2914,6 +3575,16 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         },
                         new
                         {
+                            RoleId = 4,
+                            PermissionId = 170
+                        },
+                        new
+                        {
+                            RoleId = 4,
+                            PermissionId = 171
+                        },
+                        new
+                        {
                             RoleId = 5,
                             PermissionId = 1
                         },
@@ -2974,6 +3645,11 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         },
                         new
                         {
+                            RoleId = 5,
+                            PermissionId = 170
+                        },
+                        new
+                        {
                             RoleId = 6,
                             PermissionId = 1
                         },
@@ -3001,6 +3677,16 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         {
                             RoleId = 6,
                             PermissionId = 165
+                        },
+                        new
+                        {
+                            RoleId = 6,
+                            PermissionId = 170
+                        },
+                        new
+                        {
+                            RoleId = 6,
+                            PermissionId = 177
                         },
                         new
                         {
@@ -3051,6 +3737,11 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         {
                             RoleId = 8,
                             PermissionId = 160
+                        },
+                        new
+                        {
+                            RoleId = 8,
+                            PermissionId = 170
                         });
                 });
 
@@ -3188,6 +3879,14 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("DeletedBy")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<decimal?>("ExpectedConsumption")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<decimal?>("FuelTankCapacity")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
                     b.Property<string>("FuelType")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -3236,6 +3935,10 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         .IsUnicode(false)
                         .HasColumnType("char(11)")
                         .IsFixedLength();
+
+                    b.Property<decimal?>("SecondaryFuelTankCapacity")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -3543,6 +4246,182 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Fleet.Domain.Fuel.FuelPrice", b =>
+                {
+                    b.HasOne("Fleet.Domain.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Fleet.Domain.Fuel.FuelStation", "FuelStation")
+                        .WithMany()
+                        .HasForeignKey("FuelStationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Fleet.Domain.Fuel.FuelType", "FuelType")
+                        .WithMany()
+                        .HasForeignKey("FuelTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("FuelStation");
+
+                    b.Navigation("FuelType");
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Fuel.FuelSettings", b =>
+                {
+                    b.HasOne("Fleet.Domain.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Fuel.FuelStation", b =>
+                {
+                    b.HasOne("Fleet.Domain.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.OwnsOne("Fleet.Domain.Common.Address", "Address", b1 =>
+                        {
+                            b1.Property<Guid>("FuelStationId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("City")
+                                .HasMaxLength(80)
+                                .HasColumnType("nvarchar(80)")
+                                .HasColumnName("City");
+
+                            b1.Property<string>("Complement")
+                                .HasMaxLength(80)
+                                .HasColumnType("nvarchar(80)")
+                                .HasColumnName("Complement");
+
+                            b1.Property<string>("Neighborhood")
+                                .HasMaxLength(80)
+                                .HasColumnType("nvarchar(80)")
+                                .HasColumnName("Neighborhood");
+
+                            b1.Property<string>("Number")
+                                .HasMaxLength(20)
+                                .HasColumnType("nvarchar(20)")
+                                .HasColumnName("Number");
+
+                            b1.Property<string>("State")
+                                .HasMaxLength(2)
+                                .IsUnicode(false)
+                                .HasColumnType("char(2)")
+                                .HasColumnName("State")
+                                .IsFixedLength();
+
+                            b1.Property<string>("Street")
+                                .HasMaxLength(150)
+                                .HasColumnType("nvarchar(150)")
+                                .HasColumnName("Street");
+
+                            b1.Property<string>("ZipCode")
+                                .HasMaxLength(8)
+                                .IsUnicode(false)
+                                .HasColumnType("char(8)")
+                                .HasColumnName("ZipCode")
+                                .IsFixedLength();
+
+                            b1.HasKey("FuelStationId");
+
+                            b1.ToTable("FuelStations");
+
+                            b1.WithOwner()
+                                .HasForeignKey("FuelStationId");
+                        });
+
+                    b.Navigation("Address")
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Fuel.FuelType", b =>
+                {
+                    b.HasOne("Fleet.Domain.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Fuel.Fueling", b =>
+                {
+                    b.HasOne("Fleet.Domain.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Fleet.Domain.Drivers.Driver", "Driver")
+                        .WithMany()
+                        .HasForeignKey("DriverId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Fleet.Domain.Fuel.FuelStation", "FuelStation")
+                        .WithMany()
+                        .HasForeignKey("FuelStationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Fleet.Domain.Fuel.FuelType", "FuelType")
+                        .WithMany()
+                        .HasForeignKey("FuelTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Fleet.Domain.Vehicles.Vehicle", "Vehicle")
+                        .WithMany()
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Driver");
+
+                    b.Navigation("FuelStation");
+
+                    b.Navigation("FuelType");
+
+                    b.Navigation("Vehicle");
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Fuel.FuelingAnomaly", b =>
+                {
+                    b.HasOne("Fleet.Domain.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Fleet.Domain.Fuel.Fueling", null)
+                        .WithMany("Anomalies")
+                        .HasForeignKey("FuelingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Fuel.FuelingCorrection", b =>
+                {
+                    b.HasOne("Fleet.Domain.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Fleet.Domain.Fuel.Fueling", null)
+                        .WithMany("Corrections")
+                        .HasForeignKey("FuelingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Fleet.Domain.Implements.Implement", b =>
                 {
                     b.HasOne("Fleet.Domain.Companies.Company", null)
@@ -3805,6 +4684,11 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Fleet.Domain.Fuel.Fueling", null)
+                        .WithMany()
+                        .HasForeignKey("FuelingId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Fleet.Domain.Vehicles.Vehicle", "Vehicle")
                         .WithMany()
                         .HasForeignKey("VehicleId")
@@ -3926,6 +4810,13 @@ namespace Fleet.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Fleet.Domain.Checklists.ChecklistTemplate", b =>
                 {
                     b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Fuel.Fueling", b =>
+                {
+                    b.Navigation("Anomalies");
+
+                    b.Navigation("Corrections");
                 });
 
             modelBuilder.Entity("Fleet.Domain.Maintenance.MaintenancePlan", b =>

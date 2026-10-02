@@ -106,6 +106,10 @@ public sealed class AuditController(AuditService service) : ControllerBase
     [
         "Company", "User", "Driver", "Vehicle", "Implement",
         "VehicleAssignment", "OdometerReading", "DocumentType", "Document", "StoredFile", "ChecklistTemplate", "ChecklistExecution", "Occurrence",
+        // Phase 3 — the frontend already offered history for these, but they were missing here (404).
+        "Workshop", "MaintenancePlan", "HourMeterReading", "MaintenanceRequest", "WorkOrder",
+        // Phase 4
+        "Fueling", "FuelStation", "FuelType", "FuelPrice", "FuelSettings",
     ];
 
     [HttpGet("{entityName}/{entityId:guid}"), HasPermission(Permissions.Audit.View)]

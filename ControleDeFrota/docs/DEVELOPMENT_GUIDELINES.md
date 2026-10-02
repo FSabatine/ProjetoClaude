@@ -87,6 +87,9 @@ Por padrão, cada módulo é uma pasta vertical: tudo o que muda junto fica junt
 - `Fleet.Application.Tests`: serviços contra SQLite em memória (duplicidade, isolamento de tenant, anti-escalonamento, soft delete, auditoria).
 - `Fleet.Api.Tests`: integração HTTP com `WebApplicationFactory` (autenticação, 401/403/404, contrato de erro).
 - `frontend`: Vitest para as funções puras (validadores, formatadores).
+- Agregação (totais, médias, relatórios) é feita **no banco**. No SQLite dos testes, `decimal` vira REAL (ADR-033): some **colunas**, não expressões (`SUM(a/b)`, `SUM(x ?? 0)`, casts não traduzem). Se precisar de uma soma derivada, grave-a como coluna (snapshot) — é o que dá estabilidade histórica também.
+- Regra com volume (dashboard, relatório) ganha um teste de volume com timing generoso (ex.: `FuelVolumeTests`, 12 mil registros) para pegar carregamento em memória ou consulta por linha.
+- Toda consulta nova que agrega ou agrupa deve ser executada ao menos uma vez no SQL Server (LocalDB) antes de dar por pronta: o SQLite dos testes não prova a tradução do SQL Server.
 - Nome do teste: `Metodo_Cenario_ResultadoEsperado`. Estrutura Arrange/Act/Assert.
 - Os testes não dependem de ordem nem de relógio real (use `IClock`/`FakeClock`).
 

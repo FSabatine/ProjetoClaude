@@ -2,7 +2,7 @@
 
 Guia rápido para agentes de IA neste repositório. **A fonte da verdade é `docs/`**: leia o documento da área antes de alterá-la e atualize-o no mesmo trabalho. Em qualquer implementação, siga a skill de projeto `fleet-development` (`.claude/skills/fleet-development/SKILL.md`).
 
-Controle de Frota é um sistema de gestão de frotas multiempresa em .NET 8 + React. A fase atual e o escopo estão em `docs/ROADMAP.md` (Fases 1 — Fundação, 2 — Controle operacional, 3 — Manutenção, 4 — Combustível e 5 — Pneus concluídas; a Fase 2.5 — Viagens e composição foi adiada por decisão do usuário, ADR-026/ADR-031/ADR-035, e é a próxima recomendada). **Não implemente módulos de fases futuras** (viagens, almoxarifado, rastreamento, financeiro…); apenas deixe o ponto de extensão (normalmente um novo valor em `OperationalEventType`).
+Controle de Frota é um sistema de gestão de frotas multiempresa em .NET 8 + React. A fase atual e o escopo estão em `docs/ROADMAP.md` (Fases 1 — Fundação, 2 — Controle operacional, 3 — Manutenção, 4 — Combustível, 5 — Pneus e 6 — Financeiro concluídas; a Fase 2.5 — Viagens e composição foi adiada por decisão do usuário, ADR-026/ADR-031/ADR-035, e é a próxima recomendada). **Não implemente módulos de fases futuras** (viagens, almoxarifado, rastreamento…); apenas deixe o ponto de extensão (normalmente um novo valor em `OperationalEventType`).
 
 ## Comandos (a partir de `ControleDeFrota/`)
 
@@ -77,6 +77,15 @@ Login de desenvolvimento: `admin@frota.local` / `FrotaDev!2026`. Os demais usuá
 - Medição nunca sobrescreve: toda medição é uma `TireInspection` (inclusive na remoção e no retorno da recapagem); os campos rápidos do pneu seguem só a mais recente (`TireMonitoring.RecordAsync`).
 - Alertas são calculados (`TireAlertPolicy` + forma SQL em `TireService.WhereAlert` — mude as duas juntas); "requer revisão" é gravado (`TireAnomaly`, um aberto por tipo). Textos: "configurado pela empresa", nunca "legal", nunca causa.
 - Valores em R$ só com `tires.viewcosts`; digitar valor também exige a permissão. Eventos `Tire*` levam `TireId` (linha do tempo do pneu) e não levam R$.
+
+## Financeiro (Fase 6) em uma tela
+
+- Módulo: `Fleet.Domain/Finance` (entidades + `FinanceRules.cs`: `ExpensePaymentPolicy`, `RecurringExpensePolicy`, `VehicleCostPolicy`, `BudgetAnalysis`), `Fleet.Application/Finance` (`FinanceCatalogServices` — centros de custo e categorias; `ExpenseService`; `RecurringExpenseService` + `RecurringExpenseGenerationScanner`; `BudgetService`; `CostAggregationService`; `FinanceAnalyticsService`), `Api/Controllers/FinanceControllers.cs`, `Api/Infrastructure/RecurringExpenseGenerationJob.cs`, `Persistence/Configurations/FinanceConfigurations.cs`; frontend em `features/finance/` (rotas `/financeiro/...`: Despesas, Categorias, Centros de custo, Recorrentes, Orçamentos, Ranking de veículos, Relatórios) + aba "Financeiro" no hub do veículo.
+- **`Expense` nunca recebe custo de combustível/manutenção/pneu** — `CostAggregationService` lê `Fuelings.TotalAmount`/`WorkOrders.TotalCost`/`TireCosts.Amount` direto, agrupados no banco. As três categorias de sistema (`ExpenseCategory.IsSystemCategory`, `CostAggregationKey` `Fuel`/`Maintenance`/`Tires`) só rotulam essas fatias nos relatórios — `ExpenseService` recusa lançamento manual nelas (ADR-040).
+- `PaymentStatus` nunca é gravado: `ExpensePaymentPolicy.Evaluate` calcula na leitura (`Cancelled` > `Paid` > `PartiallyPaid` > `Overdue` > `Scheduled` > `Pending`). **Despesa nunca é excluída, só cancelada** (motivo obrigatório, estado final); reduzir o valor já pago é recusado.
+- `RecurringExpenseGenerationScanner` (job em background, mesmo molde do `DocumentExpirationScanner`) gera despesas com até **30 dias de antecedência** do vencimento, avançando o cursor `LastGeneratedDueDate`; idempotente por índice único `(RecurringExpenseId, DueDate)`.
+- **`finance.viewcosts` controla qualquer tela 100% monetária do módulo**; um total que combina módulos (painel, custo do veículo) exige essa permissão **e** o `*.viewcosts` de cada fonte somada — faltando uma, a fatia zera e a resposta marca `IsPartial` (ADR-043/044).
+- Custo/km exige ≥ 50 km no período (`VehicleCostPolicy.MinKmForCostPerKm`) com leitura de hodômetro cobrindo as duas pontas (`MileageService.OdometerAtAsync`); sem isso, `null` com motivo — nunca um número enganoso.
 
 ## Regras que não são óbvias pelo código
 

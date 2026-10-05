@@ -516,3 +516,50 @@ Permissões 180–191 e papéis via `InsertData` na migration; configurações d
 
 ### Revisão da migration `TireManagement`
 `Up` somente aditivo: 11 tabelas novas, `Vehicles.TireLayoutId`, `Implements.TireLayoutId` e `OperationalEvents.TireId` (nullable) + índices, seed de permissões/papéis e descrições de quatro papéis. Nenhuma coluna existente alterada. O aviso "may result in the loss of data" refere-se só ao `Down`.
+
+## Entidades e relacionamentos (Fase 6 — migration `FinanceManagement`)
+
+```
+Companies 1───N CostCenters (self FK ParentCostCenterId, Restrict)
+Companies 1───N ExpenseCategories (self FK ParentCategoryId, Restrict) — 3 linhas IsSystemCategory=true (Fuel/Maintenance/Tires)
+Companies 1───N RecurringExpenses N───0..1 ExpenseCategories | CostCenters | Vehicles | Workshops
+Companies 1───N Expenses N───0..1 ExpenseCategories | CostCenters | Vehicles | Drivers | Workshops | RecurringExpenses
+Companies 1───N Budgets N───0..1 ExpenseCategories | CostCenters | Vehicles
+StoredFiles OwnerType = Expense (sem FK, como as demais colunas do histórico)
+OperationalEvents novos tipos: ExpenseCreated/Edited/Cancelled/PaymentRegistered, RecurringExpenseGenerated, BudgetExceeded (sem coluna nova — usam VehicleId/SubjectId existentes)
+```
+
+Nenhuma tabela nova para Fuel/Maintenance/Tires: seus custos (`Fuelings.TotalAmount`, `WorkOrders.TotalCost`, `TireCosts.Amount`) são lidos direto pelo `CostAggregationService` — ver ARCHITECTURE.md. Todas as tabelas têm `CompanyId` (FK Restrict) e filtro global de tenant. Soft delete em todas as cinco; `Expenses` nunca é removida pelo usuário (só cancelada — ver DECISIONS.md), o soft delete existe para o caso raro de um lançamento errado sem nenhum pagamento.
+
+| Tabela | Colunas principais |
+|---|---|
+| CostCenters | Code (20), Name (100), Description (500), ParentCostCenterId NULL, IsActive |
+| ExpenseCategories | Name (100), Code (30), Description (500), ParentCategoryId NULL, IsActive, IsSystemCategory, CostAggregationKey (`Fuel`\|`Maintenance`\|`Tires`\|NULL) |
+| RecurringExpenses | Description (200), ExpenseCategoryId, CostCenterId NULL, VehicleId NULL, WorkshopId NULL, SupplierName (150), Amount (14,2), PaymentMethod NULL, Frequency, StartDate date, EndDate date NULL, DueDayOfMonth (1–28), IsActive, LastGeneratedDueDate date NULL (cursor da geração) |
+| Expenses | ExpenseCategoryId, CostCenterId NULL, VehicleId NULL, DriverId NULL, WorkshopId NULL, SupplierName (150), Description (200), ReferenceNumber (60), ExpenseDate date, DueDate date NULL, Amount (14,2), PaymentMethod NULL, PaidAmount (14,2), PaymentDate date NULL, IsRecurring, RecurringExpenseId NULL, Notes (1000), CancelledAt/By/Reason (500) |
+| Budgets | Year, Month NULL (NULL = orçamento anual), ExpenseCategoryId, CostCenterId NULL, VehicleId NULL, Amount (14,2), Notes (500) |
+
+`PaymentStatus` nunca é gravado: é calculado por `ExpensePaymentPolicy.Evaluate` a partir de `CancelledAt`, `Amount`, `PaidAmount` e `DueDate` (mesma ideia do `DocumentExpiryPolicy`).
+
+### Índices (consultas reais)
+
+| Índice | Consulta / regra |
+|---|---|
+| `CostCenters (CompanyId, Code)` único `WHERE [DeletedAt] IS NULL` | código do centro de custo |
+| `ExpenseCategories (CompanyId, Code)` único filtrado | código da categoria |
+| `ExpenseCategories (CompanyId, CostAggregationKey)` único `WHERE [DeletedAt] IS NULL AND [CostAggregationKey] IS NOT NULL` | **uma categoria-sistema por origem** (nunca duas "Combustível") |
+| `Expenses (CompanyId, ExpenseDate)`, `(CompanyId, VehicleId, ExpenseDate)`, `(CompanyId, ExpenseCategoryId, ExpenseDate)` | lista/relatório por período, por veículo, por categoria |
+| `Expenses (CompanyId, DueDate)` | fila de vencimento/atraso (painel, alerta) |
+| `Expenses (RecurringExpenseId, DueDate)` único `WHERE [DeletedAt] IS NULL AND [RecurringExpenseId] IS NOT NULL` | **geração idempotente**: o job nunca duplica a despesa de um vencimento já gerado |
+| `RecurringExpenses (CompanyId, IsActive)` | o job de geração varre só os modelos ativos |
+| `Budgets (CompanyId, Year, Month)`, `(CompanyId, ExpenseCategoryId, Year, Month)` | orçado x realizado por período/categoria |
+
+### Agregação sem duplicar dado (ADR-040)
+`CostAggregationService` nunca copia Fuel/Maintenance/Tires para `Expenses`. Por veículo e por categoria, soma **colunas simples agrupadas no banco**: `Fuelings.TotalAmount` (exclui `Cancelled`), `WorkOrders.TotalCost` (exclui `Cancelled`/`Rejected`, comparado por limites UTC do dia — nunca `DateOnly.FromDateTime` numa cláusula `Where`, que não traduz em todo provedor), `TireCosts.Amount`. A única exceção à regra "agregue no banco": atribuir um custo de pneu ao veículo certo exige achar a vigência (`TireInstallations`) que cobria aquele pneu naquela data — feito **em memória**, sobre a lista (pequena) de custos do período e das instalações desses pneus, nunca sobre o histórico inteiro. Documentado como desvio consciente da regra geral, pelo mesmo motivo do ADR-033: tradução de `DateOnly`/`DateTime` correlacionados não é garantida em todo provedor.
+Cada fonte é somada só se o usuário tiver a permissão `*.viewcosts` daquele módulo **e** `finance.viewcosts`; faltando uma, a fatia vira zero e a resposta marca `IsPartial = true` — nunca um total errado em silêncio.
+
+### Seed
+Permissões 200–209 e papéis via `InsertData` na migration. O catálogo padrão de categorias (17 linhas, 3 delas de sistema) é criado na primeira leitura de cada empresa, como o catálogo de combustíveis. Em desenvolvimento, o `DevFinanceSeeder` cria 2 centros de custo, uma despesa recorrente (seguro) e despesas de exemplo nos veículos de exemplo cobrindo cada situação de pagamento (paga, pendente, atrasada, cancelada), além de dois orçamentos do mês corrente.
+
+### Revisão da migration `FinanceManagement`
+`Up` somente aditivo: 5 tabelas novas, seed de permissões/papéis e descrição de dois papéis (Gestor de frota, Financeiro). Nenhuma coluna existente alterada ou removida. O aviso "may result in the loss of data" refere-se só ao `Down`.

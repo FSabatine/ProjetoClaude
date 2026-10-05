@@ -10,7 +10,9 @@ import {
   IconFiles,
   IconChartDonut,
   IconCircleDot,
+  IconCoin,
   IconGasStation,
+  IconReceipt,
   IconBuildingStore,
   IconGauge,
   IconListCheck,
@@ -57,6 +59,8 @@ const OPERATION: NavItem[] = [
   { label: 'Abastecimentos', to: '/abastecimentos', icon: IconGasStation, permission: PERMISSIONS.fuel.view },
   { label: 'Painel de pneus', to: '/pneus/painel', icon: IconChartDonut, permission: PERMISSIONS.tires.view },
   { label: 'Pneus', to: '/pneus', icon: IconCircleDot, permission: PERMISSIONS.tires.view },
+  { label: 'Financeiro', to: '/financeiro', icon: IconCoin, permission: PERMISSIONS.finance.view },
+  { label: 'Despesas', to: '/financeiro/despesas', icon: IconReceipt, permission: PERMISSIONS.finance.view },
 ];
 
 const SETTINGS: NavItem[] = [
@@ -67,6 +71,10 @@ const SETTINGS: NavItem[] = [
   { label: 'Postos de combustível', to: '/postos', icon: IconBuildingStore, permission: PERMISSIONS.fuel.managestations },
   { label: 'Combustível', to: '/configuracoes/combustivel', icon: IconGasStation, permission: PERMISSIONS.fuel.configure },
   { label: 'Pneus', to: '/configuracoes/pneus', icon: IconCircleDot, permission: PERMISSIONS.tires.managesettings },
+  { label: 'Categorias de despesa', to: '/financeiro/categorias', icon: IconCoin, permission: PERMISSIONS.finance.managecategories },
+  { label: 'Centros de custo', to: '/financeiro/centros-de-custo', icon: IconBuildingFactory2, permission: PERMISSIONS.finance.managecostcenters },
+  { label: 'Despesas recorrentes', to: '/financeiro/recorrentes', icon: IconReceipt, permission: PERMISSIONS.finance.managerecurring },
+  { label: 'Orçamentos', to: '/financeiro/orcamentos', icon: IconListCheck, permission: PERMISSIONS.finance.managebudgets },
 ];
 
 const ADMINISTRATION: NavItem[] = [

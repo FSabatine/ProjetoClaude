@@ -207,3 +207,29 @@ Alvos de toque de no mínimo 40px. O motorista vai usar o celular nas fases futu
 
 ### Revisão desta fase
 Revisão de UX e responsividade feita no código. **Sem revisão visual automatizada** (o navegador headless travou a máquina na Fase 1): conferir manualmente o diagrama em 375px, tablet e desktop, nos temas claro e escuro, em especial o cavalo 6x2 (10 pneus + estepe) e o semirreboque de 3 eixos.
+
+## Fase 6 — financeiro
+
+### Princípio: dinheiro nunca é um número enganoso
+- Sem a permissão de valores (`finance.viewcosts`, ou a do módulo de origem quando o total mistura combustível/manutenção/pneus), o campo mostra "—" ou é omitido — **nunca `R$ 0,00`**, que pareceria um valor real.
+- Um total combinado que perdeu uma fatia por permissão mostra um aviso curto e visível ("totais parciais") perto do número, nunca some a informação em silêncio.
+- Custo/km e TCO sem quilometragem suficiente mostram o texto da causa ("dados de quilometragem insuficientes para este período"), nunca `0` nem `—` sem explicação.
+- "Possível duplicidade" (mesma despesa lançada duas vezes) é um aviso neutro ao lado do registro, nunca um bloqueio nem uma cor de alarme.
+
+### Despesas
+- Uma ação primária por tela: "Nova despesa" na lista, "Registrar pagamento" e "Cancelar" como ações secundárias no detalhe/edição, cada uma com seu próprio modal (pagamento pede valor + data; cancelamento exige motivo, como as demais telas operacionais).
+- Categoria de sistema (Combustível, Manutenção, Pneus) nunca aparece no seletor de categoria de uma despesa manual — ela é alimentada de outro lugar.
+- Situação (badge com texto, não só cor): Pendente (neutro), Agendado (azul), Parcialmente pago/Atrasado (laranja/vermelho — atrasado mais forte), Pago (teal), Cancelado (cinza, com o registro riscado/esmaecido).
+
+### Categorias e centros de custo
+- Lista hierárquica (mãe → filhas indentadas); categoria/centro de sistema aparece com um selo "Automática" e sem ações de editar/excluir.
+
+### Painel financeiro e custo do veículo
+- KPIs clicáveis (cada um abre o relatório correspondente), gráfico de evolução mensal (`ColumnChart` existente — uma série, "Ver tabela"), detalhamento por categoria.
+- A aba **Financeiro** do veículo segue o padrão das abas Combustível/Pneus: `HeaderFact`s no topo (custo do mês, custo/km, TCO acumulado), gráfico de evolução, detalhamento por categoria e as despesas recentes do veículo.
+
+### Orçamento
+- Orçado x Realizado como barra de progresso colorida pelo status (dentro do orçamento, próximo do limite, acima do orçamento, sem orçamento — cores do tema, nunca vermelho vivo para "próximo do limite").
+
+### Revisão desta fase
+Revisão de UX e responsividade feita no código. Sem revisão visual automatizada (mesmo motivo das fases anteriores): conferir manualmente o painel, a aba Financeiro do veículo e os formulários em 375px, tablet e desktop, nos dois temas.

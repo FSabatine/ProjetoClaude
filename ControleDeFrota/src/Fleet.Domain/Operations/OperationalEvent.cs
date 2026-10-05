@@ -67,6 +67,14 @@ public enum OperationalEventType
     TireCostRecorded,
     TireHistoryCorrected,
     TireLayoutChanged,
+
+    // Phase 6 — finance
+    ExpenseCreated,
+    ExpenseEdited,
+    ExpenseCancelled,
+    ExpensePaymentRegistered,
+    RecurringExpenseGenerated,
+    BudgetExceeded,
 }
 
 /// <summary>

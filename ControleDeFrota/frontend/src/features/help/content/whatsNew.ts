@@ -6,6 +6,12 @@ import type { HelpWhatsNewEntry } from '../types';
  */
 export const WHATS_NEW: HelpWhatsNewEntry[] = [
   {
+    id: 'whats-new-financial',
+    title: 'Gestão financeira',
+    description: 'Painel financeiro, despesas, categorias e centros de custo configuráveis, despesas recorrentes geradas automaticamente, orçamentos e orçado x realizado, aba Financeiro do veículo, custo por km, TCO, ranking de veículos e relatórios financeiros — tudo integrado ao que já é registrado em combustível, manutenção e pneus.',
+    date: 'outubro de 2026',
+  },
+  {
     id: 'whats-new-tires',
     title: 'Gestão de pneus',
     description: 'Cada pneu pelo número de fogo, diagrama de eixos do veículo, instalação, rodízio, inspeção de sulco e pressão, consertos, recapagens, custo por km, baixa, painel e relatórios de pneus.',

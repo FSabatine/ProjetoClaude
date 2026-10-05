@@ -2,6 +2,7 @@ using Fleet.Application.Assignments;
 using Fleet.Application.Checklists;
 using Fleet.Application.Common;
 using Fleet.Application.Documents;
+using Fleet.Application.Finance;
 using Fleet.Application.Occurrences;
 using Fleet.Application.Vehicles;
 using Fleet.Domain.Authorization;
@@ -66,6 +67,8 @@ public enum AlertType
     FuelingPendingReview,
     /// <summary>Phase 5: an installed tire at the company's minimum tread or with damage recorded in its last inspection.</summary>
     TireCritical,
+    /// <summary>Phase 6: an expense past its due date, not yet fully paid.</summary>
+    ExpenseOverdue,
 }
 
 public enum AlertSeverity
@@ -86,12 +89,22 @@ public sealed record DashboardAlert(
     DateOnly DueDate,
     string? Tab = null);
 
+/// <summary>
+/// Top-level financial KPIs for the main dashboard (Phase 6) — the full breakdown/charts live in the Financial
+/// dashboard itself (FinanceAnalyticsService.GetDashboardAsync); this is just the summary card. Money fields are
+/// null when the caller lacks finance.viewcosts (counts are not money and stay visible).
+/// </summary>
+public sealed record FinanceSummary(
+    decimal? MonthlyCost, decimal? CostPerKm, bool CostPerKmHasSufficientData,
+    int OverdueExpenseCount, decimal? OverdueExpenseAmount, bool IsPartial);
+
 public sealed record DashboardResponse(
     DashboardIndicators Indicators,
     FleetStatusBreakdown Fleet,
     OperationsSummary Operations,
     MileageSummary Mileage,
     MaintenanceSummary? Maintenance,
+    FinanceSummary? Finance,
     IReadOnlyList<DashboardAlert> Alerts,
     int TotalAlerts);
 
@@ -99,7 +112,8 @@ public sealed record DashboardResponse(
 /// Each indicator/alert source is an independent method, so future KPIs (fuel, maintenance, costs) are added
 /// alongside without touching the existing ones. Module data is shown only with that module's view permission.
 /// </summary>
-public sealed class DashboardService(IFleetDbContext db, IClock clock, ICurrentUser currentUser, ChecklistService checklists)
+public sealed class DashboardService(
+    IFleetDbContext db, IClock clock, ICurrentUser currentUser, ChecklistService checklists, FinanceAnalyticsService financeAnalytics)
 {
     public const int MaxAlerts = 10;
 
@@ -126,14 +140,24 @@ public sealed class DashboardService(IFleetDbContext db, IClock clock, ICurrentU
             // Only who can act on it (review) sees it; the fuel dashboard shows the same queue to fuel.view.
             Can(Permissions.Fuel.ReviewAnomalies) ? await GetFuelingReviewAlertsAsync(ct) : NoAlerts,
             Can(Permissions.Tires.View) ? await GetTireAlertsAsync(ct) : NoAlerts,
+            Can(Permissions.Finance.View) ? await GetOverdueExpenseAlertsAsync(ct) : NoAlerts,
         };
         var alerts = sources.SelectMany(s => s.Alerts)
             .OrderByDescending(a => a.Severity).ThenBy(a => a.DueDate)
             .Take(MaxAlerts).ToList();
 
         var maintenance = Can(Permissions.Maintenance.View) ? await GetMaintenanceAsync(fleet.UnderMaintenance, ct) : null;
+        var finance = Can(Permissions.Finance.View) ? await GetFinanceAsync(ct) : null;
         return new DashboardResponse(
-            indicators, fleet, await GetOperationsAsync(mileage, ct), mileage, maintenance, alerts, sources.Sum(s => s.Total));
+            indicators, fleet, await GetOperationsAsync(mileage, ct), mileage, maintenance, finance, alerts, sources.Sum(s => s.Total));
+    }
+
+    /// <summary>Summary card only — full breakdown/charts are FinanceAnalyticsService.GetDashboardAsync (the Financial dashboard page).</summary>
+    private async Task<FinanceSummary> GetFinanceAsync(CancellationToken ct)
+    {
+        var full = await financeAnalytics.GetDashboardAsync(ct);
+        return new FinanceSummary(full.CanSeeCosts ? full.MonthlyCost : null, full.FleetCostPerKm, full.CostPerKmHasSufficientData,
+            full.OverdueExpenseCount, full.OverdueExpenseAmount, full.IsPartial);
     }
 
     private bool Can(string permission) => currentUser.HasPermission(permission);
@@ -391,6 +415,22 @@ public sealed class DashboardService(IFleetDbContext db, IClock clock, ICurrentU
                     : $"{t.Code}{where}: dano registrado na última inspeção. Requer inspeção.",
                 "Tire", t.Id, clock.ToBusinessDate((lowTread ? t.TreadMeasuredAt : t.LastInspectedAt) ?? clock.UtcNow));
         }).ToList();
+        return new AlertSource(alerts, total);
+    }
+
+    /// <summary>No R$ in the alert text (established convention) — just the count/date, same as other modules' alerts.</summary>
+    private async Task<AlertSource> GetOverdueExpenseAlertsAsync(CancellationToken ct)
+    {
+        var today = clock.Today;
+        var query = db.Expenses.Where(e => e.CancelledAt == null && e.DueDate != null && e.DueDate < today && e.PaidAmount < e.Amount);
+        var total = await query.CountAsync(ct);
+        var expenses = await query.OrderBy(e => e.DueDate).Take(MaxAlerts)
+            .Select(e => new { e.Id, e.Description, e.DueDate, Plate = e.Vehicle != null ? e.Vehicle.LicensePlate : null })
+            .ToListAsync(ct);
+        var alerts = expenses.Select(e => new DashboardAlert(
+            AlertType.ExpenseOverdue, AlertSeverity.Warning, "Despesa em atraso",
+            DueText((e.Plate is null ? "" : $"{LicensePlate.Format(e.Plate)}: ") + Short(e.Description), e.DueDate!.Value, today),
+            "Expense", e.Id, e.DueDate.Value, "expenses")).ToList();
         return new AlertSource(alerts, total);
     }
 

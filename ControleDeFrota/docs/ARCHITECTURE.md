@@ -76,6 +76,7 @@ Isolamento **lógico** por `CompanyId` num banco compartilhado (ADR-003).
 | Outbox / event log | `OperationalEvents` (Fase 2) | histórico operacional e base das notificações, gravados na mesma transação da mudança (ADR-025) |
 | Strategy (storage) | `IFileStorage` → `LocalFileStorage` | trocar o disco por object/cloud storage sem tocar nos módulos (ADR-022) |
 | Policy objects no Domain | `VehicleOperationalState`, `OdometerPolicy`, `DocumentExpiryPolicy`, `OccurrenceWorkflow`, `AssignmentRules`, `ChecklistSchedule` | regras puras, testáveis sem banco; os serviços só orquestram |
+| Permission-gated data blending | `CostAggregationService` + `PartialList<T>` (Fase 6) | combinar dado monetário de módulos diferentes **lendo direto da fonte** (`GROUP BY`/`SUM` no banco), sem duplicar em tabela nova; `IsPartial` evita total errado quando falta a permissão `*.viewcosts` de alguma fonte — modelo reaproveitável por qualquer módulo futuro que precise somar dinheiro de outros módulos (ADR-040, ADR-043, ADR-044) |
 
 ## Tratamento de erros
 
@@ -264,6 +265,35 @@ GET  /tires/dashboard, /tires/reports/inventory|lifecycle|inspections  [tires.vi
 ```
 
 Serviços (`Fleet.Application/Tires`): `TireModelService`, `TireLayoutService`, `TireSettingsService` (catálogo), `TireLifecycle` (carregamento, cronologia, km pelo `MileageService`, transação e tradução de concorrência — usado por todos), `TireMonitoring` (medições e regras de "requer revisão"), `TireService` (cadastro e leituras), `TireOperationsService` (instalar, remover, substituir, transferir, rodízio, avaliação, baixa, correção, diagrama do veículo/implemento), `TireInspectionService`, `TireServiceOrderService` (consertos, recapagens, custos) e `TireAnalyticsService` (painel e relatórios). Regras puras em `Fleet.Domain/Tires/TireRules.cs`. Integrações por métodos aditivos: `MileageService.OdometerAtAsync`, `MaintenanceRequestService.AddAutomatic`, `OperationalEventLog.RecordAt`, `OperationalHistoryService.ForTireAsync`.
+
+### Fase 6 — financeiro
+
+```
+GET  /cost-centers?includeInactive  [finance.view|managecostcenters]   POST|PUT|DELETE /cost-centers/{id}  [finance.managecostcenters]
+GET  /expense-categories?includeInactive  [finance.view|managecategories]   POST|PUT|DELETE /expense-categories/{id}  [finance.managecategories]
+
+GET  /expenses?vehicleId&driverId&costCenterId&expenseCategoryId&from&to&status&isRecurring&search&sortBy&…  [finance.view]
+GET  /expenses/{id}  [finance.view]
+POST /expenses, PUT /expenses/{id} (expenseCategoryId, costCenterId?, vehicleId?, driverId?, workshopId?, supplierName?,
+     description, referenceNumber?, expenseDate, dueDate?, amount, paymentMethod?, notes?, fileIds?)   [finance.create|edit]
+POST /expenses/{id}/payment (paidAmount, paymentDate)                               [finance.registerpayment]
+POST /expenses/{id}/cancel (reason)                                                 [finance.cancel]
+
+GET  /recurring-expenses?includeInactive  [finance.view|managerecurring]   POST|PUT|DELETE /recurring-expenses/{id}  [finance.managerecurring]
+GET  /budgets?year  [finance.view|managebudgets]   GET /budgets/vs-actual?year&month  [finance.viewcosts]
+POST|PUT|DELETE /budgets/{id}  [finance.managebudgets]
+
+GET  /finance/dashboard                                                            [finance.view]  (R$ só com finance.viewcosts)
+GET  /finance/ranking?from&to&type&status&sortBy&page&…                            [finance.viewcosts]
+GET  /finance/cost-by-category?from&to, /finance/cost-by-cost-center?from&to,
+     /finance/monthly-evolution?from&to&vehicleId                                  [finance.viewcosts]
+GET  /finance/vehicles/{id}/breakdown?from&to, /cost-per-km?from&to, /tco          [finance.view]  (R$ zerado sem a permissão da fonte)
+GET  /audit/{entity}/{id}  + Expense, ExpenseCategory, CostCenter, RecurringExpense, Budget   [audit.view]
+```
+
+O financeiro **não tem tabela própria de custo de combustível/manutenção/pneus** — `CostAggregationService` lê `Fuelings.TotalAmount`, `WorkOrders.TotalCost` e `TireCosts.Amount` direto (agrupado no banco) e combina com os lançamentos manuais de `Expenses`. Cada fonte só entra na soma se o usuário tiver a permissão de custo **daquela fonte** (`fuel.viewcosts`/`maintenance.viewcosts`/`tires.viewcosts`) **e** `finance.viewcosts`; faltando uma, a fatia zera e a resposta carrega `IsPartial = true` (ver DOMAIN.md e SECURITY.md). Um job em background (`RecurringExpenseGenerationJob`, mesmo formato do `DocumentExpirationJob`) materializa despesas a partir das `RecurringExpense` até 30 dias antes do vencimento, de forma idempotente.
+
+Módulo no backend: `Fleet.Domain/Finance` (entidades + `FinanceRules.cs`: `ExpensePaymentPolicy`, `RecurringExpensePolicy`, `VehicleCostPolicy`, `BudgetAnalysis`), `Fleet.Application/Finance` (`FinanceCatalogServices` — centros de custo e categorias; `ExpenseService`; `RecurringExpenseService` + `RecurringExpenseGenerationScanner`; `BudgetService`; `CostAggregationService` — a combinação entre módulos; `FinanceAnalyticsService` — painel, custo/km, TCO, ranking), `Api/Controllers/FinanceControllers.cs`, `Persistence/Configurations/FinanceConfigurations.cs`. Integração aditiva: `DashboardService` ganhou `FinanceSummary` + alerta `ExpenseOverdue`; `VehicleResponse`/`VehicleService` não mudaram (o financeiro do veículo é uma aba/endpoint própria, não um campo a mais na resposta do veículo — mesmo princípio usado por combustível e pneus).
 
 ## Arquivos (ADR-022)
 

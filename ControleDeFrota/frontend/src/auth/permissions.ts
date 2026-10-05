@@ -46,6 +46,18 @@ export const PERMISSIONS = {
     viewcosts: 'tires.viewcosts',
     managesettings: 'tires.managesettings',
   },
+  finance: {
+    view: 'finance.view',
+    create: 'finance.create',
+    edit: 'finance.edit',
+    cancel: 'finance.cancel',
+    registerpayment: 'finance.registerpayment',
+    managecategories: 'finance.managecategories',
+    managecostcenters: 'finance.managecostcenters',
+    managebudgets: 'finance.managebudgets',
+    managerecurring: 'finance.managerecurring',
+    viewcosts: 'finance.viewcosts',
+  },
 } as const;
 
 type Values<T> = T[keyof T];

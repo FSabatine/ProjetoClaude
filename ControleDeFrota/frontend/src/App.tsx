@@ -56,6 +56,15 @@ const TireFormPage = page(() => import('./features/tires/TireFormPage'), 'TireFo
 const TireDetailPage = page(() => import('./features/tires/TireDetailPage'), 'TireDetailPage');
 const TireReportsPage = page(() => import('./features/tires/TireReportsPage'), 'TireReportsPage');
 const TireSettingsPage = page(() => import('./features/tires/TireSettingsPage'), 'TireSettingsPage');
+const FinancialDashboardPage = page(() => import('./features/finance/FinancialDashboardPage'), 'FinancialDashboardPage');
+const ExpensesListPage = page(() => import('./features/finance/ExpensesListPage'), 'ExpensesListPage');
+const ExpenseFormPage = page(() => import('./features/finance/ExpenseFormPage'), 'ExpenseFormPage');
+const ExpenseCategoriesPage = page(() => import('./features/finance/ExpenseCategoriesPage'), 'ExpenseCategoriesPage');
+const CostCentersPage = page(() => import('./features/finance/CostCentersPage'), 'CostCentersPage');
+const RecurringExpensesPage = page(() => import('./features/finance/RecurringExpensesPage'), 'RecurringExpensesPage');
+const BudgetsPage = page(() => import('./features/finance/BudgetsPage'), 'BudgetsPage');
+const VehicleCostRankingPage = page(() => import('./features/finance/VehicleCostRankingPage'), 'VehicleCostRankingPage');
+const FinancialReportsPage = page(() => import('./features/finance/FinancialReportsPage'), 'FinancialReportsPage');
 const P = PERMISSIONS;
 
 // Routes are in Portuguese (what users see in the address bar); code stays in English.
@@ -124,6 +133,16 @@ const router = createBrowserRouter([
               { path: 'pneus/:id', element: <RequirePermission permission={P.tires.view}><TireDetailPage /></RequirePermission> },
               { path: 'pneus/:id/editar', element: <RequirePermission permission={P.tires.view}><TireFormPage /></RequirePermission> },
               { path: 'configuracoes/pneus', element: <RequirePermission permission={P.tires.managesettings}><TireSettingsPage /></RequirePermission> },
+              { path: 'financeiro', element: <RequirePermission permission={P.finance.view}><FinancialDashboardPage /></RequirePermission> },
+              { path: 'financeiro/ranking', element: <RequirePermission permission={P.finance.viewcosts}><VehicleCostRankingPage /></RequirePermission> },
+              { path: 'financeiro/relatorios', element: <RequirePermission permission={P.finance.view}><FinancialReportsPage /></RequirePermission> },
+              { path: 'financeiro/despesas', element: <RequirePermission permission={P.finance.view}><ExpensesListPage /></RequirePermission> },
+              { path: 'financeiro/despesas/novo', element: <RequirePermission permission={P.finance.create}><ExpenseFormPage /></RequirePermission> },
+              { path: 'financeiro/despesas/:id/editar', element: <RequirePermission permission={P.finance.view}><ExpenseFormPage /></RequirePermission> },
+              { path: 'financeiro/categorias', element: <RequirePermission permission={P.finance.view}><ExpenseCategoriesPage /></RequirePermission> },
+              { path: 'financeiro/centros-de-custo', element: <RequirePermission permission={P.finance.view}><CostCentersPage /></RequirePermission> },
+              { path: 'financeiro/recorrentes', element: <RequirePermission permission={P.finance.view}><RecurringExpensesPage /></RequirePermission> },
+              { path: 'financeiro/orcamentos', element: <RequirePermission permission={P.finance.view}><BudgetsPage /></RequirePermission> },
               { path: 'usuarios', element: <RequirePermission permission={P.users.view}><UserListPage /></RequirePermission> },
               { path: 'usuarios/novo', element: <RequirePermission permission={P.users.manage}><UserFormPage /></RequirePermission> },
               { path: 'usuarios/:id', element: <RequirePermission permission={P.users.view}><UserFormPage /></RequirePermission> },

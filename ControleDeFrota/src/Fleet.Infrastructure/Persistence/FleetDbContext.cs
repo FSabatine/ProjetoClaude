@@ -9,6 +9,7 @@ using Fleet.Domain.Companies;
 using Fleet.Domain.Documents;
 using Fleet.Domain.Drivers;
 using Fleet.Domain.Files;
+using Fleet.Domain.Finance;
 using Fleet.Domain.Fuel;
 using Fleet.Domain.Implements;
 using Fleet.Domain.Maintenance;
@@ -83,6 +84,12 @@ public sealed class FleetDbContext : DbContext, IFleetDbContext
     public DbSet<TireCost> TireCosts => Set<TireCost>();
     public DbSet<TireAnomaly> TireAnomalies => Set<TireAnomaly>();
     public DbSet<TireSettings> TireSettings => Set<TireSettings>();
+
+    public DbSet<CostCenter> CostCenters => Set<CostCenter>();
+    public DbSet<ExpenseCategory> ExpenseCategories => Set<ExpenseCategory>();
+    public DbSet<Expense> Expenses => Set<Expense>();
+    public DbSet<RecurringExpense> RecurringExpenses => Set<RecurringExpense>();
+    public DbSet<Budget> Budgets => Set<Budget>();
 
     /// <summary>Read by the tenant query filter on every query (EF parameterizes this per context instance).</summary>
     private Guid? CurrentCompanyId => _currentUser.CompanyId;

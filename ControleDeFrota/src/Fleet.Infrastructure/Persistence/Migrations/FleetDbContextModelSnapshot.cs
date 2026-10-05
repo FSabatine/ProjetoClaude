@@ -780,6 +780,418 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                     b.ToTable("StoredFiles", (string)null);
                 });
 
+            modelBuilder.Entity("Fleet.Domain.Finance.Budget", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("decimal(14,2)");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CostCenterId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ExpenseCategoryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("Month")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("VehicleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CostCenterId");
+
+                    b.HasIndex("ExpenseCategoryId");
+
+                    b.HasIndex("VehicleId");
+
+                    b.HasIndex("CompanyId", "Year", "Month");
+
+                    b.HasIndex("CompanyId", "ExpenseCategoryId", "Year", "Month");
+
+                    b.ToTable("Budgets", (string)null);
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Finance.CostCenter", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid?>("ParentCostCenterId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ParentCostCenterId");
+
+                    b.HasIndex("CompanyId", "Code")
+                        .IsUnique()
+                        .HasFilter("[DeletedAt] IS NULL");
+
+                    b.HasIndex("CompanyId", "ParentCostCenterId");
+
+                    b.ToTable("CostCenters", (string)null);
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Finance.Expense", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("decimal(14,2)");
+
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CancelledBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CostCenterId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid?>("DriverId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateOnly?>("DueDate")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("ExpenseCategoryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateOnly>("ExpenseDate")
+                        .HasColumnType("date");
+
+                    b.Property<bool>("IsRecurring")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<decimal>("PaidAmount")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("decimal(14,2)");
+
+                    b.Property<DateOnly?>("PaymentDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("PaymentMethod")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<Guid?>("RecurringExpenseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ReferenceNumber")
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<string>("SupplierName")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("VehicleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("WorkshopId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CostCenterId");
+
+                    b.HasIndex("DriverId");
+
+                    b.HasIndex("ExpenseCategoryId");
+
+                    b.HasIndex("VehicleId");
+
+                    b.HasIndex("WorkshopId");
+
+                    b.HasIndex("CompanyId", "CostCenterId");
+
+                    b.HasIndex("CompanyId", "DueDate");
+
+                    b.HasIndex("CompanyId", "ExpenseDate");
+
+                    b.HasIndex("RecurringExpenseId", "DueDate")
+                        .IsUnique()
+                        .HasFilter("[DeletedAt] IS NULL AND [RecurringExpenseId] IS NOT NULL");
+
+                    b.HasIndex("CompanyId", "ExpenseCategoryId", "ExpenseDate");
+
+                    b.HasIndex("CompanyId", "VehicleId", "ExpenseDate");
+
+                    b.ToTable("Expenses", (string)null);
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Finance.ExpenseCategory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CostAggregationKey")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsSystemCategory")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid?>("ParentCategoryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ParentCategoryId");
+
+                    b.HasIndex("CompanyId", "Code")
+                        .IsUnique()
+                        .HasFilter("[DeletedAt] IS NULL");
+
+                    b.HasIndex("CompanyId", "CostAggregationKey")
+                        .IsUnique()
+                        .HasFilter("[DeletedAt] IS NULL AND [CostAggregationKey] IS NOT NULL");
+
+                    b.HasIndex("CompanyId", "ParentCategoryId");
+
+                    b.ToTable("ExpenseCategories", (string)null);
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Finance.RecurringExpense", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("decimal(14,2)");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CostCenterId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("DeletedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("DueDayOfMonth")
+                        .HasColumnType("int");
+
+                    b.Property<DateOnly?>("EndDate")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("ExpenseCategoryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Frequency")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<DateOnly?>("LastGeneratedDueDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("PaymentMethod")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("SupplierName")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("VehicleId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("WorkshopId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CostCenterId");
+
+                    b.HasIndex("ExpenseCategoryId");
+
+                    b.HasIndex("VehicleId");
+
+                    b.HasIndex("WorkshopId");
+
+                    b.HasIndex("CompanyId", "IsActive");
+
+                    b.ToTable("RecurringExpenses", (string)null);
+                });
+
             modelBuilder.Entity("Fleet.Domain.Fuel.FuelPrice", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3657,6 +4069,76 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                             Description = "Configurar eixos, modelos e limites de pneus",
                             Key = "tires.managesettings",
                             Module = "tires"
+                        },
+                        new
+                        {
+                            Id = 200,
+                            Description = "Visualizar despesas, categorias, centros de custo, orçamentos e recorrentes",
+                            Key = "finance.view",
+                            Module = "finance"
+                        },
+                        new
+                        {
+                            Id = 201,
+                            Description = "Registrar despesas",
+                            Key = "finance.create",
+                            Module = "finance"
+                        },
+                        new
+                        {
+                            Id = 202,
+                            Description = "Editar despesas",
+                            Key = "finance.edit",
+                            Module = "finance"
+                        },
+                        new
+                        {
+                            Id = 203,
+                            Description = "Cancelar despesas",
+                            Key = "finance.cancel",
+                            Module = "finance"
+                        },
+                        new
+                        {
+                            Id = 204,
+                            Description = "Registrar pagamento de despesas",
+                            Key = "finance.registerpayment",
+                            Module = "finance"
+                        },
+                        new
+                        {
+                            Id = 205,
+                            Description = "Configurar categorias de despesa",
+                            Key = "finance.managecategories",
+                            Module = "finance"
+                        },
+                        new
+                        {
+                            Id = 206,
+                            Description = "Configurar centros de custo",
+                            Key = "finance.managecostcenters",
+                            Module = "finance"
+                        },
+                        new
+                        {
+                            Id = 207,
+                            Description = "Configurar orçamentos",
+                            Key = "finance.managebudgets",
+                            Module = "finance"
+                        },
+                        new
+                        {
+                            Id = 208,
+                            Description = "Configurar despesas recorrentes",
+                            Key = "finance.managerecurring",
+                            Module = "finance"
+                        },
+                        new
+                        {
+                            Id = 209,
+                            Description = "Visualizar valores financeiros (despesas, painel, relatórios, custo/km, TCO)",
+                            Key = "finance.viewcosts",
+                            Module = "finance"
                         });
                 });
 
@@ -3760,7 +4242,7 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = 3,
-                            Description = "Gerencia a frota e a operação: cadastros, alocações, hodômetro, documentos, checklists, ocorrências, manutenção, combustível e pneus.",
+                            Description = "Gerencia a frota e a operação: cadastros, alocações, hodômetro, documentos, checklists, ocorrências, manutenção, combustível, pneus e financeiro.",
                             IsSystem = true,
                             Key = "FleetManager",
                             Name = "Gestor de frota"
@@ -3784,7 +4266,7 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = 6,
-                            Description = "Consulta a frota e os custos de manutenção, combustível e pneus.",
+                            Description = "Consulta a frota e os custos de manutenção, combustível e pneus; gerencia despesas, orçamentos e centros de custo.",
                             IsSystem = true,
                             Key = "Finance",
                             Name = "Financeiro"
@@ -4119,6 +4601,56 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         },
                         new
                         {
+                            RoleId = 1,
+                            PermissionId = 200
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 201
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 202
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 203
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 204
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 205
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 206
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 207
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 208
+                        },
+                        new
+                        {
+                            RoleId = 1,
+                            PermissionId = 209
+                        },
+                        new
+                        {
                             RoleId = 2,
                             PermissionId = 1
                         },
@@ -4409,6 +4941,56 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         },
                         new
                         {
+                            RoleId = 2,
+                            PermissionId = 200
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 201
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 202
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 203
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 204
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 205
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 206
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 207
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 208
+                        },
+                        new
+                        {
+                            RoleId = 2,
+                            PermissionId = 209
+                        },
+                        new
+                        {
                             RoleId = 3,
                             PermissionId = 1
                         },
@@ -4689,6 +5271,56 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         },
                         new
                         {
+                            RoleId = 3,
+                            PermissionId = 200
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 201
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 202
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 203
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 204
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 205
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 206
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 207
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 208
+                        },
+                        new
+                        {
+                            RoleId = 3,
+                            PermissionId = 209
+                        },
+                        new
+                        {
                             RoleId = 4,
                             PermissionId = 1
                         },
@@ -4984,6 +5616,56 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         },
                         new
                         {
+                            RoleId = 6,
+                            PermissionId = 200
+                        },
+                        new
+                        {
+                            RoleId = 6,
+                            PermissionId = 201
+                        },
+                        new
+                        {
+                            RoleId = 6,
+                            PermissionId = 202
+                        },
+                        new
+                        {
+                            RoleId = 6,
+                            PermissionId = 203
+                        },
+                        new
+                        {
+                            RoleId = 6,
+                            PermissionId = 204
+                        },
+                        new
+                        {
+                            RoleId = 6,
+                            PermissionId = 205
+                        },
+                        new
+                        {
+                            RoleId = 6,
+                            PermissionId = 206
+                        },
+                        new
+                        {
+                            RoleId = 6,
+                            PermissionId = 207
+                        },
+                        new
+                        {
+                            RoleId = 6,
+                            PermissionId = 208
+                        },
+                        new
+                        {
+                            RoleId = 6,
+                            PermissionId = 209
+                        },
+                        new
+                        {
                             RoleId = 8,
                             PermissionId = 1
                         },
@@ -5041,6 +5723,11 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         {
                             RoleId = 8,
                             PermissionId = 180
+                        },
+                        new
+                        {
+                            RoleId = 8,
+                            PermissionId = 200
                         });
                 });
 
@@ -5548,6 +6235,159 @@ namespace Fleet.Infrastructure.Persistence.Migrations
                         .HasForeignKey("CompanyId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Finance.Budget", b =>
+                {
+                    b.HasOne("Fleet.Domain.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Fleet.Domain.Finance.CostCenter", "CostCenter")
+                        .WithMany()
+                        .HasForeignKey("CostCenterId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Fleet.Domain.Finance.ExpenseCategory", "ExpenseCategory")
+                        .WithMany()
+                        .HasForeignKey("ExpenseCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Fleet.Domain.Vehicles.Vehicle", "Vehicle")
+                        .WithMany()
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CostCenter");
+
+                    b.Navigation("ExpenseCategory");
+
+                    b.Navigation("Vehicle");
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Finance.CostCenter", b =>
+                {
+                    b.HasOne("Fleet.Domain.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Fleet.Domain.Finance.CostCenter", "ParentCostCenter")
+                        .WithMany()
+                        .HasForeignKey("ParentCostCenterId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ParentCostCenter");
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Finance.Expense", b =>
+                {
+                    b.HasOne("Fleet.Domain.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Fleet.Domain.Finance.CostCenter", "CostCenter")
+                        .WithMany()
+                        .HasForeignKey("CostCenterId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Fleet.Domain.Drivers.Driver", "Driver")
+                        .WithMany()
+                        .HasForeignKey("DriverId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Fleet.Domain.Finance.ExpenseCategory", "ExpenseCategory")
+                        .WithMany()
+                        .HasForeignKey("ExpenseCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Fleet.Domain.Finance.RecurringExpense", "RecurringExpenseTemplate")
+                        .WithMany()
+                        .HasForeignKey("RecurringExpenseId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Fleet.Domain.Vehicles.Vehicle", "Vehicle")
+                        .WithMany()
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Fleet.Domain.Maintenance.Workshop", "Workshop")
+                        .WithMany()
+                        .HasForeignKey("WorkshopId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CostCenter");
+
+                    b.Navigation("Driver");
+
+                    b.Navigation("ExpenseCategory");
+
+                    b.Navigation("RecurringExpenseTemplate");
+
+                    b.Navigation("Vehicle");
+
+                    b.Navigation("Workshop");
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Finance.ExpenseCategory", b =>
+                {
+                    b.HasOne("Fleet.Domain.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Fleet.Domain.Finance.ExpenseCategory", "ParentCategory")
+                        .WithMany()
+                        .HasForeignKey("ParentCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ParentCategory");
+                });
+
+            modelBuilder.Entity("Fleet.Domain.Finance.RecurringExpense", b =>
+                {
+                    b.HasOne("Fleet.Domain.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Fleet.Domain.Finance.CostCenter", "CostCenter")
+                        .WithMany()
+                        .HasForeignKey("CostCenterId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Fleet.Domain.Finance.ExpenseCategory", "ExpenseCategory")
+                        .WithMany()
+                        .HasForeignKey("ExpenseCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Fleet.Domain.Vehicles.Vehicle", "Vehicle")
+                        .WithMany()
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Fleet.Domain.Maintenance.Workshop", "Workshop")
+                        .WithMany()
+                        .HasForeignKey("WorkshopId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CostCenter");
+
+                    b.Navigation("ExpenseCategory");
+
+                    b.Navigation("Vehicle");
+
+                    b.Navigation("Workshop");
                 });
 
             modelBuilder.Entity("Fleet.Domain.Fuel.FuelPrice", b =>

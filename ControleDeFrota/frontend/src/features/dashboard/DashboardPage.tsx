@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Anchor, Badge, Group, Paper, SimpleGrid, Skeleton, Stack, Text, ThemeIcon, Title, UnstyledButton } from '@mantine/core';
 import {
-  IconAlertTriangle, IconChecklist, IconCircleCheck, IconClock, IconFileAlert, IconFileText, IconGasStation,
+  IconAlertTriangle, IconChecklist, IconCircleCheck, IconClock, IconCoin, IconFileAlert, IconFileText, IconGasStation,
   IconCircleDot, IconGauge, IconHourglass, IconId, IconProgress,
   IconRoute, IconSteeringWheel, IconTool, IconTruck, IconTruckDelivery, IconBan, IconArchive,
 } from '@tabler/icons-react';
@@ -12,13 +12,13 @@ import { useAuth } from '../../auth/AuthContext';
 import { PERMISSIONS } from '../../auth/permissions';
 import { PageHeader } from '../../components/PageHeader';
 import { EmptyState, ErrorState } from '../../components/States';
-import { formatNumber, formatPlate } from '../../lib/format';
+import { formatCurrency, formatNumber, formatPlate } from '../../lib/format';
 import classes from './DashboardPage.module.css';
 
 type AlertType =
   | 'LicenseExpired' | 'LicenseExpiringSoon' | 'DocumentExpired' | 'DocumentExpiringSoon' | 'CriticalOccurrence' | 'MileagePendingReview'
-  | 'CriticalWorkOrder' | 'FuelingPendingReview' | 'TireCritical';
-type EntityType = 'Driver' | 'Vehicle' | 'Implement' | 'Company' | 'Occurrence' | 'WorkOrder' | 'Fueling' | 'Tire';
+  | 'CriticalWorkOrder' | 'FuelingPendingReview' | 'TireCritical' | 'ExpenseOverdue';
+type EntityType = 'Driver' | 'Vehicle' | 'Implement' | 'Company' | 'Occurrence' | 'WorkOrder' | 'Fueling' | 'Tire' | 'Expense';
 
 interface DashboardAlert {
   type: AlertType;
@@ -59,6 +59,14 @@ interface DashboardData {
     completedThisMonth: number;
     vehiclesUnderMaintenance: number;
   } | null;
+  finance: {
+    monthlyCost: number | null;
+    costPerKm: number | null;
+    costPerKmHasSufficientData: boolean;
+    overdueExpenseCount: number;
+    overdueExpenseAmount: number | null;
+    isPartial: boolean;
+  } | null;
   alerts: DashboardAlert[];
   totalAlerts: number;
 }
@@ -76,6 +84,7 @@ const alertLink = (a: DashboardAlert) => {
     case 'WorkOrder': return `/ordens-servico/${a.entityId}`;
     case 'Fueling': return `/abastecimentos/${a.entityId}`;
     case 'Tire': return `/pneus/${a.entityId}`;
+    case 'Expense': return `/financeiro/despesas/${a.entityId}/editar`;
     default: return '/minha-empresa';
   }
 };
@@ -90,6 +99,7 @@ const ALERT_ICON: Record<AlertType, typeof IconId> = {
   CriticalWorkOrder: IconTool,
   FuelingPendingReview: IconGasStation,
   TireCritical: IconCircleDot,
+  ExpenseOverdue: IconCoin,
 };
 
 /** A number that leads to the filtered list behind it (one click from the KPI to the records). */
@@ -175,6 +185,25 @@ export function DashboardPage() {
                 <Stat label="Aguardando peças" value={d.maintenance.waitingParts} icon={IconTool} color="grape" to="/ordens-servico?status=WaitingParts" />
                 <Stat label="Concluídas no mês" value={d.maintenance.completedThisMonth} icon={IconCircleCheck} color="teal" to="/ordens-servico?status=Completed" />
                 <Stat label="Veículos em manutenção" value={d.maintenance.vehiclesUnderMaintenance} icon={IconTruck} color="gray" to="/veiculos?operationalStatus=UnderMaintenance" />
+              </SimpleGrid>
+            )}
+          </Block>
+        )}
+
+        {can(PERMISSIONS.finance.view) && (
+          <Block title="Financeiro" action={<Anchor component={Link} to="/financeiro" size="sm">Ver painel financeiro</Anchor>}>
+            {!d ? loading(3) : d.finance === null ? null : (
+              <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="sm">
+                <Paper p="md">
+                  <Text size="xs" c="dimmed" fw={500}>Custo do mês</Text>
+                  <Text fz={22} fw={700}>{formatCurrency(d.finance.monthlyCost)}</Text>
+                </Paper>
+                <Paper p="md">
+                  <Text size="xs" c="dimmed" fw={500}>Custo/km da frota</Text>
+                  <Text fz={22} fw={700}>{d.finance.costPerKmHasSufficientData ? formatCurrency(d.finance.costPerKm) : '—'}</Text>
+                  {!d.finance.costPerKmHasSufficientData && <Text size="xs" c="dimmed">dados insuficientes</Text>}
+                </Paper>
+                <Stat label="Despesas em atraso" value={d.finance.overdueExpenseCount} icon={IconCoin} color="red" to="/financeiro/despesas?status=Overdue" />
               </SimpleGrid>
             )}
           </Block>

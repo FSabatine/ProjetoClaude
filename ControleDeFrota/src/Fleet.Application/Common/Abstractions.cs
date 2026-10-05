@@ -6,6 +6,7 @@ using Fleet.Domain.Companies;
 using Fleet.Domain.Documents;
 using Fleet.Domain.Drivers;
 using Fleet.Domain.Files;
+using Fleet.Domain.Finance;
 using Fleet.Domain.Fuel;
 using Fleet.Domain.Implements;
 using Fleet.Domain.Maintenance;
@@ -74,6 +75,13 @@ public interface IFleetDbContext
     DbSet<TireCost> TireCosts { get; }
     DbSet<TireAnomaly> TireAnomalies { get; }
     DbSet<TireSettings> TireSettings { get; }
+
+    // Phase 6 — finance
+    DbSet<CostCenter> CostCenters { get; }
+    DbSet<ExpenseCategory> ExpenseCategories { get; }
+    DbSet<Expense> Expenses { get; }
+    DbSet<RecurringExpense> RecurringExpenses { get; }
+    DbSet<Budget> Budgets { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 

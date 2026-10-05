@@ -61,6 +61,8 @@ builder.Services.AddExceptionHandler<AppExceptionHandler>();
 // ---- Background jobs (ADR-025): time-based operational events
 builder.Services.Configure<DocumentExpirationJobOptions>(configuration.GetSection(DocumentExpirationJobOptions.SectionName));
 builder.Services.AddHostedService<DocumentExpirationJob>();
+builder.Services.Configure<RecurringExpenseGenerationJobOptions>(configuration.GetSection(RecurringExpenseGenerationJobOptions.SectionName));
+builder.Services.AddHostedService<RecurringExpenseGenerationJob>();
 builder.Services.AddProblemDetails(o => o.CustomizeProblemDetails = ctx =>
 {
     // Friendly titles for responses produced by the framework itself (401/403/404/429 without body).

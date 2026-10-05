@@ -7,6 +7,7 @@ const RULES: { test: (pathname: string, aba: string | null) => boolean; category
   // Hub do veículo: a aba ativa manda mais que a seção "Veículos" em si.
   { test: (p, aba) => p.startsWith('/veiculos/') && aba === 'combustivel', categoryId: 'fuel' },
   { test: (p, aba) => p.startsWith('/veiculos/') && aba === 'pneus', categoryId: 'tires' },
+  { test: (p, aba) => p.startsWith('/veiculos/') && aba === 'financeiro', categoryId: 'financial' },
   { test: (p, aba) => p.startsWith('/veiculos/') && aba === 'manutencao', categoryId: 'maintenance' },
   { test: (p, aba) => p.startsWith('/veiculos/') && aba === 'documentos', categoryId: 'documents' },
   { test: (p, aba) => p.startsWith('/veiculos/') && aba === 'checklists', categoryId: 'checklists' },
@@ -33,6 +34,8 @@ const RULES: { test: (pathname: string, aba: string | null) => boolean; category
       p.startsWith('/configuracoes/combustivel'), categoryId: 'fuel' },
 
   { test: (p) => p.startsWith('/pneus') || p.startsWith('/configuracoes/pneus'), categoryId: 'tires' },
+
+  { test: (p) => p.startsWith('/financeiro'), categoryId: 'financial' },
 
   { test: (p) => p.startsWith('/usuarios'), categoryId: 'users' },
   { test: (p) => p.startsWith('/papeis'), categoryId: 'rolesPermissions' },

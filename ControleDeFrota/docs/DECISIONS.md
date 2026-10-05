@@ -329,3 +329,52 @@ Formato: **Problema · Alternativas · Decisão · Motivo · Impacto**. Um ADR n
 - **Sulco por canal**: a inspeção guarda a menor medida; medir 3–4 canais é extensão aditiva (linhas filhas).
 - **Exportação** dos relatórios: Fase 8. **Notificações**: eventos prontos para a Fase 9.
 - **Revisão visual automatizada**: não executada (headless desaconselhado nesta máquina); conferir o diagrama em 375px/tablet/desktop nos dois temas.
+
+---
+
+# Fase 6 — Financeiro (2026-10-05)
+
+## ADR-040 — Modelo financeiro: sem duplicar custo de outro módulo, sem Fornecedor/Filial genéricos
+- **Status**: aceito.
+- **Contexto**: o usuário enviou a especificação completa da Fase 6 (38 seções) diretamente — a mesma situação das Fases 3/4/5 (ADR-026/031/035): a Fase 2.5 (Viagens) segue no backlog, mas desta vez o pedido coincide com o próprio título da Fase 6 do roadmap ("Gestão financeira"), então não houve a mesma tensão de pular uma fase recomendada.
+- **Problema**: a especificação pede uma entidade `Expense` genérica cobrindo também combustível, manutenção e pneus, um cadastro de Fornecedor e um conceito de Filial — três coisas que, se criadas cegamente, duplicariam dado que já existe (seção 6 do pedido já alerta para isso) ou criariam um segundo sistema de fornecedor/filial sem necessidade real.
+- **Decisão**:
+  - **`Expense` nunca recebe custo de combustível/manutenção/pneus.** Um novo `CostAggregationService` lê `Fuelings.TotalAmount`, `WorkOrders.TotalCost` e `TireCosts.Amount` direto das tabelas de origem (agregados no banco) e combina com as despesas manuais. Três `ExpenseCategory` de sistema (`IsSystemCategory=true`, `CostAggregationKey`) representam essas três fontes nos relatórios por categoria, sem nunca aceitar um lançamento manual.
+  - **Sem Fornecedor genérico.** `Expense`/`RecurringExpense` referenciam opcionalmente a `Workshop` da Fase 3 (quando o fornecedor é uma oficina já cadastrada) ou guardam o nome em texto livre (`SupplierName`) — mesmo molde do `WorkOrderLabor.TechnicianName` (ADR-027): texto livre até existir demanda real de um cadastro.
+  - **Sem Branch/Filial.** O exemplo da especificação ("Filial São Paulo" como cost center) já mostra que uma filial é só um `CostCenter` folha — `CostCenter` é hierárquico desde o início, então não há necessidade de uma segunda entidade.
+  - **`PaymentMethod` do financeiro é um enum próprio**, distinto do `PaymentMethod` de combustível (ADR-031): o conjunto de formas de pagamento de uma despesa genérica (transferência, PIX, cartões, débito automático…) não é o mesmo de um abastecimento (cartão frota, faturado, tanque próprio).
+- **Motivo**: evita exatamente o que a seção 6 da especificação pede para evitar ("não force o usuário a duplicar dado já registrado em outro lugar"), e segue o princípio de escopo deliberadamente reduzido já estabelecido nas Fases 3–5.
+- **Impacto**: o skill do projeto foi atualizado para que uma sessão futura nunca crie uma segunda forma de registrar custo de combustível/manutenção/pneus, nem um cadastro de fornecedor/filial, sem antes checar este ADR.
+
+## ADR-041 — Situação de pagamento calculada; despesa nunca é excluída, só cancelada
+- **Status**: aceito.
+- **Decisão**: `PaymentStatus` (Pendente, Agendado, Parcialmente pago, Pago, Atrasado, Cancelado) nunca é gravado — `ExpensePaymentPolicy.Evaluate` calcula a partir de `CancelledAt`, `Amount`, `PaidAmount` e `DueDate`, mesmo molde do `DocumentExpiryPolicy`/`MaintenanceSchedulePolicy`. Uma despesa mal lançada é **cancelada** (motivo obrigatório), nunca excluída — `Expense` implementa `ISoftDeletable` só pelo padrão comum da entidade auditável, mas o serviço não expõe uma ação de excluir.
+- **Motivo**: seção 32 da especificação ("avoid destructive deletion of financial records... prefer cancellation"). Um campo calculado nunca fica desatualizado (a despesa que passa do vencimento vira "Atrasado" sozinha, sem um job que precise rodar).
+- **Impacto**: pagamento parcial é suportado (`PaidAmount < Amount`), mas não há conciliação bancária nem múltiplas parcelas por despesa — um valor pago é a soma simples, consistente com "esta fase é sobre controle financeiro, não processamento de pagamento" (seção 10).
+
+## ADR-042 — Totais combinados exigem a permissão de custo de CADA fonte; "totais parciais" em vez de total errado
+- **Status**: aceito.
+- **Problema**: um total de veículo que mistura combustível, manutenção, pneus e despesas manuais só deveria mostrar R$ de uma fonte para quem tem a permissão de custo **daquela fonte** — do contrário, um usuário com `finance.viewcosts` mas sem `tires.viewcosts` veria o custo de pneus "vazando" pela tela financeira.
+- **Decisão**: `CostAggregationService` calcula `CanSeeFuel`/`CanSeeMaintenance`/`CanSeeTires`/`CanSeeOther` como a permissão da fonte **E** `finance.viewcosts` juntas. Uma fonte sem permissão soma zero (nunca lança exceção nem omite a linha), e a resposta carrega `IsPartial = true` quando pelo menos uma fonte foi zerada — a tela mostra um aviso de "totais parciais" em vez de apresentar um total incompleto como se fosse o valor real.
+- **Motivo**: o princípio de segurança já estabelecido ("Valores em R$ ficam atrás de uma permissão *.viewcosts decidida no serviço") precisa de uma extensão explícita quando o valor é a SOMA de várias fontes com permissões independentes — sem isso, a combinação mais permissiva (só `finance.viewcosts`) vazaria dado de módulos mais restritos.
+- **Impacto**: nos papéis hoje seedados (Finance, FleetManager, Administrator), ninguém tem `finance.viewcosts` sem também ter as três outras — a parcialidade só aparece com uma combinação de permissões personalizada. Documentado porque é o desenho correto independentemente dos papéis atuais.
+
+## ADR-043 — Custo de pneu atribuído ao veículo por correlação em memória (não SQL puro)
+- **Status**: aceito.
+- **Problema**: `TireCost` não tem `VehicleId` (o pneu é independente do veículo, ADR-035) — o veículo correto é "quem tinha aquele pneu instalado na data do custo", resolvido por `TireInstallations` (intervalo `InstalledAt`/`RemovedAt`).
+- **Alternativas**: (a) subconsulta correlacionada comparando `DateOnly` (do custo) com `DateTime` (da instalação) direto no SQL; (b) resolver em memória, sobre a lista de custos do período e das instalações dos pneus envolvidos.
+- **Decisão**: (b). EF Core 8 não garante a tradução de uma comparação `DateOnly`×`DateTime` correlacionada em todo provedor (o mesmo motivo do ADR-033 para `decimal`), e o volume de `TireCost` (consertos, recapagens, compras) é pequeno o bastante — ao contrário de `Fuelings`/`WorkOrders`, que continuam 100% agregados no banco — para que resolver em memória não viole o espírito da regra "agregue no banco, não carregue para somar" do skill.
+- **Impacto**: documentado como desvio consciente, não um descuido. Validado por teste (`TireCost_AttributedToVehicleInstalledAtTheTime_NotToAVehicleOutsideTheInstallationWindow`): um custo incorrido enquanto o pneu estava no veículo A não aparece no custo do veículo B, mesmo que o pneu tenha sido transferido depois.
+
+## ADR-044 — Custo por km e TCO: limiares próprios, nunca um número enganoso
+- **Status**: aceito.
+- **Decisão**: `VehicleCostPolicy.MinKmForCostPerKm = 50` km para o custo por km de um **período** (mês/ano) — bem menor que o `TireCostPolicy.MinKmForCostPerKm = 5.000` km, porque este último mede o ciclo de vida inteiro de um pneu (anos), não um mês de um veículo. Km do período vem do histórico de hodômetro já existente (`MileageService.OdometerAtAsync`), nunca um módulo de quilometragem novo. TCO = `Vehicle.AcquisitionValue` (campo que já existia desde a Fase 1) + custo operacional acumulado desde `AcquisitionDate` (ou desde o cadastro, se a data não foi informada); é explicitamente uma análise de gestão operacional, não um cálculo contábil/fiscal de depreciação (seção 16 do pedido).
+- **Anomalias (seção 20 do pedido)**: sem um subsistema novo. Reaproveita dois padrões já existentes: alerta computado no painel principal (`DashboardAlert`, "Despesa em atraso", igual aos alertas de documento/pneu) + evento operacional `BudgetExceeded` emitido quando uma despesa nova ultrapassa o orçamento da categoria/período; e sinal calculado na leitura (`ExpenseResponse.IsDuplicateSuspect`), nunca gravado, sem acusar ninguém ("possível duplicidade").
+- **Motivo**: menos um subsistema (entidade de anomalia + workflow de revisão) a manter, reaproveitando exatamente a infraestrutura que o dashboard e o fuel/tire já usam para o mesmo tipo de sinal.
+
+## Pontos em aberto da Fase 6
+- **Exportação** dos relatórios: Fase 8, como as demais.
+- **Multas e sinistros**: o roadmap deixa em aberto se entram no financeiro ou na Fase 2 — por ora, uma multa é só mais uma categoria de despesa manual, sem fluxo próprio.
+- **Fornecedor genérico**: se o negócio precisar de um cadastro de fornecedores além da oficina, ele entra como entidade própria referenciada por `Expense`/`RecurringExpense` (ADR-040), sem mudar o modelo atual.
+- **Rateio automático** de uma despesa entre vários veículos/centros de custo: hoje uma despesa pertence a no máximo um veículo e um centro de custo; dividir uma despesa única entre vários exigiria um conceito de "rateio" ainda não modelado.
+- **Revisão visual automatizada**: não executada (headless desaconselhado nesta máquina); conferir o painel, a aba Financeiro do veículo e os formulários em 375px/tablet/desktop, nos dois temas.

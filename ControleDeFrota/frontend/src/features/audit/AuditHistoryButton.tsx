@@ -35,7 +35,8 @@ type AuditEntity =
   | 'Vehicle' | 'Implement' | 'Driver' | 'User' | 'Company' | 'Occurrence' | 'ChecklistTemplate' | 'Document'
   | 'Workshop' | 'MaintenancePlan' | 'HourMeterReading' | 'MaintenanceRequest' | 'WorkOrder'
   | 'Fueling' | 'FuelStation' | 'FuelType'
-  | 'Tire' | 'TireLayout' | 'TireModel';
+  | 'Tire' | 'TireLayout' | 'TireModel'
+  | 'Expense' | 'ExpenseCategory' | 'CostCenter' | 'RecurringExpense' | 'Budget';
 
 export function AuditHistoryButton({ entity, id }: { entity: AuditEntity; id: string }) {
   const { can } = useAuth();

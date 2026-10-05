@@ -112,6 +112,8 @@ public sealed class AuditController(AuditService service) : ControllerBase
         "Fueling", "FuelStation", "FuelType", "FuelPrice", "FuelSettings",
         // Phase 5
         "Tire", "TireModel", "TireLayout", "TireInstallation", "TireRotation", "TireInspection", "TireServiceOrder", "TireCost", "TireSettings",
+        // Phase 6
+        "Expense", "ExpenseCategory", "CostCenter", "RecurringExpense", "Budget",
     ];
 
     [HttpGet("{entityName}/{entityId:guid}"), HasPermission(Permissions.Audit.View)]

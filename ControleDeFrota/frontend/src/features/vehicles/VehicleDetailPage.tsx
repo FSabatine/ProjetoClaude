@@ -1,6 +1,6 @@
 import { Alert, Anchor, Button, Group, Paper, SimpleGrid, Stack, Text } from '@mantine/core';
 import {
-  IconAlertTriangle, IconChecklist, IconCircleDot, IconFileText, IconGasStation, IconGauge, IconHistory, IconInfoCircle, IconPencil, IconPlayerPlay, IconSteeringWheel, IconTool,
+  IconAlertTriangle, IconChecklist, IconCircleDot, IconCoin, IconFileText, IconGasStation, IconGauge, IconHistory, IconInfoCircle, IconPencil, IconPlayerPlay, IconSteeringWheel, IconTool,
 } from '@tabler/icons-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
@@ -17,6 +17,7 @@ import { ChecklistsPanel } from '../checklists/ChecklistsPanel';
 import { DocumentsPanel } from '../documents/DocumentsPanel';
 import { HistoryTimeline } from '../history/HistoryTimeline';
 import { VehicleFuelPanel } from '../fuel/VehicleFuelPanel';
+import { VehicleFinancialPanel } from '../finance/VehicleFinancialPanel';
 import { AssetTirePanel } from '../tires/AssetTirePanel';
 import { VehicleMaintenancePanel } from '../maintenance/VehicleMaintenancePanel';
 import { MileagePanel } from '../mileage/MileagePanel';
@@ -53,6 +54,7 @@ function VehicleHub({ vehicle: v }: { vehicle: Vehicle }) {
     ...(can(PERMISSIONS.maintenance.view) ? [{ value: 'manutencao', label: 'Manutenção', icon: <IconTool size={16} />, content: <VehicleMaintenancePanel vehicleId={v.id} /> }] : []),
     ...(can(PERMISSIONS.fuel.view) ? [{ value: 'combustivel', label: 'Combustível', icon: <IconGasStation size={16} />, content: <VehicleFuelPanel vehicleId={v.id} vehicleInactive={v.status === 'Inactive'} /> }] : []),
     ...(can(PERMISSIONS.tires.view) ? [{ value: 'pneus', label: 'Pneus', icon: <IconCircleDot size={16} />, content: <AssetTirePanel asset={{ kind: 'vehicles', id: v.id }} /> }] : []),
+    ...(can(PERMISSIONS.finance.view) ? [{ value: 'financeiro', label: 'Financeiro', icon: <IconCoin size={16} />, content: <VehicleFinancialPanel vehicleId={v.id} /> }] : []),
     { value: 'historico', label: 'Histórico', icon: <IconHistory size={16} />, content: <HistoryTimeline owner="vehicles" id={v.id} /> },
   ];
 

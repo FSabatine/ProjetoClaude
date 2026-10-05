@@ -5,6 +5,7 @@ using Fleet.Application.Auth;
 using Fleet.Application.Checklists;
 using Fleet.Application.Documents;
 using Fleet.Application.Files;
+using Fleet.Application.Finance;
 using Fleet.Application.Fuel;
 using Fleet.Application.Mileage;
 using Fleet.Application.Occurrences;
@@ -83,6 +84,16 @@ public static class DependencyInjection
         services.AddScoped<TireInspectionService>();
         services.AddScoped<TireServiceOrderService>();
         services.AddScoped<TireAnalyticsService>();
+
+        // Phase 6 — finance
+        services.AddScoped<CostCenterService>();
+        services.AddScoped<ExpenseCategoryService>();
+        services.AddScoped<ExpenseService>();
+        services.AddScoped<RecurringExpenseService>();
+        services.AddScoped<RecurringExpenseGenerationScanner>();
+        services.AddScoped<BudgetService>();
+        services.AddScoped<CostAggregationService>();
+        services.AddScoped<FinanceAnalyticsService>();
         return services;
     }
 }

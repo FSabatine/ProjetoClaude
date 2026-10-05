@@ -3,6 +3,7 @@ using Fleet.Application.Auth;
 using Fleet.Application.Checklists;
 using Fleet.Application.Documents;
 using Fleet.Application.Files;
+using Fleet.Application.Finance;
 using Fleet.Application.Fuel;
 using Fleet.Application.Mileage;
 using Fleet.Application.Occurrences;
@@ -29,7 +30,7 @@ public static class Services
     public static ImplementService Implements(TestDb t) => new(t.Db, new ImplementRequestValidator(t.Clock));
     public static DriverService Drivers(TestDb t) => new(t.Db, t.Clock, new DriverRequestValidator(t.Clock));
     public static CompanyService Companies(TestDb t) => new(t.Db, t.CurrentUser, new CompanyRequestValidator());
-    public static DashboardService Dashboard(TestDb t) => new(t.Db, t.Clock, t.CurrentUser, Checklists(t));
+    public static DashboardService Dashboard(TestDb t) => new(t.Db, t.Clock, t.CurrentUser, Checklists(t), FinanceAnalytics(t));
 
     // Phase 2
     public static OperationalEventLog Events(TestDb t) => new(t.Db, t.Clock, t.CurrentUser);
@@ -85,4 +86,16 @@ public static class Services
 
     public static JwtTokenService Tokens(TestDb t) => new(
         Options.Create(new JwtOptions { SigningKey = "test-signing-key-with-at-least-32-bytes!!" }), t.Clock);
+
+    // Phase 6 — finance
+    public static CostCenterService CostCenters(TestDb t) => new(t.Db, new CostCenterRequestValidator());
+    public static ExpenseCategoryService ExpenseCategories(TestDb t) => new(t.Db, t.CurrentUser, new ExpenseCategoryRequestValidator());
+    public static ExpenseService Expenses(TestDb t) => new(
+        t.Db, t.CurrentUser, t.Clock, Events(t), Files(t),
+        new ExpenseRequestValidator(), new ExpensePaymentRequestValidator(), new ExpenseCancelRequestValidator());
+    public static RecurringExpenseService RecurringExpenses(TestDb t) => new(t.Db, new RecurringExpenseRequestValidator());
+    public static RecurringExpenseGenerationScanner RecurringExpenseScanner(TestDb t) => new(t.Db, t.Clock);
+    public static CostAggregationService CostAggregation(TestDb t) => new(t.Db, t.CurrentUser, t.Clock);
+    public static BudgetService Budgets(TestDb t) => new(t.Db, t.CurrentUser, new BudgetRequestValidator(), CostAggregation(t));
+    public static FinanceAnalyticsService FinanceAnalytics(TestDb t) => new(t.Db, t.CurrentUser, t.Clock, CostAggregation(t), Mileage(t));
 }

@@ -716,9 +716,92 @@ Uma anomalia aberta por tipo e pneu (não acumula). Texto sempre "Requer revisã
 | Visualizador | `tires.view` |
 | Motorista | nenhuma (decisão da Fase 2) |
 
-## Preparação para fases futuras
+## Preparação para fases futuras (Fase 5)
 
 - **Inventário/almoxarifado**: `StorageLocation` é texto; um módulo de estoque substitui por FK de local + movimentações sem mudar o ciclo do pneu. Compra/fornecedor ficam em texto até existir o cadastro de fornecedores.
 - **TPMS/telemetria**: uma leitura automática de pressão entra como nova `TireInspectionSource` (ex.: `Sensor`) — a comparação `TirePressure.Check` já é única.
 - **Venda/transferência entre empresas**: a baixa com motivo `Sold`/`Transferred` preserva o histórico; um fluxo de venda futuro referencia o pneu baixado.
+
+# Financeiro (Fase 6) — ADR-040
+
+## Modelo
+
+`CostCenter` e `ExpenseCategory` são catálogos configuráveis por empresa, hierárquicos (FK para si mesmos). Três `ExpenseCategory` são de sistema (`IsSystemCategory=true`, `CostAggregationKey` = `Fuel`/`Maintenance`/`Tires`): alimentadas automaticamente pelos módulos de origem, nunca por um lançamento manual. Não existe uma entidade genérica de Fornecedor nem de Filial — um fornecedor é a `Workshop` da Fase 3 (opcional) ou texto livre, e uma "filial" é só mais um `CostCenter` (o exemplo da especificação, "Filial São Paulo", é um `CostCenter` folha).
+
+`Expense` é o lançamento manual/recorrente — nunca o custo de combustível, manutenção ou pneus, que têm módulo próprio. `RecurringExpense` é o modelo de uma obrigação periódica (seguro, financiamento, leasing…); o `RecurringExpenseGenerationScanner` (job em background, mesmo formato do `DocumentExpirationScanner`) transforma isso em linhas de `Expense` com até 30 dias de antecedência do vencimento, de forma idempotente (índice único `RecurringExpenseId + DueDate`). `Budget` é um valor planejado por período (ano ou ano+mês) × categoria × (opcionalmente) centro de custo/veículo — o realizado nunca é gravado, é sempre calculado.
+
+## Situação de pagamento (`PaymentStatus`) — `ExpensePaymentPolicy`
+
+Nunca gravada. Calculada a partir de `CancelledAt`, `Amount`, `PaidAmount` e `DueDate`:
+
+```
+Cancelled   se CancelledAt preenchido (estado final)
+Paid        se PaidAmount >= Amount
+PartiallyPaid se 0 < PaidAmount < Amount
+Overdue     se DueDate < hoje e não totalmente pago
+Scheduled   se tem DueDate no futuro e nada pago
+Pending     se não tem DueDate e nada pago
+```
+
+Mesma ideia do `DocumentExpiryPolicy`/`MaintenanceSchedulePolicy`: um campo calculado nunca fica desatualizado. Uma despesa não é excluída pelo usuário — é **cancelada** (motivo obrigatório), e o cancelamento é definitivo.
+
+## Integração com combustível, manutenção e pneus (`CostAggregationService`) — seção 6 do pedido
+
+O custo de um veículo/da frota **nunca duplica** o dado de origem. `CostAggregationService` lê e soma direto:
+
+- Combustível: `Fuelings.TotalAmount` (exclui `Cancelled`), por `FueledOn`.
+- Manutenção: `WorkOrders.TotalCost` (exclui `Cancelled`/`Rejected`), por `OpenedAt`.
+- Pneus: `TireCosts.Amount`, por `IncurredOn` — atribuído ao veículo que tinha aquele pneu instalado naquela data (via `TireInstallations`), não ao veículo atual do pneu.
+- Outras: soma de `Expenses` não canceladas.
+
+Cada fatia só entra na soma se o usuário tiver a permissão de custo **daquele módulo** (`fuel.viewcosts`/`maintenance.viewcosts`/`tires.viewcosts`) **e** `finance.viewcosts`. Faltando uma, a fatia some e a resposta carrega `IsPartial = true` — a tela avisa "totais parciais" em vez de mostrar um número incompleto como se fosse o total real.
+
+## Custo por quilômetro — `VehicleCostPolicy`
+
+`CostPerKm = custo total ÷ km rodados no período`, usando o histórico de hodômetro (`MileageService.OdometerAtAsync`) já existente — nenhum módulo novo de quilometragem. Abaixo de `VehicleCostPolicy.MinKmForCostPerKm` (50 km) ou sem leitura de hodômetro cobrindo o período inteiro, o resultado é `null` com motivo explícito, nunca um número — mesmo espírito do `TireCostPolicy` (que usa 5.000 km, porque mede o ciclo de vida inteiro de um pneu, não um mês de um veículo).
+
+## TCO — `FinanceAnalyticsService.GetVehicleTcoAsync`
+
+`TCO = AcquisitionValue (já existe em Vehicle, Fase 1) + custo operacional acumulado desde AcquisitionDate` (ou desde o cadastro, se a data de aquisição não foi informada). `CostPerMonth = TCO ÷ meses desde o início`; `CostPerKm` segue a mesma regra de dados insuficientes acima. É uma análise de gestão operacional (seção 16 do pedido) — não um cálculo contábil/fiscal de depreciação.
+
+## Orçamento x Realizado — `BudgetAnalysis`
+
+`Remaining = Budget − Actual`; `UtilizationPercent = Actual ÷ Budget × 100` (null sem orçamento, para não mostrar um percentual sem sentido); `Status`: `UnderBudget` (< 90%), `NearBudget` (90–100%), `OverBudget` (> 100%), `NoBudget`. Um orçamento de veículo lê a fatia da categoria no `VehicleCostBreakdown`; um orçamento de categoria/empresa lê o `GetFleetCostByCategoryAsync`.
+
+## Anomalias e alertas (seção 20 do pedido)
+
+Sem um subsistema novo de anomalia: reaproveita os dois padrões já existentes no projeto. (1) **Alerta do painel**: o painel principal ganhou "Despesa em atraso" (`DashboardAlert`, calculado a cada leitura, igual aos alertas de documento/CNH/pneu), e `BudgetExceeded` é emitido como evento operacional quando uma despesa recém-criada ultrapassa o orçamento da sua categoria/período. (2) **Sinal calculado na leitura**: `ExpenseResponse.IsDuplicateSuspect` (mesmo veículo/categoria/valor/data de outra despesa não cancelada) é calculado a cada listagem, nunca gravado — o texto é sempre factual ("possível duplicidade"), nunca acusatório.
+
+## Eventos (ADR-025)
+
+`ExpenseCreated`, `ExpenseEdited`, `ExpenseCancelled`, `ExpensePaymentRegistered`, `RecurringExpenseGenerated`, `BudgetExceeded`. Nenhum carrega valor em R$ no resumo (mesma regra do combustível/manutenção/pneus): o histórico do veículo é visível a quem não tem `finance.viewcosts`.
+
+## Catálogo de permissões (Fase 6)
+
+| Permissão | Significado |
+|---|---|
+| `finance.view` | despesas, categorias, centros de custo, orçamentos e recorrentes (sem R$) |
+| `finance.viewcosts` | todo valor em R$ do módulo: despesas, painel, relatórios, custo/km, TCO — e a fatia financeira de um total combinado com outros módulos |
+| `finance.create` | registrar despesas |
+| `finance.edit` | editar despesas |
+| `finance.cancel` | cancelar despesas |
+| `finance.registerpayment` | registrar pagamento (total ou parcial) |
+| `finance.managecategories` | configurar categorias de despesa |
+| `finance.managecostcenters` | configurar centros de custo |
+| `finance.managebudgets` | configurar orçamentos |
+| `finance.managerecurring` | configurar despesas recorrentes |
+
+| Papel | Financeiro |
+|---|---|
+| Administrador / plataforma / Gestor de frota | todas |
+| Financeiro | todas |
+| Visualizador | `finance.view` |
+| Operações / Manutenção / Motorista | nenhuma |
+
+## Preparação para fases futuras (Fase 6)
+
+- **Exportação** dos relatórios (Excel/PDF): Fase 8, como as demais.
+- **Multas e sinistros**: o roadmap deixa em aberto se entram aqui ou na Fase 2 (controle operacional) — por ora, uma multa é só mais uma categoria de despesa manual.
+- **Rateio/depreciação contábil**: fora do escopo desta fase (seção 35 do pedido); o TCO é uma análise operacional, não substitui um módulo contábil.
+- **Fornecedor genérico**: se o negócio precisar de um cadastro de fornecedores além da oficina (`Workshop`), ele entra como entidade própria referenciada por `Expense`/`RecurringExpense`, sem mudar o modelo atual (`SupplierName` continua como texto livre de fallback).
 - **Implementos com km**: com o engate (Fase 2.5), a km da vigência em implemento pode vir do veículo trator — hoje é desconhecida.

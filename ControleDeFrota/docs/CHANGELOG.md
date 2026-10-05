@@ -2,6 +2,32 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Datas no padrão AAAA-MM-DD.
 
+## [0.6.0] — 2026-10-05 — Fase 6: Gestão financeira
+
+### Adicionado
+- **Centros de custo** e **categorias de despesa** hierárquicos e configuráveis por empresa; três categorias (Combustível, Manutenção, Pneus) são automáticas, alimentadas pelos próprios módulos, e não aceitam lançamento manual nem podem ser excluídas/inativadas (ADR-040).
+- **Despesas** manuais (seguro, IPVA, licenciamento, pedágio, estacionamento, lavagem, multas, aluguel, financiamento, leasing…) com categoria, centro de custo, veículo/motorista/fornecedor opcionais, anexos, situação de pagamento **calculada** (Pendente, Agendado, Parcialmente pago, Pago, Atrasado, Cancelado — nunca gravada) e pagamento total/parcial. Nunca excluída: só **cancelada**, com motivo. Aviso neutro de "possível duplicidade" quando outra despesa igual já existe.
+- **Despesas recorrentes** (seguro, financiamento, leasing, assinaturas…) geradas automaticamente em despesas datadas até 30 dias antes do vencimento, por um job idempotente (mesmo formato do `DocumentExpirationJob`).
+- **Orçamentos** por ano ou por ano+mês, por categoria, com centro de custo e/ou veículo opcionais; **Orçado x Realizado** com realizado, restante, percentual de utilização e situação (dentro do orçamento, próximo do limite, acima do orçamento), tudo calculado na leitura.
+- **Custo do veículo e da frota sem duplicar dado**: `CostAggregationService` lê direto o total de combustível (`Fuelings`), manutenção (`WorkOrders`) e pneus (`TireCosts`, atribuído ao veículo que tinha o pneu instalado na data do custo) e combina com as despesas manuais. Cada fatia só aparece para quem tem a permissão de custo daquele módulo **e** `finance.viewcosts`; faltando uma, a resposta marca "totais parciais" em vez de um total incompleto silencioso.
+- **Custo por quilômetro** (veículo e frota) e **TCO** (valor de aquisição + custo operacional acumulado desde a aquisição, custo por mês e por km) — ambos recusam calcular com quilometragem insuficiente, mostrando o motivo em vez de um número.
+- **Ranking de veículos** por custo total, custo/km, combustível, manutenção, pneus e número de despesas, com filtros e ordenação.
+- **Painel financeiro** (custo do ano, do mês, por categoria, evolução mensal, custo/km da frota, despesas em atraso) e **aba Financeiro** no hub do veículo; bloco financeiro e alerta "Despesa em atraso" no painel principal.
+- **Relatórios**: despesas, custo por centro de custo, custo mensal da frota, orçado x realizado e TCO.
+- Permissões `finance.view/viewcosts/create/edit/cancel/registerpayment/managecategories/managecostcenters/managebudgets/managerecurring` e mapeamento nos papéis (Financeiro e Gestor de frota com acesso completo; Visualizador só `finance.view`).
+- **Central de Ajuda**: categoria Financeiro com 15 artigos, ajuda contextual (aba Financeiro do veículo e telas do módulo), "Novidades".
+- Dados de desenvolvimento da Fase 6 (`DevFinanceSeeder`): centros de custo, categorias padrão, uma recorrente, despesas de exemplo (paga, pendente, atrasada, cancelada) e dois orçamentos do mês nos veículos de exemplo.
+- **Testes**: +30 no Domain (322 total), +33 de serviço de Finance no Application (338 total: expense CRUD/cancelamento/pagamento/duplicidade, geração de recorrentes e idempotência, orçado x realizado, agregação de custo entre módulos com zeragem por permissão, custo/km com quilometragem insuficiente, isolamento de tenant) e +16 HTTP (58 → 74: permissões por papel, visibilidade de custo, categoria de sistema, fluxo criar/pagar/cancelar, isolamento de tenant, histórico de auditoria).
+
+### Alterado
+- `DashboardService` ganhou `FinanceSummary` e o alerta `ExpenseOverdue` (aditivo).
+- `IFleetDbContext`/`FleetDbContext` ganharam os `DbSet` de `CostCenter`, `ExpenseCategory`, `Expense`, `RecurringExpense`, `Budget` (aditivo).
+- `StoredFile.FileOwnerType` ganhou `Expense`; `OperationalEventType` ganhou `ExpenseCreated/Edited/Cancelled/PaymentRegistered`, `RecurringExpenseGenerated`, `BudgetExceeded` (aditivos).
+
+### Limitações conhecidas
+- Sem exportação de relatórios (Fase 8); sem cadastro genérico de fornecedores (usa a oficina da Fase 3 ou texto livre); sem rateio/depreciação contábil (TCO é análise operacional).
+- Sem revisão visual automatizada (headless desaconselhado nesta máquina): conferir o painel, a aba Financeiro do veículo e os formulários em 375px/tablet/desktop e nos dois temas.
+
 ## [0.5.0] — 2026-10-02 — Fase 5: Pneus
 
 ### Adicionado

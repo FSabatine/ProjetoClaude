@@ -157,6 +157,27 @@ public static class Permissions
         /// <summary>Axle configurations, tire model catalog and tire policy thresholds.</summary>
         public const string ManageSettings = "tires.managesettings";
     }
+
+    public static class Finance
+    {
+        /// <summary>Expenses, categories, cost centers, budgets and recurring expenses — without money (see ViewCosts).</summary>
+        public const string View = "finance.view";
+        public const string Create = "finance.create";
+        public const string Edit = "finance.edit";
+        public const string Cancel = "finance.cancel";
+        /// <summary>Record/update how much of an expense has been paid.</summary>
+        public const string RegisterPayment = "finance.registerpayment";
+        public const string ManageCategories = "finance.managecategories";
+        public const string ManageCostCenters = "finance.managecostcenters";
+        public const string ManageBudgets = "finance.managebudgets";
+        public const string ManageRecurring = "finance.managerecurring";
+        /// <summary>
+        /// Every R$ value: expense amounts, blended cost dashboards/reports, cost/km, TCO. Also gates the
+        /// Fuel/Maintenance/Tires slices of a blended total for a user who lacks THIS permission even if they
+        /// hold the source module's own ViewCosts (finance screens are money-first, unlike those modules).
+        /// </summary>
+        public const string ViewCosts = "finance.viewcosts";
+    }
 }
 
 public sealed record PermissionDefinition(int Id, string Key, string Description)
@@ -228,6 +249,16 @@ public static class PermissionCatalog
         new(189, Permissions.Tires.Dispose, "Dar baixa em pneus"),
         new(190, Permissions.Tires.ViewCosts, "Visualizar custos de pneus"),
         new(191, Permissions.Tires.ManageSettings, "Configurar eixos, modelos e limites de pneus"),
+        new(200, Permissions.Finance.View, "Visualizar despesas, categorias, centros de custo, orçamentos e recorrentes"),
+        new(201, Permissions.Finance.Create, "Registrar despesas"),
+        new(202, Permissions.Finance.Edit, "Editar despesas"),
+        new(203, Permissions.Finance.Cancel, "Cancelar despesas"),
+        new(204, Permissions.Finance.RegisterPayment, "Registrar pagamento de despesas"),
+        new(205, Permissions.Finance.ManageCategories, "Configurar categorias de despesa"),
+        new(206, Permissions.Finance.ManageCostCenters, "Configurar centros de custo"),
+        new(207, Permissions.Finance.ManageBudgets, "Configurar orçamentos"),
+        new(208, Permissions.Finance.ManageRecurring, "Configurar despesas recorrentes"),
+        new(209, Permissions.Finance.ViewCosts, "Visualizar valores financeiros (despesas, painel, relatórios, custo/km, TCO)"),
     ];
 
     public static PermissionDefinition Get(string key) => All.Single(p => p.Key == key);

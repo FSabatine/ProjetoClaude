@@ -29,6 +29,7 @@ Prioridades: Clareza > Esperteza · Manutenibilidade > Complexidade · UX > Nº 
 - Arquivos: `FileService` + `IFileStorage`; nunca `byte[]` em entidade.
 - Um módulo que produz quilometragem (abastecimento, viagem, telemetria…) **não tem hodômetro próprio**: passa pelo `MileageService` com um `OdometerReadingSource` novo. Resultados calculados que alimentam relatórios (consumo, custo do trecho) são **snapshots gravados** com a referência usada no momento — nunca recalculados do cadastro atual.
 - Totais e relatórios agregam **no banco** (sem carregar registros para somar), paginam o resultado agrupado e ganham um teste de volume.
+- Módulo que precisa do custo/valor de outro módulo (ex.: custo total do veículo) **nunca duplica** esse dado numa tabela nova: leia direto da fonte (`GROUP BY`/`SUM` no banco) e combine em memória só o estritamente necessário — ver `CostAggregationService` (ADR-040).
 
 ## Código
 
@@ -59,6 +60,7 @@ Prioridades: Clareza > Esperteza · Manutenibilidade > Complexidade · UX > Nº 
 - Anti-escalonamento: não se concede permissão que o próprio usuário não tem.
 - Regra que depende do **alvo** (ex.: correção só com `mileage.manage`, download conforme o dono do arquivo) é checada no serviço com `ICurrentUser.HasPermission`, além do `[HasPermission]` da rota.
 - Valores em R$ ficam atrás de uma permissão `*.viewcosts` decidida **no serviço** (campos `null` na resposta); eventos operacionais e mensagens exibidas fora desse controle nunca carregam valores em R$.
+- Total que combina dinheiro de vários módulos exige o **"E" de todas** as permissões `*.viewcosts` envolvidas (a do módulo que mostra o total **e** a de cada fonte somada) — nenhuma isolada libera o todo. Falta uma fonte: a fatia dela zera e a resposta sinaliza dado parcial (`IsPartial`), nunca um total menor sem aviso — ver ADR-043/ADR-044.
 - Entidade auditável nova: inclua o nome na whitelist do `AuditController` e no tipo `AuditEntity` do `AuditHistoryButton`.
 
 ## Testes

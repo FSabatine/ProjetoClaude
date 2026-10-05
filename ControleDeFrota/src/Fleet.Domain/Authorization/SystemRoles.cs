@@ -71,6 +71,13 @@ public static class SystemRoles
         Permissions.Tires.Dispose, Permissions.Tires.ViewCosts, Permissions.Tires.ManageSettings,
     ];
 
+    private static readonly string[] FinanceFull =
+    [
+        Permissions.Finance.View, Permissions.Finance.Create, Permissions.Finance.Edit, Permissions.Finance.Cancel,
+        Permissions.Finance.RegisterPayment, Permissions.Finance.ManageCategories, Permissions.Finance.ManageCostCenters,
+        Permissions.Finance.ManageBudgets, Permissions.Finance.ManageRecurring, Permissions.Finance.ViewCosts,
+    ];
+
     public static readonly IReadOnlyList<RoleDefinition> All =
     [
         new(1, PlatformAdministrator, "Administrador da plataforma",
@@ -79,9 +86,9 @@ public static class SystemRoles
             "Acesso total à própria empresa.",
             AllPermissions.Where(p => p != Permissions.Companies.Manage).ToArray()),
         new(3, FleetManager, "Gestor de frota",
-            "Gerencia a frota e a operação: cadastros, alocações, hodômetro, documentos, checklists, ocorrências, manutenção, combustível e pneus.",
+            "Gerencia a frota e a operação: cadastros, alocações, hodômetro, documentos, checklists, ocorrências, manutenção, combustível, pneus e financeiro.",
             [Permissions.Dashboard.View, Permissions.Companies.View, Permissions.Users.View, Permissions.Roles.View,
-             Permissions.Audit.View, .. FleetRegistryFull, .. OperationsFull, .. MaintenanceFull, .. FuelFull, .. TiresFull]),
+             Permissions.Audit.View, .. FleetRegistryFull, .. OperationsFull, .. MaintenanceFull, .. FuelFull, .. TiresFull, .. FinanceFull]),
         new(4, Operations, "Operações",
             "Operação diária: motoristas, alocações, hodômetro, documentos, checklists, ocorrências, abastecimentos e inspeção de pneus.",
             [Permissions.Dashboard.View, Permissions.Drivers.View, Permissions.Drivers.Create, Permissions.Drivers.Update,
@@ -100,14 +107,14 @@ public static class SystemRoles
              // The tire shop is part of maintenance: the whole lifecycle, costs included (same as maintenance.viewcosts).
              .. TiresFull]),
         new(6, Finance, "Financeiro",
-            "Consulta a frota e os custos de manutenção, combustível e pneus.",
+            "Consulta a frota e os custos de manutenção, combustível e pneus; gerencia despesas, orçamentos e centros de custo.",
             [Permissions.Dashboard.View, .. FleetRegistryRead, Permissions.Maintenance.View, Permissions.Maintenance.ViewCosts,
-             Permissions.Fuel.View, Permissions.Fuel.ViewCosts, Permissions.Tires.View, Permissions.Tires.ViewCosts]),
+             Permissions.Fuel.View, Permissions.Fuel.ViewCosts, Permissions.Tires.View, Permissions.Tires.ViewCosts, .. FinanceFull]),
         new(7, Driver, "Motorista",
             "Reservado para o app do motorista (fases futuras).", []),
         new(8, Viewer, "Visualizador",
             "Somente leitura.",
             [Permissions.Dashboard.View, Permissions.Companies.View, .. FleetRegistryRead, .. OperationsRead, Permissions.Maintenance.View,
-             Permissions.Fuel.View, Permissions.Tires.View]),
+             Permissions.Fuel.View, Permissions.Tires.View, Permissions.Finance.View]),
     ];
 }

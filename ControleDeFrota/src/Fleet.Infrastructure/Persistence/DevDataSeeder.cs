@@ -35,6 +35,7 @@ public sealed class DevDataSeeder(FleetDbContext db, IPasswordHasher passwordHas
                 await SeedOperationsAsync(ct);
                 await SeedFuelAsync(ct);
                 await SeedTiresAsync(ct);
+                await SeedFinanceAsync(ct);
             }
             return;
         }
@@ -58,7 +59,17 @@ public sealed class DevDataSeeder(FleetDbContext db, IPasswordHasher passwordHas
             await SeedOperationsAsync(ct);
             await SeedFuelAsync(ct);
             await SeedTiresAsync(ct);
+            await SeedFinanceAsync(ct);
         }
+    }
+
+    /// <summary>Phase 6 samples on the main demo company (see DevFinanceSeeder). Runs last: reads the Phase 4/5 vehicles.</summary>
+    private async Task SeedFinanceAsync(CancellationToken ct)
+    {
+        var main = await db.Companies.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Cnpj == MainCnpj, ct);
+        if (main is null) return;
+        if (await new DevFinanceSeeder(db, clock).SeedAsync(main.Id, ct))
+            logger.LogWarning("Development finance samples seeded (Phase 6)");
     }
 
     /// <summary>Phase 5 samples on the main demo company (see DevTireSeeder). Runs after the fuel samples: it reads their odometer history.</summary>

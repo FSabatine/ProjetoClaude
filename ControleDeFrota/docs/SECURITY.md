@@ -73,6 +73,16 @@ Princípio: **Segurança > Conveniência**. O backend é a única autoridade. Es
 - **Concorrência** (seção 52): o banco garante "um pneu, uma posição" (índices únicos filtrados) e o token `Tires.Version` impede que duas operações sobre o mesmo pneu se sobreponham; ambos viram 409 sem detalhe técnico.
 - Auditoria automática (`IAuditable`): `Tire`, `TireModel`, `TireLayout`, `TireInstallation`, `TireRotation`, `TireInspection`, `TireServiceOrder`, `TireCost`, `TireSettings` (todas liberadas em `/audit/{entidade}/{id}`). A linha do tempo do pneu (eventos) responde "o que aconteceu"; a auditoria, "quem mudou qual campo".
 
+### Autorização na Fase 6
+
+- Permissões novas `finance.*` (10; matriz em DOMAIN.md). Operações/Manutenção/Motorista sem acesso — financeiro é o Gestor de frota e o papel Financeiro.
+- **`finance.viewcosts` é o portão de todo R$ do módulo** — checada no serviço, por registro, igual ao padrão de `fuel.viewcosts`/`maintenance.viewcosts`/`tires.viewcosts`: sem ela, `Amount`/`PaidAmount` de uma despesa voltam `null` (exceto para quem registrou a despesa, que sempre vê o que digitou), e os relatórios/painel/custo-por-km/TCO exigem a permissão na rota.
+- **Total combinado entre módulos**: o painel e o custo de um veículo misturam combustível, manutenção, pneus e despesas manuais. Cada fatia só entra na soma se o usuário tiver a permissão de custo **daquela fonte específica** (`fuel.viewcosts`/`maintenance.viewcosts`/`tires.viewcosts`) **e** `finance.viewcosts` — ter só `finance.viewcosts` não libera, por exemplo, o custo de combustível de outro módulo. Faltando qualquer uma, a fatia correspondente zera e a resposta marca `IsPartial = true`: a tela deve avisar "totais parciais", nunca mostrar um total menor como se fosse completo. Isto é checado inteiramente no `CostAggregationService`, nunca no atributo de rota.
+- Categoria de sistema (`IsSystemCategory`): não pode ser excluída nem inativada por ninguém, nem com `finance.managecategories` — o valor dela vem de outro módulo, então inativá-la escondê-la do financeiro sem desligar a origem seria inconsistente.
+- Anexos de despesa (`FileOwnerType.Expense`): abrir exige `finance.view` **e** (`finance.viewcosts` ou ser quem enviou) — mostram o valor pago (nota, recibo). Upload liberado para quem cria/edita despesas; o vínculo continua só pelo próprio autor (`AttachAsync`).
+- Isolamento de tenant: todas as tabelas novas são `ITenantScoped`; despesa, categoria, centro de custo, recorrente ou orçamento de outra empresa → 404 (testes de serviço, `ExpenseService_PermissionAndTenantTests.Get_RecordFromAnotherCompany_ThrowsNotFound`). Nenhum `IgnoreQueryFilters` novo fora da checagem do catálogo padrão (filtra `CompanyId` explicitamente) e do job de geração de recorrentes (sem usuário/tenant, como o `DocumentExpirationScanner`).
+- Auditoria automática (`IAuditable`): `Expense`, `ExpenseCategory`, `CostCenter`, `RecurringExpense`, `Budget` (liberadas em `/audit/{entidade}/{id}`).
+
 ## Upload de arquivos
 
 - O tipo é detectado pelos **magic bytes** (PDF, JPEG, PNG). A extensão e o `Content-Type` enviados pelo cliente são ignorados: um executável renomeado para `.pdf` é recusado.
@@ -93,7 +103,7 @@ Princípio: **Segurança > Conveniência**. O backend é a única autoridade. Es
 
 ## Auditoria
 
-- Toda criação, alteração e exclusão (soft delete) de Company, User, Driver, Vehicle e Implement (e, na Fase 2, também de VehicleAssignment, OdometerReading — inclusive revisão e correção —, DocumentType, Document, StoredFile, ChecklistTemplate, ChecklistExecution e Occurrence, inclusive a mudança de situação; e, na Fase 3, Workshop, MaintenancePlan, HourMeterReading, MaintenanceRequest e WorkOrder, inclusive as transições de situação) grava `AuditLogs` com o usuário, a data, os campos e os valores antigo e novo. Ver DATABASE.md.
+- Toda criação, alteração e exclusão (soft delete) de Company, User, Driver, Vehicle e Implement (e, na Fase 2, também de VehicleAssignment, OdometerReading — inclusive revisão e correção —, DocumentType, Document, StoredFile, ChecklistTemplate, ChecklistExecution e Occurrence, inclusive a mudança de situação; e, na Fase 3, Workshop, MaintenancePlan, HourMeterReading, MaintenanceRequest e WorkOrder, inclusive as transições de situação; e, na Fase 6, Expense, ExpenseCategory, CostCenter, RecurringExpense e Budget) grava `AuditLogs` com o usuário, a data, os campos e os valores antigo e novo. Ver DATABASE.md.
 - Os logins bem-sucedidos e as falhas de login também vão para o log da aplicação, no nível Information/Warning.
 - A leitura do histórico exige `audit.view`.
 

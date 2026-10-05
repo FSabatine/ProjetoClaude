@@ -34,6 +34,19 @@ describe('resolveContextualCategory', () => {
     expect(resolveContextualCategory('/configuracoes/pneus', '')).toBe('tires');
   });
 
+  it('resolves financial routes and the financial tab of the vehicle hub', () => {
+    expect(resolveContextualCategory('/veiculos/123', '?aba=financeiro')).toBe('financial');
+    expect(resolveContextualCategory('/financeiro', '')).toBe('financial');
+    expect(resolveContextualCategory('/financeiro/despesas', '')).toBe('financial');
+    expect(resolveContextualCategory('/financeiro/despesas/novo', '')).toBe('financial');
+    expect(resolveContextualCategory('/financeiro/categorias', '')).toBe('financial');
+    expect(resolveContextualCategory('/financeiro/centros-de-custo', '')).toBe('financial');
+    expect(resolveContextualCategory('/financeiro/recorrentes', '')).toBe('financial');
+    expect(resolveContextualCategory('/financeiro/orcamentos', '')).toBe('financial');
+    expect(resolveContextualCategory('/financeiro/ranking', '')).toBe('financial');
+    expect(resolveContextualCategory('/financeiro/relatorios', '')).toBe('financial');
+  });
+
   it('resolves the dashboard route exactly, not by prefix', () => {
     expect(resolveContextualCategory('/', '')).toBe('dashboard');
     expect(resolveContextualCategory('/veiculos', '')).not.toBe('dashboard');

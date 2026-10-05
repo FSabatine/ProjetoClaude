@@ -16,6 +16,8 @@ public enum FileOwnerType
     TireInspection,
     /// <summary>Repair/retread documents.</summary>
     TireServiceOrder,
+    /// <summary>Invoice, receipt or payment proof of an expense (Phase 6).</summary>
+    Expense,
 }
 
 /// <summary>

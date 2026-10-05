@@ -875,3 +875,19 @@ Janela: últimos 30 dias × 30 anteriores (pneus: 90 × 90). Só variação sign
 
 ## Busca global
 Por tipo, até 5 resultados, cada tipo com a permissão da sua lista: veículos, implementos, motoristas, pneus, OS, abastecimentos, despesas (sem R$), documentos (de motorista só com `drivers.view`), ocorrências e alertas (por público).
+
+# Assistente (fase final, etapa C) — ADR-050
+
+| Ferramenta | Responde | Permissão |
+|---|---|---|
+| `get_fleet_ranking` (métrica, ordem, período, limite) | veículo mais caro, pior consumo, acima da média, custo/km, manutenção, pneus | `vehicles.view` + a do dado (custos: `finance.viewcosts` e as `*.viewcosts`) |
+| `get_vehicle_analysis` (placa ou `current`) | análise do veículo, "por que o custo aumentou" (período atual × anterior, × média do tipo e da frota, fatia que mais variou, saúde, alertas, recorrentes) | idem, por campo |
+| `get_fleet_costs` (período) | quanto gastamos, onde, qual categoria aumentou | `finance.viewcosts` |
+| `get_budget_status` | dentro do orçamento? | `finance.viewcosts` |
+| `get_open_alerts` | o que merece atenção | `alerts.view` + público |
+| `get_fleet_insights` | resumo/tendências | as dos destaques |
+| `get_maintenance_overview` | mais manutenções, problemas repetidos, preventivas atrasadas | `maintenance.view` |
+| `get_tire_overview` | pneus perto da troca, desgaste, custo/trocas por veículo | `tires.view` |
+| `get_fuel_overview` | consumo da frota, piores, fora do padrão, gasto | `fuel.view` |
+
+Períodos: neste mês, mês passado, últimos 30 dias, últimos 90 dias (padrão), este ano. Formato de resposta: Resposta, Motivo, Evidências, Sugestão + fontes (telas) + modo + aviso.

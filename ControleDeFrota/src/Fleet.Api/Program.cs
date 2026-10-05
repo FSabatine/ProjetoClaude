@@ -113,6 +113,11 @@ builder.Services.AddRateLimiter(o =>
     o.AddPolicy(AuthController.RateLimitPolicy, http => RateLimitPartition.GetFixedWindowLimiter(
         http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = authRequestsPerMinute, Window = TimeSpan.FromMinutes(1) }));
+    // ADR-050: each question may call the AI provider (cost) — limited per user, not per IP.
+    var assistantPerMinute = configuration.GetValue("Assistant:RequestsPerMinutePerUser", 12);
+    o.AddPolicy(AssistantController.RateLimitPolicy, http => RateLimitPartition.GetFixedWindowLimiter(
+        http.User.FindFirst(FleetClaims.UserId)?.Value ?? http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = assistantPerMinute, Window = TimeSpan.FromMinutes(1) }));
 });
 
 var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];

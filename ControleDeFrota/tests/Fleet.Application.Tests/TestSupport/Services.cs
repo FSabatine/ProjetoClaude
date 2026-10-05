@@ -12,6 +12,7 @@ using Fleet.Application.Companies;
 using Fleet.Application.Dashboard;
 using Fleet.Application.Drivers;
 using Fleet.Application.Analytics;
+using Fleet.Application.Assistant;
 using Fleet.Application.Implements;
 using Fleet.Application.Intelligence;
 using Fleet.Domain.Intelligence;
@@ -127,4 +128,8 @@ public static class Services
     public static VehicleHealthService VehicleHealth(TestDb t) => new(t.Db, t.Clock, t.CurrentUser, MaintenanceSchedules(t));
     public static InsightService Insights(TestDb t) => new(t.Db, t.Clock, t.CurrentUser, CostAggregation(t));
     public static GlobalSearchService Search(TestDb t) => new(t.Db, t.Clock, t.CurrentUser);
+    public static AssistantToolbox AssistantTools(TestDb t) => new(
+        t.Db, t.Clock, t.CurrentUser, VehicleMetrics(t), Insights(t), Alerts(t), Budgets(t), CostAggregation(t), VehicleHealth(t), FleetReports(t));
+    public static AssistantService Assistant(TestDb t, IAssistantLanguageModel? model = null) => new(
+        AssistantTools(t), model ?? new NoLanguageModel(), new AssistantRequestValidator(), NullLogger<AssistantService>.Instance);
 }

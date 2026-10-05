@@ -1,5 +1,7 @@
+using Fleet.Application.Assistant;
 using Fleet.Application.Auth;
 using Fleet.Application.Common;
+using Fleet.Infrastructure.Assistant;
 using Fleet.Infrastructure.Persistence;
 using Fleet.Infrastructure.Security;
 using Fleet.Infrastructure.Storage;
@@ -41,6 +43,10 @@ public static class DependencyInjection
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
         services.AddSingleton<ITokenService, JwtTokenService>();
         services.AddScoped<DevDataSeeder>();
+
+        // ADR-050: the AI provider is optional and off by default; without it the assistant answers with calculated templates.
+        services.AddOptions<AssistantAiOptions>().Bind(configuration.GetSection(AssistantAiOptions.SectionName));
+        services.AddSingleton<IAssistantLanguageModel, ClaudeAssistantModel>();
         return services;
     }
 }

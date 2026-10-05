@@ -93,6 +93,11 @@ Para recomeçar do zero, apague o banco (`sqllocaldb` / SSMS: `DROP DATABASE Con
 | `Auth:RequestsPerMinutePerIp` | appsettings | limite de login/refresh por IP (10) |
 | `Auth:RefreshCookie:Secure` | appsettings | `true` sempre; `false` só nos testes automatizados |
 | `Cors:AllowedOrigins` | appsettings | origens da SPA em produção |
+| `Jobs:Automation:Enabled`, `IntervalMinutes` | appsettings | verificação das regras de automação (padrão: ligado, a cada 60 min) |
+| `Assistant:RequestsPerMinutePerUser` | appsettings | limite de perguntas ao assistente por usuário (12) |
+| `Assistant:Anthropic:Enabled` | appsettings | liga a IA (Claude) no assistente — **desligado por padrão**; sem ela, respostas calculadas pelo sistema |
+| `Assistant:Anthropic:ApiKey` | **env `ANTHROPIC_API_KEY` ou cofre** | chave da API da Anthropic (nunca no repositório) |
+| `Assistant:Anthropic:Model`, `TimeoutSeconds`, `MaxToolRounds` | appsettings | `claude-opus-5-5` / 60 / 4 |
 
 ## Estrutura
 

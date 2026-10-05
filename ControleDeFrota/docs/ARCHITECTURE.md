@@ -367,3 +367,18 @@ GET /vehicles|drivers/{id}/history?…&category                                 
 ```
 
 Módulo: `Fleet.Domain/Intelligence/AnalyticsRules.cs` (`TrendAnalysis`, `VehicleHealthPolicy`), `Fleet.Application/Analytics` (`VehicleMetricsService`, `FleetReportsService`, `VehicleHealthService`, `InsightService`, `GlobalSearchService`), `Api/Controllers/AnalyticsControllers.cs`; frontend em `features/analytics/` (`/relatorios`, `/veiculos/comparar`, `VehicleHealthFact`, `InsightsPanel`, `GlobalSearch`), `components/ExportMenu.tsx` + `lib/export.ts` (CSV/Excel/PDF) e `ReportTable` com `exportAs`.
+
+### Fase final, etapa C — assistente (ADR-050)
+
+```
+POST /assistant/ask { question, vehicleId?, page? }   [assistant.use] (limite por usuário)
+GET  /assistant/status                                 [assistant.use] (IA ligada? perguntas sugeridas)
+
+AssistantService
+ ├─ IA ligada → IAssistantLanguageModel (ClaudeAssistantModel: Messages API + tools, claude-opus-5-5, effort low, cache)
+ │     └─ cada tool_use → AssistantToolbox.ExecuteAsync (permissões do usuário) → JSON calculado → Claude escreve
+ │     └─ GroundingCheck (números da resposta ⊂ números das ferramentas) → aviso se não
+ └─ IA desligada/falhou → AssistantRouter (palavras-chave) → AssistantToolbox → AssistantTemplates
+```
+
+Módulo: `Fleet.Application/Assistant` (`AssistantToolbox`, `AssistantService` + `GroundingCheck` + `IAssistantLanguageModel`, `AssistantTemplates` + `AssistantRouter`), `Fleet.Infrastructure/Assistant/ClaudeAssistantModel.cs` (+ `AssistantAiOptions`, seção `Assistant:Anthropic`), `AssistantController` em `Api/Controllers/AnalyticsControllers.cs`; frontend em `features/assistant/` (painel lateral `AssistantButton`, `openAssistant(pergunta)` para atalhos contextuais).

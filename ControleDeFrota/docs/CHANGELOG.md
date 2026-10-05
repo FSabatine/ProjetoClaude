@@ -2,6 +2,17 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Datas no padrão AAAA-MM-DD.
 
+## [0.7.0-c] — 2026-10-05 — Fase final, etapa C: assistente da frota
+
+### Adicionado
+- **Assistente da frota** (ícone ✦ no cabeçalho, "Analisar" no veículo, "Explicar os custos do mês" no financeiro): perguntas em português sobre custos, consumo, manutenção, pneus, orçamento, alertas e análise de veículo, com Resposta, Motivo, Evidências, Sugestão e links para conferir (ADR-050).
+- **Números sempre calculados pelo sistema**: 9 ferramentas sobre os serviços existentes, com as permissões e a empresa do usuário.
+- **Modo calculado** (padrão, sem IA) e **modo IA opcional** com Claude (`claude-opus-5-5`, SDK oficial `Anthropic` 12.53 para C#), desligado por padrão; queda automática para o modo calculado em erro/recusa/tempo esgotado.
+- **Verificação de números** da resposta da IA contra os dados consultados, com aviso ao usuário.
+- Permissão `assistant.use` (todos os papéis com painel), limite por usuário, migration `AssistantPermission`.
+- **Central de Ajuda**: categoria "Assistente da frota (IA)" (6 artigos: uso, perguntas, de onde vêm os números, limitações, permissões, privacidade) e "Novidades".
+- **Testes**: Application 410 (modo calculado com números conferidos, sem permissão não revela R$, contexto do veículo, placa de outra empresa, pergunta desconhecida, IA com modelo falso: fontes, número inventado sinalizado, dados enviados respeitam permissões, queda no erro, contexto na mensagem; roteamento das 17 perguntas da especificação; verificação de números), HTTP 101, frontend 91.
+
 ## [0.7.0-b] — 2026-10-05 — Fase final, etapa B: relatórios cruzados, comparação, saúde, destaques, exportação e busca
 
 ### Adicionado

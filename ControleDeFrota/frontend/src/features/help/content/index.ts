@@ -1,6 +1,7 @@
 import type { HelpArticle, HelpCategory } from '../types';
 import * as alerts from './alerts';
 import * as assignments from './assignments';
+import * as assistant from './assistant';
 import * as checklists from './checklists';
 import * as companies from './companies';
 import * as dashboard from './dashboard';
@@ -28,6 +29,7 @@ const MODULES = [
   gettingStarted,
   dashboard,
   alerts,
+  assistant,
   companies,
   users,
   rolesPermissions,

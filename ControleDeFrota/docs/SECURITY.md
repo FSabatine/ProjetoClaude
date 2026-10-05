@@ -146,3 +146,10 @@ Princípio: **Segurança > Conveniência**. O backend é a única autoridade. Es
 - Exportação usa os mesmos endpoints da tela (sem rota paralela que pudesse esquecer um filtro); CSV protegido contra injeção de fórmula; dependências de PDF fixadas em versão sem vulnerabilidades conhecidas.
 - Busca global: cada tipo com a permissão da sua lista; documentos de motorista exigem `drivers.view`; despesas sem valor; alertas pelo público.
 - **Correção**: a linha do tempo de veículo/motorista agora filtra eventos pelo módulo (ADR-049); antes, descrições de despesas, abastecimentos etc. apareciam para quem só via veículos.
+
+### Fase final, etapa C — assistente e IA (ADR-050)
+- A IA nunca acessa o banco: só recebe resultados de ferramentas executadas **com as permissões e a empresa do usuário** (mesmos serviços das telas). Sem permissão, a ferramenta devolve "unavailable" — teste garante que nenhum valor vai ao provedor nesse caso.
+- Provedor desligado por padrão (`Assistant:Anthropic:Enabled=false`); a chave vem de variável de ambiente/cofre (`ANTHROPIC_API_KEY`), nunca do repositório.
+- A pergunta do usuário vai como conteúdo de usuário, separada das regras (prompt de sistema) — reduz injeção de instruções; mesmo uma injeção bem-sucedida só alcançaria dados que o próprio usuário já pode ver.
+- Limite de perguntas por usuário, teto de consultas por pergunta e de tamanho da pergunta; logs sem conteúdo.
+- Respostas marcadas como "Calculado pelo sistema" ou "Explicado por IA", com fontes e aviso quando algum número não confere com os dados.

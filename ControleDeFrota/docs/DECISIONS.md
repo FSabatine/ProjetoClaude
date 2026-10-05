@@ -428,3 +428,20 @@ Formato: **Problema · Alternativas · Decisão · Motivo · Impacto**. Um ADR n
 - Custo por km da frota/veículo em relatórios usa leitura **antes** do período como base; veículos sem histórico anterior ficam sem custo/km (indicado com *).
 - Exportação de listas operacionais (despesas, alertas, abastecimentos) segue pela tela de relatórios do módulo; listas com `DataTable` ainda não têm o botão.
 - Relatórios financeiros (centro de custo, mensal, orçado x realizado, TCO) usam tabelas próprias, ainda sem o botão de exportar.
+
+## ADR-050 — Assistente: o sistema calcula, a IA (opcional) só explica
+- **Status**: aceito (fase final, etapa C). Decisão do usuário: Claude **opcional**; sem chave, respostas por modelos de texto.
+- **Decisão**:
+  - **Ferramentas determinísticas** (`AssistantToolbox`): 9 consultas (ranking da frota por métrica, análise de veículo, custos da frota, orçamento, alertas, destaques, manutenção, pneus, combustível) sobre os serviços existentes (`VehicleMetricsService`, `CostAggregationService`, `BudgetService`, `FleetAlertService`, `InsightService`, `VehicleHealthService`, `FleetReportsService`), **com as permissões do usuário**. Médias, diferenças e variações % já vêm calculadas — a IA não faz contas.
+  - **Modo calculado** (padrão, sem provedor): `AssistantRouter` reconhece as perguntas da especificação por palavras-chave e chama as mesmas ferramentas; `AssistantTemplates` monta Resposta/Motivo/Evidências/Sugestão em frases fixas. Pergunta não reconhecida → lista do que pode ser perguntado (nunca chuta).
+  - **Modo IA** (`Assistant:Anthropic:Enabled=true` + chave): `ClaudeAssistantModel` (SDK oficial `Anthropic` para C#, modelo `claude-opus-5-5`, esforço `low`, laço de ferramentas manual na API de Mensagens, prompt de sistema e ferramentas fixos com cache). O prompt obriga a usar só os dados das ferramentas, dizer quando falta dado/permissão e responder nas quatro seções. Recusa, erro, limite de rodadas ou tempo esgotado → cai no modo calculado com aviso.
+  - **Verificação anti-alucinação** (`GroundingCheck`): todo número da resposta da IA precisa existir nos resultados das ferramentas (tolerando arredondamento); senão, aviso visível ao usuário.
+  - **Contexto**: a tela de origem (veículo, financeiro, manutenção…) e o último veículo citado acompanham a pergunta — "analise este veículo" dispensa placa.
+  - **Custos e abuso**: permissão própria `assistant.use`, limite por usuário (`Assistant:RequestsPerMinutePerUser`, padrão 12/min), no máximo 6 consultas por pergunta, pergunta até 500 caracteres; logs só com nomes das ferramentas (nunca a pergunta ou os dados).
+- **Alternativas descartadas**: deixar a IA consultar o banco/SQL livre (vazaria dados e números inventados); chatbot genérico sem ferramentas; "fallbacks" de servidor da API (beta) — a queda para o modo calculado já cobre recusas sem depender de recurso beta.
+- **Privacidade**: com a IA ligada, saem para a Anthropic apenas a pergunta, a tela de origem e os resultados das consultas (placas, modelos, totais, médias). Nada de CPF, documentos, arquivos, senhas ou dados fora das permissões do usuário. Desligada por padrão.
+
+## Pontos em aberto da fase final — etapa C
+- **Avaliação contínua da IA**: os testes cobrem o contrato (permissões, dados enviados, queda, verificação de números) com um modelo falso; a qualidade das respostas reais do Claude deve ser avaliada com um conjunto de perguntas da empresa antes de ligar em produção (custo de chamadas reais exige aprovação).
+- Conversa é de uma pergunta por vez (com o último veículo como contexto); sem histórico longo nem memória entre sessões.
+- Se a empresa usar Claude via Bedrock/Vertex/Foundry, trocar o cliente em `ClaudeAssistantModel` pelo cliente da plataforma (mesma interface).

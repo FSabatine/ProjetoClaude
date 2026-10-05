@@ -1,6 +1,7 @@
 using System.Globalization;
 using Fleet.Application.Analytics;
 using Fleet.Application.Assignments;
+using Fleet.Application.Assistant;
 using Fleet.Application.Audit;
 using Fleet.Application.Auth;
 using Fleet.Application.Checklists;
@@ -125,6 +126,10 @@ public static class DependencyInjection
         services.AddScoped<VehicleHealthService>();
         services.AddScoped<InsightService>();
         services.AddScoped<GlobalSearchService>();
+
+        // Final phase — assistant (ADR-050). IAssistantLanguageModel is provided by Infrastructure (Claude, optional).
+        services.AddScoped<AssistantToolbox>();
+        services.AddScoped<AssistantService>();
         return services;
     }
 }

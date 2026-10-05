@@ -78,7 +78,7 @@ public static class SystemRoles
         Permissions.Finance.ManageBudgets, Permissions.Finance.ManageRecurring, Permissions.Finance.ViewCosts,
     ];
 
-    private static readonly string[] AlertsWork = [Permissions.Alerts.View, Permissions.Alerts.Manage];
+    private static readonly string[] AlertsWork = [Permissions.Alerts.View, Permissions.Alerts.Manage, Permissions.Assistant.Use];
 
     public static readonly IReadOnlyList<RoleDefinition> All =
     [
@@ -119,6 +119,6 @@ public static class SystemRoles
         new(8, Viewer, "Visualizador",
             "Somente leitura.",
             [Permissions.Dashboard.View, Permissions.Companies.View, .. FleetRegistryRead, .. OperationsRead, Permissions.Maintenance.View,
-             Permissions.Fuel.View, Permissions.Tires.View, Permissions.Finance.View, Permissions.Alerts.View]),
+             Permissions.Fuel.View, Permissions.Tires.View, Permissions.Finance.View, Permissions.Alerts.View, Permissions.Assistant.Use]),
     ];
 }

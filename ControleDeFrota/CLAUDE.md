@@ -2,7 +2,7 @@
 
 Guia rápido para agentes de IA neste repositório. **A fonte da verdade é `docs/`**: leia o documento da área antes de alterá-la e atualize-o no mesmo trabalho. Em qualquer implementação, siga a skill de projeto `fleet-development` (`.claude/skills/fleet-development/SKILL.md`).
 
-Controle de Frota é um sistema de gestão de frotas multiempresa em .NET 8 + React. A fase atual e o escopo estão em `docs/ROADMAP.md` (Fases 1 — Fundação, 2 — Controle operacional, 3 — Manutenção, 4 — Combustível, 5 — Pneus e 6 — Financeiro concluídas; **fase final em andamento, em etapas A–E** — A (alertas/automação) e B (relatórios/análises) concluídas, ver ROADMAP; a Fase 2.5 — Viagens e composição foi adiada por decisão do usuário, ADR-026/ADR-031/ADR-035, e é a próxima recomendada). **Não implemente módulos de fases futuras** (viagens, almoxarifado, rastreamento…); apenas deixe o ponto de extensão (normalmente um novo valor em `OperationalEventType`).
+Controle de Frota é um sistema de gestão de frotas multiempresa em .NET 8 + React. A fase atual e o escopo estão em `docs/ROADMAP.md` (Fases 1 — Fundação, 2 — Controle operacional, 3 — Manutenção, 4 — Combustível, 5 — Pneus e 6 — Financeiro concluídas; **fase final em andamento, em etapas A–E** — A (alertas/automação), B (relatórios/análises) e C (assistente) concluídas, ver ROADMAP; a Fase 2.5 — Viagens e composição foi adiada por decisão do usuário, ADR-026/ADR-031/ADR-035, e é a próxima recomendada). **Não implemente módulos de fases futuras** (viagens, almoxarifado, rastreamento…); apenas deixe o ponto de extensão (normalmente um novo valor em `OperationalEventType`).
 
 ## Comandos (a partir de `ControleDeFrota/`)
 
@@ -103,6 +103,12 @@ Login de desenvolvimento: `admin@frota.local` / `FrotaDev!2026`. Os demais usuá
 - Exportação: `ReportTable exportAs={{ title, load: pagedLoader(url, params, select?) }}` — mesmo endpoint e filtros da tela (ADR-048). Colunas sem `exportValue` exportam o texto da célula.
 - Histórico (`OperationalHistoryService`) filtra cada evento pela permissão do seu módulo (`EventAudience`, ADR-049): tipo de evento novo precisa cair no público certo.
 - Busca global (`GlobalSearchService`): tipo novo pesquisável = bloco novo com a permissão da lista do módulo.
+
+## Assistente (fase final, etapa C) em uma tela
+
+- `Fleet.Application/Assistant`: **a IA nunca calcula nem consulta o banco** (ADR-050). Pergunta nova que o assistente deve responder = ferramenta nova em `AssistantToolbox` (sobre serviços existentes, com as permissões do usuário, percentuais já calculados) + rota no `AssistantRouter` + modelo em `AssistantTemplates` para o modo sem IA.
+- `ClaudeAssistantModel` (Infrastructure, SDK `Anthropic`, `claude-opus-5-5`) é opcional e desligado por padrão (`Assistant:Anthropic:Enabled`); qualquer falha cai no modo calculado. Testes usam `FakeLanguageModel` — nunca chame a API real em teste.
+- Toda resposta de IA passa pelo `GroundingCheck`; logs do assistente nunca levam a pergunta nem os dados.
 
 ## Regras que não são óbvias pelo código
 

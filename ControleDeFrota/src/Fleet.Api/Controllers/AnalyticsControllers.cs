@@ -1,8 +1,10 @@
 using Fleet.Api.Authorization;
 using Fleet.Application.Analytics;
+using Fleet.Application.Assistant;
 using Fleet.Application.Common;
 using Fleet.Domain.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Fleet.Api.Controllers;
 
@@ -44,4 +46,19 @@ public sealed class SearchController(GlobalSearchService service) : ControllerBa
     /// <summary>Any of these lets a user search; each result type is still filtered by its own permission.</summary>
     [HttpGet, HasPermission(Permissions.Dashboard.View, Permissions.Vehicles.View, Permissions.Drivers.View)]
     public Task<SearchResponse> Search([FromQuery] string? q, CancellationToken ct) => service.SearchAsync(q, ct);
+}
+
+[ApiController]
+[Route("api/v1/assistant")]
+public sealed class AssistantController(AssistantService service, IAssistantLanguageModel model) : ControllerBase
+{
+    public const string RateLimitPolicy = "assistant";
+
+    /// <summary>Answers with data the caller can already see; numbers are computed by the system (ADR-050).</summary>
+    [HttpPost("ask"), HasPermission(Permissions.Assistant.Use), EnableRateLimiting(RateLimitPolicy)]
+    public Task<AssistantResponse> Ask(AssistantRequest request, CancellationToken ct) => service.AskAsync(request, ct);
+
+    /// <summary>Lets the UI say whether answers are written by AI or by fixed templates.</summary>
+    [HttpGet("status"), HasPermission(Permissions.Assistant.Use)]
+    public object Status() => new { aiEnabled = model.IsConfigured, suggestions = AssistantService.DefaultSuggestions };
 }

@@ -255,3 +255,9 @@ Sem revisão visual automatizada (headless desaconselhado nesta máquina). Confe
 - **Destaques** no painel: até 5 frases com ícone de tendência, link e "base do cálculo".
 - **Busca global**: botão no cabeçalho + Ctrl+K, resultados agrupados por tipo com rótulo, navegação por teclado.
 - **Histórico**: filtro por área; ícones por módulo.
+
+## Fase final — assistente
+- Ícone ✦ no cabeçalho abre um painel lateral; atalhos contextuais: "Analisar" no hub do veículo, "Explicar os custos do mês" no painel financeiro.
+- Aviso permanente no topo do painel: usa só dados que o usuário pode ver, números calculados pelo sistema, sugestões a conferir.
+- Perguntas sugeridas por contexto da tela; Enter envia, Shift+Enter quebra linha.
+- Cada resposta: selo do modo, Resposta (negrito), Motivo, Evidências (lista), Sugestão, aviso laranja quando algum número não confere, links "Confira em" para as telas de origem.

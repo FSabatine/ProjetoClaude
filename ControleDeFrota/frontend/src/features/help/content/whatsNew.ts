@@ -6,6 +6,12 @@ import type { HelpWhatsNewEntry } from '../types';
  */
 export const WHATS_NEW: HelpWhatsNewEntry[] = [
   {
+    id: 'whats-new-assistant',
+    title: 'Assistente da frota',
+    description: 'Pergunte em português sobre custos, consumo, manutenção, pneus, orçamento e alertas (ícone ✦ no cabeçalho, ou "Analisar" no veículo). As respostas trazem motivo, evidências e sugestão, usam só dados que você pode ver e são calculadas pelo sistema; a IA (opcional) apenas redige a explicação.',
+    date: 'outubro de 2026',
+  },
+  {
     id: 'whats-new-reports',
     title: 'Relatórios cruzados, comparação, saúde do veículo e busca global',
     description: 'Novo menu Relatórios (desempenho da frota, manutenção e problemas recorrentes), comparação de até 6 veículos com a média da frota e do tipo, nota de saúde operacional no veículo, destaques no painel, exportação em CSV/Excel/PDF, busca global (Ctrl+K) e linha do tempo do veículo com filtro por área.',

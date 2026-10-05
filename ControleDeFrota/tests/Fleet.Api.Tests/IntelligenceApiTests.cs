@@ -133,4 +133,27 @@ public class IntelligenceApiTests(FleetApiFactory factory) : IClassFixture<Fleet
         var admin = await factory.CreateSignedInClientAsync(FleetApiFactory.AdminA);
         (await admin.GetAsync("/api/v1/analytics/fleet-performance?from=2026-10-10&to=2026-10-01")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
+
+    [Fact]
+    public async Task Assistant_RequiresPermission_AndAnswersWithCalculatedModeWithoutProvider()
+    {
+        var driver = await factory.CreateSignedInClientAsync(FleetApiFactory.DriverA);
+        (await driver.PostAsJsonAsync("/api/v1/assistant/ask", new { question = "Quanto gastamos este mês?" }))
+            .StatusCode.Should().Be(HttpStatusCode.Forbidden);
+
+        var viewer = await factory.CreateSignedInClientAsync(FleetApiFactory.ViewerA);
+        var status = await JsonAsync(await viewer.GetAsync("/api/v1/assistant/status"));
+        status.GetProperty("aiEnabled").GetBoolean().Should().BeFalse();
+
+        var response = await viewer.PostAsJsonAsync("/api/v1/assistant/ask", new { question = "O que merece atenção agora?" });
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await JsonAsync(response)).GetProperty("mode").GetString().Should().Be("Calculated");
+    }
+
+    [Fact]
+    public async Task Assistant_EmptyQuestion_Is400()
+    {
+        var admin = await factory.CreateSignedInClientAsync(FleetApiFactory.AdminA);
+        (await admin.PostAsJsonAsync("/api/v1/assistant/ask", new { question = "" })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
 }

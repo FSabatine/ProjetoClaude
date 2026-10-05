@@ -1,8 +1,12 @@
-import { Anchor, Group, Paper, SimpleGrid, Skeleton, Stack, Table, Text } from '@mantine/core';
+import { Anchor, Button, Group, Paper, SimpleGrid, Skeleton, Stack, Table, Text } from '@mantine/core';
+import { IconSparkles } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 import { ColumnChart } from '../../components/ColumnChart';
 import { PageHeader } from '../../components/PageHeader';
 import { ErrorState } from '../../components/States';
+import { useAuth } from '../../auth/AuthContext';
+import { PERMISSIONS } from '../../auth/permissions';
+import { openAssistant } from '../assistant/assistant';
 import { formatCurrency } from '../../lib/format';
 import { financeAnalyticsApi } from './api';
 import { COST_PER_KM_HELP, KpiTile, PartialTotalsNotice } from './components';
@@ -11,13 +15,17 @@ const MONTH_SHORT = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'se
 
 export function FinancialDashboardPage() {
   const query = financeAnalyticsApi.useDashboard();
+  const { can } = useAuth();
   const d = query.data;
 
   if (query.error && !d) return <><PageHeader title="Financeiro" /><Paper><ErrorState error={query.error} onRetry={() => void query.refetch()} /></Paper></>;
 
   return (
     <>
-      <PageHeader title="Financeiro" description="Custos da frota: combustível, manutenção, pneus e demais despesas, num só lugar." />
+      <PageHeader title="Financeiro" description="Custos da frota: combustível, manutenção, pneus e demais despesas, num só lugar."
+        action={can(PERMISSIONS.assistant.use) && (
+          <Button variant="default" leftSection={<IconSparkles size={18} />} onClick={() => openAssistant('Explique os custos deste mês')}>Explicar os custos do mês</Button>
+        )} />
       <Stack gap="xl">
         {!d ? (
           <SimpleGrid cols={{ base: 2, md: 4 }}>{Array.from({ length: 8 }, (_, i) => <Skeleton key={i} height={96} radius="md" />)}</SimpleGrid>

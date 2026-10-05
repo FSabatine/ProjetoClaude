@@ -82,5 +82,6 @@ public class PermissionCatalogTests
     [Fact]
     public void SystemRoles_ViewerIsReadOnly() =>
         SystemRoles.All.Single(r => r.Key == SystemRoles.Viewer).Permissions
-            .Should().OnlyContain(p => p.EndsWith(".view"));
+            // The assistant only reads what the user can already see (ADR-050), so it does not break read-only.
+            .Should().OnlyContain(p => p.EndsWith(".view") || p == Permissions.Assistant.Use);
 }

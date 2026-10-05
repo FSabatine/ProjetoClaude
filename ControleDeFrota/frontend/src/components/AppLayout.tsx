@@ -40,6 +40,7 @@ import { PERMISSIONS, type Permission } from '../auth/permissions';
 import { openChangePassword } from '../features/auth/ChangePasswordModal';
 import { NotificationBell } from '../features/alerts/components';
 import { GlobalSearch } from '../features/analytics/components';
+import { AssistantButton } from '../features/assistant/AssistantPanel';
 import { HelpButton } from '../features/help/HelpButton';
 import { FormSkeleton } from './EntityFormPage';
 
@@ -142,6 +143,7 @@ export function AppLayout() {
           </Group>
           <Group gap="xs" wrap="nowrap">
             <GlobalSearch />
+            <AssistantButton />
             <NotificationBell />
             <HelpButton />
             <Tooltip label={colorScheme === 'dark' ? 'Tema claro' : 'Tema escuro'}>

@@ -1,6 +1,6 @@
 import { Alert, Anchor, Button, Group, Paper, SimpleGrid, Stack, Text } from '@mantine/core';
 import {
-  IconAlertTriangle, IconArrowsDiff, IconChecklist, IconCircleDot, IconCoin, IconFileText, IconGasStation, IconGauge, IconHistory, IconInfoCircle, IconPencil, IconPlayerPlay, IconSteeringWheel, IconTool,
+  IconAlertTriangle, IconArrowsDiff, IconSparkles, IconChecklist, IconCircleDot, IconCoin, IconFileText, IconGasStation, IconGauge, IconHistory, IconInfoCircle, IconPencil, IconPlayerPlay, IconSteeringWheel, IconTool,
 } from '@tabler/icons-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
@@ -20,6 +20,7 @@ import { VehicleFuelPanel } from '../fuel/VehicleFuelPanel';
 import { VehicleFinancialPanel } from '../finance/VehicleFinancialPanel';
 import { AssetTirePanel } from '../tires/AssetTirePanel';
 import { VehicleHealthFact } from '../analytics/components';
+import { openAssistant } from '../assistant/assistant';
 import { VehicleMaintenancePanel } from '../maintenance/VehicleMaintenancePanel';
 import { MileagePanel } from '../mileage/MileagePanel';
 import { OccurrencesPanel } from '../occurrences/OccurrencesPanel';
@@ -72,6 +73,9 @@ function VehicleHub({ vehicle: v }: { vehicle: Vehicle }) {
         action={
           <Group gap="xs">
             <AuditHistoryButton entity="Vehicle" id={v.id} />
+            {can(PERMISSIONS.assistant.use) && (
+              <Button variant="default" leftSection={<IconSparkles size={18} />} onClick={() => openAssistant('Analise este veículo')}>Analisar</Button>
+            )}
             <Button variant="default" leftSection={<IconArrowsDiff size={18} />} onClick={() => navigate(`/veiculos/comparar?ids=${v.id}`)}>Comparar</Button>
             <Button variant="default" leftSection={<IconPencil size={18} />} onClick={() => navigate(`/veiculos/${v.id}/editar`)}>
               {can(PERMISSIONS.vehicles.update) ? 'Editar' : 'Ver cadastro'}

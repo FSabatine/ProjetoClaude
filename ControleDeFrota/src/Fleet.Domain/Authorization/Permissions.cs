@@ -187,6 +187,12 @@ public static class Permissions
         public const string Manage = "alerts.manage";
     }
 
+    public static class Assistant
+    {
+        /// <summary>Ask the fleet assistant. Answers only use data the user can already see.</summary>
+        public const string Use = "assistant.use";
+    }
+
     public static class Automation
     {
         /// <summary>Configure automation rules (thresholds, who is notified) and run the scan on demand.</summary>
@@ -276,6 +282,7 @@ public static class PermissionCatalog
         new(210, Permissions.Alerts.View, "Visualizar alertas, \"Requer atenção\" e notificações"),
         new(211, Permissions.Alerts.Manage, "Assumir, resolver e descartar alertas"),
         new(212, Permissions.Automation.Manage, "Configurar regras de automação"),
+        new(213, Permissions.Assistant.Use, "Usar o assistente de análise da frota"),
     ];
 
     public static PermissionDefinition Get(string key) => All.Single(p => p.Key == key);

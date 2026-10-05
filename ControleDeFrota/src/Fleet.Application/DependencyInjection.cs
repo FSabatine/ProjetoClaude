@@ -20,6 +20,7 @@ using Fleet.Application.Intelligence;
 using Fleet.Application.Maintenance;
 using Fleet.Application.Roles;
 using Fleet.Application.Tires;
+using Fleet.Application.Tracking;
 using Fleet.Application.Users;
 using Fleet.Application.Vehicles;
 using Fleet.Application.Common;
@@ -130,6 +131,13 @@ public static class DependencyInjection
         // Final phase — assistant (ADR-050). IAssistantLanguageModel is provided by Infrastructure (Claude, optional).
         services.AddScoped<AssistantToolbox>();
         services.AddScoped<AssistantService>();
+
+        // Final phase — tracking foundation and integrations (ADR-051)
+        services.AddScoped<TrackingProviderService>();
+        services.AddScoped<TrackingDeviceService>();
+        services.AddScoped<TrackingIngestionService>();
+        services.AddScoped<TrackingQueryService>();
+        services.AddScoped<IntegrationStatusService>();
         return services;
     }
 }

@@ -46,7 +46,7 @@ Pedida pelo usuário como a última fase planejada, reunindo as intenções das 
 - **A — concluída (2026-10-05)**: motor de automação, alertas persistidos, notificações no app, "Requer atenção" e painel executivo.
 - **B — concluída (2026-10-05)**: relatórios cruzados, exportação (CSV/Excel/PDF), busca global, linha do tempo com filtro por área e por permissão, saúde do veículo, comparação e benchmarking interno, tendências e destaques.
 - **C — concluída (2026-10-05)**: assistente da frota (modo calculado + Claude opcional; números sempre calculados pelo sistema).
-- D — base de rastreamento/GPS (provedor, dispositivo, posição), API de recebimento, mapa OpenStreetMap e arquitetura de integrações.
+- **D — concluída (2026-10-05)**: base de rastreamento/GPS (provedor, dispositivo, instalação, posição), API de recebimento, mapa OpenStreetMap, localização do veículo e página de integrações.
 - E — revisão final de segurança, desempenho e UX; manual completo; documentação e skill.
 
 ## FASE 7 — Rastreamento

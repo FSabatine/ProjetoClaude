@@ -891,3 +891,17 @@ Por tipo, até 5 resultados, cada tipo com a permissão da sua lista: veículos,
 | `get_fuel_overview` | consumo da frota, piores, fora do padrão, gasto | `fuel.view` |
 
 Períodos: neste mês, mês passado, últimos 30 dias, últimos 90 dias (padrão), este ano. Formato de resposta: Resposta, Motivo, Evidências, Sugestão + fontes (telas) + modo + aviso.
+
+# Rastreamento e integrações (fase final, etapa D) — ADR-051
+
+- **Situação do sinal** (`TrackingRules.Status`): Transmitindo (última posição ≤ 10 min), Visto nas últimas 24 h, Sem sinal (> 24 h), Nunca transmitiu.
+- **Posição aceita** (`TrackingRules.Reject`): latitude −90..90, longitude −180..180, não 0,0, velocidade 0..250 km/h, direção 0..359, hodômetro ≥ 0, horário até 5 min no futuro e até 30 dias no passado. Repetida (mesmo aparelho e horário) = ignorada.
+- **Instalação**: um aparelho por veículo e vice-versa; instalar outro encerra o vínculo anterior (histórico mantido); veículo inativo recusa.
+- **Rota**: até 7 dias por consulta; acima de 2.000 pontos o desenho é simplificado (um a cada N, sempre com o último).
+
+| Permissão | Libera |
+|---|---|
+| `tracking.view` | mapa da frota, aba Localização do veículo |
+| `tracking.manage` | provedores, rastreadores, chaves, instalação; página de Integrações |
+
+Papéis: Administrador/Plataforma (as duas); Gestor de frota (as duas); Operações, Manutenção e Visualizador (`tracking.view`).

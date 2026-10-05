@@ -261,3 +261,8 @@ Sem revisão visual automatizada (headless desaconselhado nesta máquina). Confe
 - Aviso permanente no topo do painel: usa só dados que o usuário pode ver, números calculados pelo sistema, sugestões a conferir.
 - Perguntas sugeridas por contexto da tela; Enter envia, Shift+Enter quebra linha.
 - Cada resposta: selo do modo, Resposta (negrito), Motivo, Evidências (lista), Sugestão, aviso laranja quando algum número não confere, links "Confira em" para as telas de origem.
+
+## Fase final — mapa e rastreadores
+- Mapa: lista lateral com placa, modelo, horário e selo de sinal (texto + cor); pontos com a mesma cor; filtro por situação; balão com placa (link), situação operacional, motorista, velocidade, ignição; atualização a cada minuto; vazio com CTA para configurar rastreadores.
+- Aba Localização: período 24 h/3 dias/7 dias, resumo (última posição, pontos, velocidade máxima, ignição), rota em linha com início e "Agora", nota de que a linha não é o traçado da estrada.
+- Chave do rastreador: modal que não fecha clicando fora, botão Copiar, aviso de que não será mostrada de novo e exemplo de envio.

@@ -445,3 +445,18 @@ Formato: **Problema · Alternativas · Decisão · Motivo · Impacto**. Um ADR n
 - **Avaliação contínua da IA**: os testes cobrem o contrato (permissões, dados enviados, queda, verificação de números) com um modelo falso; a qualidade das respostas reais do Claude deve ser avaliada com um conjunto de perguntas da empresa antes de ligar em produção (custo de chamadas reais exige aprovação).
 - Conversa é de uma pergunta por vez (com o último veículo como contexto); sem histórico longo nem memória entre sessões.
 - Se a empresa usar Claude via Bedrock/Vertex/Foundry, trocar o cliente em `ClaudeAssistantModel` pelo cliente da plataforma (mesma interface).
+
+## ADR-051 — Base de rastreamento por envio (push) com chave por dispositivo; arquitetura de integrações por portas
+- **Status**: aceito (fase final, etapa D). Decisão do usuário: base de dados + API de recebimento + mapa simples com OpenStreetMap; sem provedor real definido.
+- **Modelo**: `TrackingProvider` (empresa/plataforma), `TrackingDevice` (aparelho, chave própria), `VehicleDevice` (instalação com vigência — um aparelho por veículo e um veículo por aparelho, por índices únicos filtrados), `VehiclePosition` (append-only, sem auditoria, `(dispositivo, horário)` único = repetição ignorada).
+- **Recebimento**: `POST /tracking/ingest` com `X-Device-Key` — o único endpoint sem usuário além de login/refresh. Chave aleatória de 240 bits (`fk_…`), mostrada uma vez, guardada só como SHA-256 (+ prefixo para reconhecer); girar a chave invalida a anterior na hora. O dispositivo é achado pelo hash em todas as empresas (`IgnoreQueryFilters` comentado) e a empresa é gravada explicitamente. Até 500 posições por envio; validação de coordenadas, 0,0, velocidade, data futura/antiga; limite por chave.
+- **Sem campo "última posição" no aparelho**: ele é auditado e cada posição geraria auditoria; a última posição sai do índice `(empresa, veículo, horário)`.
+- **Hodômetro do rastreador** é guardado mas **não** alimenta o histórico de hodômetro: isso exigiria uma fonte `OdometerReadingSource.Telemetry` pelo `MileageService` (regra do projeto) e uma política de confiança no aparelho — fica como ponto de extensão.
+- **Provedores que só oferecem consulta (pull)**: novo `TrackingProviderKind` + um job adaptador que chama o provedor e grava pelo mesmo serviço de recebimento.
+- **Mapa**: Leaflet + react-leaflet (MIT), carregados só nas telas de mapa; blocos do OpenStreetMap por padrão com atribuição — uso intenso em produção deve apontar `VITE_MAP_TILE_URL` para um provedor próprio/comercial (política de uso do OSM). Se a SPA ganhar CSP, liberar `img-src` do servidor de blocos.
+- **Integrações** (spec §19): cada uma atrás de uma porta — `IFileStorage`, `IAssistantLanguageModel`, API de recebimento de rastreamento, ações das regras de automação (canais futuros). A página "Integrações" (`IntegrationStatusService`) mostra o que está em uso, disponível, não configurado ou previsto. Não foram integrados serviços aleatórios.
+
+## Pontos em aberto da fase final — etapa D
+- Cercas eletrônicas, telemetria de condução (frenagem, excesso de velocidade) e rotas/roteirização ficam fora (spec §21).
+- Retenção de posições (volume alto): definir expurgo/arquivamento (ex.: 12 meses) e particionamento quando houver produção.
+- Recebimento roda na própria API; com muitos aparelhos, separar em serviço/fila próprios sem mudar o modelo.

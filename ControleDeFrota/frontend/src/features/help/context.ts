@@ -6,6 +6,8 @@
 const RULES: { test: (pathname: string, aba: string | null) => boolean; categoryId: string }[] = [
   { test: (p) => p.startsWith('/veiculos/comparar') || p.startsWith('/relatorios'), categoryId: 'reports' },
   { test: (p, aba) => p.startsWith('/veiculos/') && aba === 'historico', categoryId: 'reports' },
+  { test: (p, aba) => p.startsWith('/veiculos/') && aba === 'localizacao', categoryId: 'tracking' },
+  { test: (p) => p.startsWith('/mapa') || p.startsWith('/configuracoes/rastreadores') || p.startsWith('/configuracoes/integracoes'), categoryId: 'tracking' },
   // Hub do veículo: a aba ativa manda mais que a seção "Veículos" em si.
   { test: (p, aba) => p.startsWith('/veiculos/') && aba === 'combustivel', categoryId: 'fuel' },
   { test: (p, aba) => p.startsWith('/veiculos/') && aba === 'pneus', categoryId: 'tires' },

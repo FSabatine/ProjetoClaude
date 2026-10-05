@@ -19,6 +19,7 @@ using Fleet.Domain.Intelligence;
 using Fleet.Application.Maintenance;
 using Fleet.Application.Users;
 using Fleet.Application.Vehicles;
+using Fleet.Application.Tracking;
 using Fleet.Infrastructure.Security;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -132,4 +133,10 @@ public static class Services
         t.Db, t.Clock, t.CurrentUser, VehicleMetrics(t), Insights(t), Alerts(t), Budgets(t), CostAggregation(t), VehicleHealth(t), FleetReports(t));
     public static AssistantService Assistant(TestDb t, IAssistantLanguageModel? model = null) => new(
         AssistantTools(t), model ?? new NoLanguageModel(), new AssistantRequestValidator(), NullLogger<AssistantService>.Instance);
+
+    // Final phase — tracking
+    public static TrackingProviderService TrackingProviders(TestDb t) => new(t.Db, new TrackingProviderRequestValidator());
+    public static TrackingDeviceService TrackingDevices(TestDb t) => new(t.Db, t.Clock, new TrackingDeviceRequestValidator());
+    public static TrackingIngestionService TrackingIngestion(TestDb t) => new(t.Db, t.Clock, NullLogger<TrackingIngestionService>.Instance);
+    public static TrackingQueryService TrackingQueries(TestDb t) => new(t.Db, t.Clock, t.CurrentUser);
 }

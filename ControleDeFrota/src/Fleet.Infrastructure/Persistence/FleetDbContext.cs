@@ -18,6 +18,7 @@ using Fleet.Domain.Mileage;
 using Fleet.Domain.Occurrences;
 using Fleet.Domain.Operations;
 using Fleet.Domain.Tires;
+using Fleet.Domain.Tracking;
 using Fleet.Domain.Users;
 using Fleet.Domain.Vehicles;
 using Microsoft.EntityFrameworkCore;
@@ -96,6 +97,10 @@ public sealed class FleetDbContext : DbContext, IFleetDbContext
     public DbSet<AutomationExecution> AutomationExecutions => Set<AutomationExecution>();
     public DbSet<FleetAlert> FleetAlerts => Set<FleetAlert>();
     public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
+    public DbSet<TrackingProvider> TrackingProviders => Set<TrackingProvider>();
+    public DbSet<TrackingDevice> TrackingDevices => Set<TrackingDevice>();
+    public DbSet<VehicleDevice> VehicleDevices => Set<VehicleDevice>();
+    public DbSet<VehiclePosition> VehiclePositions => Set<VehiclePosition>();
 
     /// <summary>Read by the tenant query filter on every query (EF parameterizes this per context instance).</summary>
     private Guid? CurrentCompanyId => _currentUser.CompanyId;

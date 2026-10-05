@@ -5,6 +5,9 @@ import {
   IconAlertTriangle,
   IconBellRinging,
   IconReportAnalytics,
+  IconMap2,
+  IconRouter,
+  IconPlugConnected,
   IconSettingsAutomation,
   IconBuildingFactory2,
   IconChecklist,
@@ -55,6 +58,7 @@ const OPERATION: NavItem[] = [
   { label: 'Painel', to: '/', icon: IconLayoutDashboard, permission: PERMISSIONS.dashboard.view },
   { label: 'Alertas', to: '/alertas', icon: IconBellRinging, permission: PERMISSIONS.alerts.view },
   { label: 'Relatórios', to: '/relatorios', icon: IconReportAnalytics, permission: PERMISSIONS.vehicles.view },
+  { label: 'Mapa da frota', to: '/mapa', icon: IconMap2, permission: PERMISSIONS.tracking.view },
   { label: 'Veículos', to: '/veiculos', icon: IconTruck, permission: PERMISSIONS.vehicles.view },
   { label: 'Implementos', to: '/implementos', icon: IconTruckLoading, permission: PERMISSIONS.implements.view },
   { label: 'Motoristas', to: '/motoristas', icon: IconSteeringWheel, permission: PERMISSIONS.drivers.view },
@@ -73,6 +77,8 @@ const OPERATION: NavItem[] = [
 
 const SETTINGS: NavItem[] = [
   { label: 'Regras de automação', to: '/configuracoes/automacoes', icon: IconSettingsAutomation, permission: PERMISSIONS.automation.manage },
+  { label: 'Rastreadores', to: '/configuracoes/rastreadores', icon: IconRouter, permission: PERMISSIONS.tracking.manage },
+  { label: 'Integrações', to: '/configuracoes/integracoes', icon: IconPlugConnected, permission: PERMISSIONS.tracking.manage },
   { label: 'Modelos de checklist', to: '/configuracoes/checklists', icon: IconListCheck, permission: PERMISSIONS.operations.configure },
   { label: 'Tipos de documento', to: '/configuracoes/tipos-de-documento', icon: IconFiles, permission: PERMISSIONS.operations.configure },
   { label: 'Planos de manutenção', to: '/planos-manutencao', icon: IconListCheck, permission: PERMISSIONS.maintenance.manageplans },

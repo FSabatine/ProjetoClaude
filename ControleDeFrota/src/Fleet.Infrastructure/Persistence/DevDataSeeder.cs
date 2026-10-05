@@ -36,6 +36,7 @@ public sealed class DevDataSeeder(FleetDbContext db, IPasswordHasher passwordHas
                 await SeedFuelAsync(ct);
                 await SeedTiresAsync(ct);
                 await SeedFinanceAsync(ct);
+                await SeedTrackingAsync(ct);
             }
             return;
         }
@@ -60,7 +61,17 @@ public sealed class DevDataSeeder(FleetDbContext db, IPasswordHasher passwordHas
             await SeedFuelAsync(ct);
             await SeedTiresAsync(ct);
             await SeedFinanceAsync(ct);
+            await SeedTrackingAsync(ct);
         }
+    }
+
+    /// <summary>Final phase samples: simulated trackers and positions (see DevTrackingSeeder).</summary>
+    private async Task SeedTrackingAsync(CancellationToken ct)
+    {
+        var main = await db.Companies.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Cnpj == MainCnpj, ct);
+        if (main is null) return;
+        if (await new DevTrackingSeeder(db, clock).SeedAsync(main.Id, ct))
+            logger.LogWarning("Development tracking samples seeded (final phase)");
     }
 
     /// <summary>Phase 6 samples on the main demo company (see DevFinanceSeeder). Runs last: reads the Phase 4/5 vehicles.</summary>

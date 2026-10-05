@@ -6,6 +6,12 @@ import type { HelpWhatsNewEntry } from '../types';
  */
 export const WHATS_NEW: HelpWhatsNewEntry[] = [
   {
+    id: 'whats-new-tracking',
+    title: 'Mapa da frota, rastreadores e integrações',
+    description: 'Mapa com a última posição dos veículos rastreados, aba Localização com a rota do veículo, cadastro de rastreadores com chave própria para envio das posições e a página de Integrações.',
+    date: 'outubro de 2026',
+  },
+  {
     id: 'whats-new-assistant',
     title: 'Assistente da frota',
     description: 'Pergunte em português sobre custos, consumo, manutenção, pneus, orçamento e alertas (ícone ✦ no cabeçalho, ou "Analisar" no veículo). As respostas trazem motivo, evidências e sugestão, usam só dados que você pode ver e são calculadas pelo sistema; a IA (opcional) apenas redige a explicação.',

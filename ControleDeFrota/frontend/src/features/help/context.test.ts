@@ -53,6 +53,12 @@ describe('resolveContextualCategory', () => {
     expect(resolveContextualCategory('/veiculos/123', '?aba=historico')).toBe('reports');
   });
 
+  it('resolves map, trackers, integrations and the location tab', () => {
+    expect(resolveContextualCategory('/mapa', '')).toBe('tracking');
+    expect(resolveContextualCategory('/configuracoes/integracoes', '')).toBe('tracking');
+    expect(resolveContextualCategory('/veiculos/123', '?aba=localizacao')).toBe('tracking');
+  });
+
   it('resolves alert and automation routes', () => {
     expect(resolveContextualCategory('/alertas', '')).toBe('alerts');
     expect(resolveContextualCategory('/alertas/123', '')).toBe('alerts');

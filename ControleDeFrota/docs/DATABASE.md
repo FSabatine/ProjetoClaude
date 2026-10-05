@@ -580,3 +580,14 @@ Permissões 200–209 e papéis via `InsertData` na migration. O catálogo padr�
 
 ### Revisão da migration `IntelligenceAndAutomation`
 Só cria as quatro tabelas, os índices e as permissões 210–212 com o mapeamento nos papéis (via `HasData`). Nenhuma coluna existente foi alterada. Consultas novas executadas no SQL Server (LocalDB) com a verificação completa (`POST /automation/run`): 8 regras, sem falhas.
+
+## Entidades e relacionamentos (fase final, etapa D — migrations `AssistantPermission` e `TrackingFoundation`)
+
+| Tabela | Conteúdo | Observações |
+|---|---|---|
+| `TrackingProviders` | provedor (nome, tipo, ativo) | auditada, soft delete |
+| `TrackingDevices` | aparelho (identificador, modelo, hash e prefixo da chave) | auditada, soft delete; `(CompanyId, Identifier)` e `ApiKeyHash` únicos entre não excluídos |
+| `VehicleDevices` | instalação aparelho ↔ veículo com `StartedAt/EndedAt` | `UX_VehicleDevices_ActiveDevice` e `UX_VehicleDevices_ActiveVehicle` filtrados por `[EndedAt] IS NULL` |
+| `VehiclePositions` | posição (lat/lon `decimal(9,6)`, velocidade, direção, ignição, hodômetro do aparelho, horários) | append-only, sem auditoria; `(TrackingDeviceId, RecordedAt)` único; `(CompanyId, VehicleId, RecordedAt)` e `(CompanyId, RecordedAt)` |
+
+`AssistantPermission` só insere a permissão 213 (`assistant.use`) e o mapeamento; `TrackingFoundation` cria as quatro tabelas e as permissões 214–215. Consultas do mapa, rota e recebimento executadas no SQL Server (LocalDB) com os dados simulados.

@@ -19,6 +19,7 @@ import * as reports from './reports';
 import * as rolesPermissions from './rolesPermissions';
 import * as searchAndFilters from './searchAndFilters';
 import * as tires from './tires';
+import * as tracking from './tracking';
 import * as users from './users';
 import * as vehicles from './vehicles';
 
@@ -46,6 +47,7 @@ const MODULES = [
   tires,
   financial,
   reports,
+  tracking,
   searchAndFilters,
   faq,
 ];

@@ -382,3 +382,17 @@ AssistantService
 ```
 
 Módulo: `Fleet.Application/Assistant` (`AssistantToolbox`, `AssistantService` + `GroundingCheck` + `IAssistantLanguageModel`, `AssistantTemplates` + `AssistantRouter`), `Fleet.Infrastructure/Assistant/ClaudeAssistantModel.cs` (+ `AssistantAiOptions`, seção `Assistant:Anthropic`), `AssistantController` em `Api/Controllers/AnalyticsControllers.cs`; frontend em `features/assistant/` (painel lateral `AssistantButton`, `openAssistant(pergunta)` para atalhos contextuais).
+
+### Fase final, etapa D — rastreamento e integrações (ADR-051)
+
+```
+POST /tracking/ingest  (X-Device-Key, até 500 posições)          anônimo + chave do aparelho, limite por chave
+GET  /tracking/fleet                                             [tracking.view]  última posição por veículo + sinal
+GET  /vehicles/{id}/track?from&to (até 7 dias)                   [tracking.view]
+GET|POST|PUT|DELETE /tracking/providers[/{id}]                   [tracking.manage]
+GET|POST|PUT|DELETE /tracking/devices[/{id}]  (POST devolve a chave uma vez)   [tracking.manage]
+POST /tracking/devices/{id}/rotate-key, /tracking/devices/{id}/vehicle {vehicleId|null}   [tracking.manage]
+GET  /integrations                                               [tracking.manage | automation.manage]
+```
+
+Módulo: `Fleet.Domain/Tracking/Tracking.cs` (entidades + `TrackingRules`), `Fleet.Application/Tracking` (`TrackingServices.cs`: provedores, aparelhos, recebimento, consultas; `IntegrationStatusService`), `Api/Controllers/TrackingControllers.cs`, `Persistence/Configurations/TrackingConfigurations.cs`, `Persistence/DevTrackingSeeder.cs`; frontend em `features/tracking/` (`/mapa`, aba Localização, `/configuracoes/rastreadores`, `/configuracoes/integracoes`; Leaflet só em `maps.tsx`, carregado sob demanda).

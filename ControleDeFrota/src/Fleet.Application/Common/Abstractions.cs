@@ -15,6 +15,7 @@ using Fleet.Domain.Mileage;
 using Fleet.Domain.Occurrences;
 using Fleet.Domain.Operations;
 using Fleet.Domain.Tires;
+using Fleet.Domain.Tracking;
 using Fleet.Domain.Users;
 using Fleet.Domain.Vehicles;
 using Microsoft.EntityFrameworkCore;
@@ -89,6 +90,10 @@ public interface IFleetDbContext
     DbSet<AutomationExecution> AutomationExecutions { get; }
     DbSet<FleetAlert> FleetAlerts { get; }
     DbSet<UserNotification> UserNotifications { get; }
+    DbSet<TrackingProvider> TrackingProviders { get; }
+    DbSet<TrackingDevice> TrackingDevices { get; }
+    DbSet<VehicleDevice> VehicleDevices { get; }
+    DbSet<VehiclePosition> VehiclePositions { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 

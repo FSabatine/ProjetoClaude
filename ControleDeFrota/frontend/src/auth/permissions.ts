@@ -61,6 +61,7 @@ export const PERMISSIONS = {
   alerts: { view: 'alerts.view', manage: 'alerts.manage' },
   automation: { manage: 'automation.manage' },
   assistant: { use: 'assistant.use' },
+  tracking: { view: 'tracking.view', manage: 'tracking.manage' },
 } as const;
 
 type Values<T> = T[keyof T];

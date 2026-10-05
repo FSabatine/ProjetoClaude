@@ -187,6 +187,14 @@ public static class Permissions
         public const string Manage = "alerts.manage";
     }
 
+    public static class Tracking
+    {
+        /// <summary>Fleet map, vehicle location and route history.</summary>
+        public const string View = "tracking.view";
+        /// <summary>Tracking providers, devices (keys) and device ↔ vehicle links; integrations page.</summary>
+        public const string Manage = "tracking.manage";
+    }
+
     public static class Assistant
     {
         /// <summary>Ask the fleet assistant. Answers only use data the user can already see.</summary>
@@ -283,6 +291,8 @@ public static class PermissionCatalog
         new(211, Permissions.Alerts.Manage, "Assumir, resolver e descartar alertas"),
         new(212, Permissions.Automation.Manage, "Configurar regras de automação"),
         new(213, Permissions.Assistant.Use, "Usar o assistente de análise da frota"),
+        new(214, Permissions.Tracking.View, "Visualizar o mapa e a localização dos veículos"),
+        new(215, Permissions.Tracking.Manage, "Configurar rastreadores e integrações"),
     ];
 
     public static PermissionDefinition Get(string key) => All.Single(p => p.Key == key);

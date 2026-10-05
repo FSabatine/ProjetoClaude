@@ -118,6 +118,11 @@ builder.Services.AddRateLimiter(o =>
     o.AddPolicy(AssistantController.RateLimitPolicy, http => RateLimitPartition.GetFixedWindowLimiter(
         http.User.FindFirst(FleetClaims.UserId)?.Value ?? http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = assistantPerMinute, Window = TimeSpan.FromMinutes(1) }));
+    // ADR-051: trackers batch positions; a misbehaving device (or a guessed key) is throttled per key.
+    var ingestPerMinute = configuration.GetValue("Tracking:IngestRequestsPerMinutePerDevice", 120);
+    o.AddPolicy(TrackingController.IngestRateLimitPolicy, http => RateLimitPartition.GetFixedWindowLimiter(
+        http.Request.Headers[TrackingController.DeviceKeyHeader].ToString() is { Length: > 0 } key ? key[..Math.Min(key.Length, 11)] : http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = ingestPerMinute, Window = TimeSpan.FromMinutes(1) }));
 });
 
 var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];

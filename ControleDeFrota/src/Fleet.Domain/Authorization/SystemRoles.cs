@@ -91,7 +91,7 @@ public static class SystemRoles
             "Gerencia a frota e a operação: cadastros, alocações, hodômetro, documentos, checklists, ocorrências, manutenção, combustível, pneus e financeiro.",
             [Permissions.Dashboard.View, Permissions.Companies.View, Permissions.Users.View, Permissions.Roles.View,
              Permissions.Audit.View, .. FleetRegistryFull, .. OperationsFull, .. MaintenanceFull, .. FuelFull, .. TiresFull, .. FinanceFull,
-             .. AlertsWork, Permissions.Automation.Manage]),
+             .. AlertsWork, Permissions.Automation.Manage, Permissions.Tracking.View, Permissions.Tracking.Manage]),
         new(4, Operations, "Operações",
             "Operação diária: motoristas, alocações, hodômetro, documentos, checklists, ocorrências, abastecimentos e inspeção de pneus.",
             [Permissions.Dashboard.View, Permissions.Drivers.View, Permissions.Drivers.Create, Permissions.Drivers.Update,
@@ -100,7 +100,7 @@ public static class SystemRoles
              // Registers fuelings (and sees what they typed), but not the fleet's fuel spending.
              Permissions.Fuel.View, Permissions.Fuel.Create,
              // Field inspection of tires (tread, pressure, damage photos); moving tires is the tire shop's job.
-             Permissions.Tires.View, Permissions.Tires.Inspect, .. AlertsWork]),
+             Permissions.Tires.View, Permissions.Tires.Inspect, .. AlertsWork, Permissions.Tracking.View]),
         new(5, Maintenance, "Manutenção",
             "Atualiza a situação de veículos e implementos, acompanha ocorrências e executa a manutenção da frota, inclusive a borracharia.",
             [Permissions.Dashboard.View, Permissions.Vehicles.View, Permissions.Vehicles.Update,
@@ -108,7 +108,7 @@ public static class SystemRoles
              // Consumption is a maintenance signal (seção 36); money is not their concern.
              Permissions.Fuel.View,
              // The tire shop is part of maintenance: the whole lifecycle, costs included (same as maintenance.viewcosts).
-             .. TiresFull, .. AlertsWork]),
+             .. TiresFull, .. AlertsWork, Permissions.Tracking.View]),
         new(6, Finance, "Financeiro",
             "Consulta a frota e os custos de manutenção, combustível e pneus; gerencia despesas, orçamentos e centros de custo.",
             [Permissions.Dashboard.View, .. FleetRegistryRead, Permissions.Maintenance.View, Permissions.Maintenance.ViewCosts,
@@ -119,6 +119,6 @@ public static class SystemRoles
         new(8, Viewer, "Visualizador",
             "Somente leitura.",
             [Permissions.Dashboard.View, Permissions.Companies.View, .. FleetRegistryRead, .. OperationsRead, Permissions.Maintenance.View,
-             Permissions.Fuel.View, Permissions.Tires.View, Permissions.Finance.View, Permissions.Alerts.View, Permissions.Assistant.Use]),
+             Permissions.Fuel.View, Permissions.Tires.View, Permissions.Finance.View, Permissions.Alerts.View, Permissions.Assistant.Use, Permissions.Tracking.View]),
     ];
 }

@@ -52,6 +52,11 @@ public class IntelligenceApiTests(FleetApiFactory factory) : IClassFixture<Fleet
     [InlineData(FleetApiFactory.DriverA, "/api/v1/analytics/fleet-performance", HttpStatusCode.Forbidden)]
     [InlineData(FleetApiFactory.DriverA, "/api/v1/search?q=abc", HttpStatusCode.Forbidden)]
     [InlineData(FleetApiFactory.DriverA, "/api/v1/analytics/insights", HttpStatusCode.Forbidden)]
+    [InlineData(FleetApiFactory.ViewerA, "/api/v1/tracking/fleet", HttpStatusCode.OK)]
+    [InlineData(FleetApiFactory.DriverA, "/api/v1/tracking/fleet", HttpStatusCode.Forbidden)]
+    [InlineData(FleetApiFactory.ViewerA, "/api/v1/tracking/devices", HttpStatusCode.Forbidden)]
+    [InlineData(FleetApiFactory.ViewerA, "/api/v1/integrations", HttpStatusCode.Forbidden)]
+    [InlineData(FleetApiFactory.AdminA, "/api/v1/integrations", HttpStatusCode.OK)]
     public async Task Endpoints_FollowThePermissionsOfEachRole(string user, string url, HttpStatusCode expected)
     {
         var client = await factory.CreateSignedInClientAsync(user);
@@ -155,5 +160,29 @@ public class IntelligenceApiTests(FleetApiFactory factory) : IClassFixture<Fleet
     {
         var admin = await factory.CreateSignedInClientAsync(FleetApiFactory.AdminA);
         (await admin.PostAsJsonAsync("/api/v1/assistant/ask", new { question = "" })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task TrackingIngest_AuthenticatesByDeviceKey_AndPositionsAppearOnlyInThatCompany()
+    {
+        var anonymous = factory.CreateClient();
+        var body = new { positions = new[] { new { recordedAt = DateTime.UtcNow.AddMinutes(-1), latitude = -25.43m, longitude = -49.27m, speedKmh = 50m } } };
+        (await anonymous.PostAsJsonAsync("/api/v1/tracking/ingest", body)).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+
+        var admin = await factory.CreateSignedInClientAsync(FleetApiFactory.AdminA);
+        var provider = await JsonAsync(await admin.PostAsJsonAsync("/api/v1/tracking/providers", new { name = $"Prov {Guid.NewGuid():N}" }));
+        var device = await JsonAsync(await admin.PostAsJsonAsync("/api/v1/tracking/devices",
+            new { trackingProviderId = provider.GetProperty("id").GetGuid(), identifier = $"IMEI-{Guid.NewGuid():N}"[..20] }));
+        var key = device.GetProperty("apiKey").GetString()!;
+
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/tracking/ingest") { Content = JsonContent.Create(body) };
+        request.Headers.Add("X-Device-Key", key);
+        var response = await anonymous.SendAsync(request);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await JsonAsync(response)).GetProperty("accepted").GetInt32().Should().Be(1);
+
+        // The key is never returned again by the listing.
+        var list = await admin.GetStringAsync("/api/v1/tracking/devices");
+        list.Should().NotContain(key);
     }
 }

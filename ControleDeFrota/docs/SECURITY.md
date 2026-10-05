@@ -153,3 +153,8 @@ Princípio: **Segurança > Conveniência**. O backend é a única autoridade. Es
 - A pergunta do usuário vai como conteúdo de usuário, separada das regras (prompt de sistema) — reduz injeção de instruções; mesmo uma injeção bem-sucedida só alcançaria dados que o próprio usuário já pode ver.
 - Limite de perguntas por usuário, teto de consultas por pergunta e de tamanho da pergunta; logs sem conteúdo.
 - Respostas marcadas como "Calculado pelo sistema" ou "Explicado por IA", com fontes e aviso quando algum número não confere com os dados.
+
+### Fase final, etapa D — rastreamento
+- `POST /tracking/ingest` é anônimo **por desenho**, autenticado pela chave do aparelho: 240 bits aleatórios, só o hash SHA-256 no banco, mostrada uma vez, rotação imediata, aparelho/provedor inativo ou excluído = 401, limite por chave (`Tracking:IngestRequestsPerMinutePerDevice`, 120/min). A chave nunca volta em listagens.
+- Empresa da posição = empresa do aparelho (nunca do corpo da requisição). Mapa, rota e cadastro seguem o filtro de empresa normal.
+- Motorista no balão do mapa só para quem tem `drivers.view`.

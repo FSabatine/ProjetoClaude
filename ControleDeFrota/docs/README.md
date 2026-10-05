@@ -98,6 +98,8 @@ Para recomeçar do zero, apague o banco (`sqllocaldb` / SSMS: `DROP DATABASE Con
 | `Assistant:Anthropic:Enabled` | appsettings | liga a IA (Claude) no assistente — **desligado por padrão**; sem ela, respostas calculadas pelo sistema |
 | `Assistant:Anthropic:ApiKey` | **env `ANTHROPIC_API_KEY` ou cofre** | chave da API da Anthropic (nunca no repositório) |
 | `Assistant:Anthropic:Model`, `TimeoutSeconds`, `MaxToolRounds` | appsettings | `claude-opus-5-5` / 60 / 4 |
+| `Tracking:IngestRequestsPerMinutePerDevice` | appsettings | limite de envios de posição por rastreador (120) |
+| `VITE_MAP_TILE_URL`, `VITE_MAP_TILE_ATTRIBUTION` | `.env` do frontend | servidor de blocos do mapa (padrão OpenStreetMap; em produção com muito uso, use um provedor próprio) |
 
 ## Estrutura
 

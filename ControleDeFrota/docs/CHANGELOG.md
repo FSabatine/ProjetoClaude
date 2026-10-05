@@ -2,6 +2,20 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Datas no padrão AAAA-MM-DD.
 
+## [0.7.0-d] — 2026-10-05 — Fase final, etapa D: rastreamento e integrações
+
+### Adicionado
+- **Base de rastreamento** (ADR-051): provedores, rastreadores com chave própria (mostrada uma vez, só o hash guardado, rotação), instalação no veículo com vigência, posições com validação e deduplicação.
+- **API de recebimento** `POST /api/v1/tracking/ingest` (cabeçalho `X-Device-Key`, até 500 posições, resposta com aceitas/repetidas/recusadas e motivo).
+- **Mapa da frota** (`/mapa`, OpenStreetMap) com situação do sinal, e **aba Localização** no veículo com a rota de 24 h/3 dias/7 dias.
+- **Rastreadores** (`/configuracoes/rastreadores`) e **Integrações** (`/configuracoes/integracoes`).
+- Permissões `tracking.view` / `tracking.manage`; dados simulados de desenvolvimento (3 rastreadores no Paraná).
+- **Central de Ajuda**: categoria "Rastreamento e integrações" (4 artigos), ajuda contextual e "Novidades".
+- **Testes**: Application 430 (chave só como hash, identificador duplicado, recebimento sem usuário gravando na empresa certa, repetidas, recusadas com motivo, chave inválida/girada/excluída, troca de rastreador no veículo, veículo inativo, mapa por empresa, rota e limite de período), HTTP 107 (401 sem chave, envio com chave, chave nunca listada, permissões), frontend 92.
+
+### Dependências
+- Frontend: `leaflet` 1.9, `react-leaflet` 4.2 (MIT; só nas telas de mapa).
+
 ## [0.7.0-c] — 2026-10-05 — Fase final, etapa C: assistente da frota
 
 ### Adicionado

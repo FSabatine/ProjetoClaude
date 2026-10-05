@@ -140,3 +140,9 @@ Princípio: **Segurança > Conveniência**. O backend é a única autoridade. Es
 - Destinatário específico de uma regra precisa ser usuário ativo **da mesma empresa** (validado no serviço; `Users` não tem filtro de tenant).
 - Jobs agem como "sistema" de uma empresa por vez (`SystemExecutionContext`), em escopo próprio; requisições nunca ativam esse modo.
 - Links de notificação são rotas internas geradas pelo servidor (nunca URL externa).
+
+### Fase final, etapa B — análises, exportação e busca
+- Métricas cruzadas, comparação e destaques: cada número sob a permissão do seu módulo; dinheiro sob ADR-042 (o "E" das `*.viewcosts`), `null` quando oculto — exportações herdam o mesmo (célula vazia).
+- Exportação usa os mesmos endpoints da tela (sem rota paralela que pudesse esquecer um filtro); CSV protegido contra injeção de fórmula; dependências de PDF fixadas em versão sem vulnerabilidades conhecidas.
+- Busca global: cada tipo com a permissão da sua lista; documentos de motorista exigem `drivers.view`; despesas sem valor; alertas pelo público.
+- **Correção**: a linha do tempo de veículo/motorista agora filtra eventos pelo módulo (ADR-049); antes, descrições de despesas, abastecimentos etc. apareciam para quem só via veículos.

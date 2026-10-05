@@ -46,6 +46,8 @@ public enum AlertAudience
     Checklists,
     Mileage,
     Vehicles,
+    /// <summary>Who drives which vehicle (names a driver).</summary>
+    Assignments,
 }
 
 /// <summary>

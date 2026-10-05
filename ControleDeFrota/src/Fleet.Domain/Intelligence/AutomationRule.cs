@@ -194,6 +194,7 @@ public static class AutomationTriggerCatalog
     /// <summary>Who may see what an event says (the event summary may name a driver or a vehicle).</summary>
     public static AlertAudience EventAudience(OperationalEventType type) => type switch
     {
+        OperationalEventType.VehicleAssigned or OperationalEventType.VehicleAssignmentEnded => AlertAudience.Assignments,
         OperationalEventType.ChecklistCompleted or OperationalEventType.ChecklistFailed => AlertAudience.Checklists,
         OperationalEventType.OccurrenceCreated or OperationalEventType.OccurrenceStatusChanged => AlertAudience.Occurrences,
         OperationalEventType.DocumentCreated or OperationalEventType.DocumentRenewed or OperationalEventType.DocumentDeleted
@@ -236,6 +237,7 @@ public static class AlertAudiences
         AlertAudience.Occurrences => [Permissions.Occurrences.View],
         AlertAudience.Checklists => [Permissions.Checklists.View],
         AlertAudience.Mileage => [Permissions.Vehicles.View],
+        AlertAudience.Assignments => [Permissions.Assignments.View],
         _ => [Permissions.Vehicles.View],
     };
 

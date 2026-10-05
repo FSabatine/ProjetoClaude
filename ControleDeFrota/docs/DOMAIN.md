@@ -848,3 +848,30 @@ Grupos de alertas abertos por gatilho + filas ao vivo: abastecimentos para revis
 | `automation.manage` | configurar regras e rodar a verificação na hora |
 
 Papéis: Administrador/Plataforma (todas); Gestor de frota (as três); Operações, Manutenção e Financeiro (`alerts.view` + `alerts.manage`); Visualizador (`alerts.view`); Motorista (nenhuma).
+
+# Análises cruzadas (fase final, etapa B) — ADR-047
+
+## Métricas por veículo (`VehicleMetricsService`)
+| Métrica | Fonte | Visível com |
+|---|---|---|
+| Km rodados | hodômetro: maior leitura válida até o fim − maior leitura válida antes do início (sem leitura anterior: desde a primeira do período, marcado como não confiável) | `vehicles.view` |
+| Consumo médio (km/l) | trechos `Calculated` em litros: Σ km ÷ Σ litros | `fuel.view` |
+| Combustível, Manutenção, Pneus, Outras, Total | `CostAggregationService` | cada fatia: `*.viewcosts` da fonte **e** `finance.viewcosts` |
+| Custo/km | total ÷ km (só total completo e km confiável ≥ 50) | todas as `*.viewcosts` |
+| OS concluídas, corretivas, tempo parado (h) | `WorkOrders` concluídas no período (`DowntimeMinutes`) | `maintenance.view` |
+| Trocas de pneu | `TireInstallations` removidas no período (sem estepe) | `tires.view` |
+
+## Problemas recorrentes
+Itens de OS **corretivas** concluídas no período, agrupados por veículo + descrição normalizada (sem acento, maiúsculas, pontuação); 2+ ordens distintas = recorrente.
+
+## Comparação e benchmark
+1 a 6 veículos + "Média da frota" (veículos ativos) + "Média do tipo X" (se houver 2+ do tipo). Médias por métrica sobre quem tem o dado. Diferença ≥ 15% para pior em relação à frota é destacada.
+
+## Saúde operacional (`VehicleHealthPolicy`)
+Áreas: manutenção (preventiva atrasada = crítico; vencendo = atenção), combustível (alerta de consumo ou abastecimento em revisão), pneus (sulco mínimo = crítico; sulco baixo/dano = atenção), custos (alerta de custo acima da média), documentos (vencido = crítico; vencendo = atenção), ocorrências (crítica aberta = crítico; outra aberta = atenção), hodômetro (leitura em revisão ou desatualizada = atenção). Nota = 100 − 10 por atenção − 25 por crítico (mín. 0); ≥ 80 Boa, ≥ 50 Atenção, < 50 Crítica. Área sem permissão = "Sem acesso", não conta.
+
+## Destaques (`InsightService`) e tendência (`TrendAnalysis`)
+Janela: últimos 30 dias × 30 anteriores (pneus: 90 × 90). Só variação significativa (base mínima + variação mínima). Destaques: custo por fatia (≥ 10%, base ≥ R$ 500, com os veículos que mais variaram), concentração de manutenção (um veículo ≥ 25% do custo em 90 dias), consumo médio da frota (≥ 5%), veículos acima da própria média (alertas abertos), tempo parado (≥ 15%), corretivas (≥ 25%), trocas de pneu (≥ 25%). Máximo de 5, negativos primeiro.
+
+## Busca global
+Por tipo, até 5 resultados, cada tipo com a permissão da sua lista: veículos, implementos, motoristas, pneus, OS, abastecimentos, despesas (sem R$), documentos (de motorista só com `drivers.view`), ocorrências e alertas (por público).

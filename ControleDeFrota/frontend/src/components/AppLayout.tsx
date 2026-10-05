@@ -4,6 +4,7 @@ import { useDisclosure } from '@mantine/hooks';
 import {
   IconAlertTriangle,
   IconBellRinging,
+  IconReportAnalytics,
   IconSettingsAutomation,
   IconBuildingFactory2,
   IconChecklist,
@@ -38,6 +39,7 @@ import { useAuth } from '../auth/AuthContext';
 import { PERMISSIONS, type Permission } from '../auth/permissions';
 import { openChangePassword } from '../features/auth/ChangePasswordModal';
 import { NotificationBell } from '../features/alerts/components';
+import { GlobalSearch } from '../features/analytics/components';
 import { HelpButton } from '../features/help/HelpButton';
 import { FormSkeleton } from './EntityFormPage';
 
@@ -51,6 +53,7 @@ interface NavItem {
 const OPERATION: NavItem[] = [
   { label: 'Painel', to: '/', icon: IconLayoutDashboard, permission: PERMISSIONS.dashboard.view },
   { label: 'Alertas', to: '/alertas', icon: IconBellRinging, permission: PERMISSIONS.alerts.view },
+  { label: 'Relatórios', to: '/relatorios', icon: IconReportAnalytics, permission: PERMISSIONS.vehicles.view },
   { label: 'Veículos', to: '/veiculos', icon: IconTruck, permission: PERMISSIONS.vehicles.view },
   { label: 'Implementos', to: '/implementos', icon: IconTruckLoading, permission: PERMISSIONS.implements.view },
   { label: 'Motoristas', to: '/motoristas', icon: IconSteeringWheel, permission: PERMISSIONS.drivers.view },
@@ -138,6 +141,7 @@ export function AppLayout() {
             </div>
           </Group>
           <Group gap="xs" wrap="nowrap">
+            <GlobalSearch />
             <NotificationBell />
             <HelpButton />
             <Tooltip label={colorScheme === 'dark' ? 'Tema claro' : 'Tema escuro'}>

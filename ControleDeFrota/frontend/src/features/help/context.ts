@@ -4,6 +4,8 @@
  * (aba de um hub) vêm antes das genéricas (a seção inteira).
  */
 const RULES: { test: (pathname: string, aba: string | null) => boolean; categoryId: string }[] = [
+  { test: (p) => p.startsWith('/veiculos/comparar') || p.startsWith('/relatorios'), categoryId: 'reports' },
+  { test: (p, aba) => p.startsWith('/veiculos/') && aba === 'historico', categoryId: 'reports' },
   // Hub do veículo: a aba ativa manda mais que a seção "Veículos" em si.
   { test: (p, aba) => p.startsWith('/veiculos/') && aba === 'combustivel', categoryId: 'fuel' },
   { test: (p, aba) => p.startsWith('/veiculos/') && aba === 'pneus', categoryId: 'tires' },

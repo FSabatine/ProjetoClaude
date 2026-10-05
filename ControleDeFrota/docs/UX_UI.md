@@ -247,3 +247,11 @@ Revisão de UX e responsividade feita no código. Sem revisão visual automatiza
 
 ### Revisão desta etapa
 Sem revisão visual automatizada (headless desaconselhado nesta máquina). Conferir manualmente em 375px/tablet/desktop e nos dois temas.
+
+## Fase final — relatórios, comparação e busca
+- **Relatórios** (`/relatorios`): período na URL (padrão 90 dias), colunas ordenáveis, "—" para sem dado/sem acesso, `*` para km sem base anterior, `[?]` explicando os cálculos, botão **Exportar** (CSV/Excel/PDF) no canto da tabela.
+- **Comparar veículos**: escolha por placa (até 6), colunas de média da frota/tipo com fundo diferente, "+x% vs frota" abaixo de cada valor (vermelho só quando ≥ 15% pior), texto lembrando que diferença não é conclusão.
+- **Saúde do veículo**: no cabeçalho do hub, nota + selo (texto + cor) e "ver fatores" abrindo a explicação de cada área com link para a aba.
+- **Destaques** no painel: até 5 frases com ícone de tendência, link e "base do cálculo".
+- **Busca global**: botão no cabeçalho + Ctrl+K, resultados agrupados por tipo com rótulo, navegação por teclado.
+- **Histórico**: filtro por área; ícones por módulo.

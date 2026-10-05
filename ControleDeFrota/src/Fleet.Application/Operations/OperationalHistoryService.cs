@@ -1,4 +1,5 @@
 using Fleet.Application.Common;
+using Fleet.Domain.Intelligence;
 using Fleet.Domain.Operations;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
@@ -10,6 +11,8 @@ public sealed class HistoryRequest : ListRequest
     public DateOnly? From { get; set; }
     public DateOnly? To { get; set; }
     public OperationalEventType? Type { get; set; }
+    /// <summary>Area of the event (maintenance, fuel, tires, finance, documents, operations).</summary>
+    public FleetAlertCategory? Category { get; set; }
 }
 
 public sealed record HistoryEntryResponse(
@@ -21,16 +24,26 @@ public sealed record HistoryEntryResponse(
     string SubjectType,
     Guid SubjectId,
     Guid? VehicleId,
-    Guid? DriverId);
+    Guid? DriverId,
+    FleetAlertCategory Category);
 
 public sealed class HistoryRequestValidator : AbstractValidator<HistoryRequest>
 {
     public HistoryRequestValidator() => this.ValidPeriod(x => x.From, x => x.To, "to");
 }
 
-/// <summary>Timeline of a vehicle or driver, newest first, read from the operational events (ADR-025).</summary>
-public sealed class OperationalHistoryService(IFleetDbContext db, IClock clock, IValidator<HistoryRequest> validator)
+/// <summary>
+/// Unified timeline of a vehicle, driver or tire, newest first, read from the operational events (ADR-025). Each event
+/// is shown only to who can see its module (the same audience map as the alerts, ADR-045) — a vehicle viewer without
+/// finance access does not read expense entries in the vehicle history.
+/// </summary>
+public sealed class OperationalHistoryService(IFleetDbContext db, IClock clock, ICurrentUser currentUser, IValidator<HistoryRequest> validator)
 {
+    public IReadOnlyList<OperationalEventType> VisibleTypes() =>
+        Enum.GetValues<OperationalEventType>()
+            .Where(t => AlertAudiences.RequiredPermissions(AutomationTriggerCatalog.EventAudience(t)).All(currentUser.HasPermission))
+            .ToList();
+
     public async Task<PagedResult<HistoryEntryResponse>> ForVehicleAsync(Guid vehicleId, HistoryRequest request, CancellationToken ct)
     {
         if (!await db.Vehicles.AnyAsync(v => v.Id == vehicleId, ct))
@@ -67,12 +80,16 @@ public sealed class OperationalHistoryService(IFleetDbContext db, IClock clock, 
             query = query.Where(e => e.OccurredAt < end);
         }
         if (request.Type is { } type) query = query.Where(e => e.Type == type);
+        var types = VisibleTypes();
+        if (request.Category is { } category) types = types.Where(t => AutomationTriggerCatalog.EventCategory(t) == category).ToList();
+        query = query.Where(e => types.Contains(e.Type));
 
         var page = await query.OrderByDescending(e => e.OccurredAt).ThenByDescending(e => e.Id)
             .ToPagedResultAsync(request, e => e, ct);
         var names = await UserNames.LoadAsync(db, page.Items.Select(e => e.UserId), ct);
         var items = page.Items.Select(e => new HistoryEntryResponse(
-            e.Id, e.Type, e.OccurredAt, e.Summary, names.Get(e.UserId), e.SubjectType, e.SubjectId, e.VehicleId, e.DriverId)).ToList();
+            e.Id, e.Type, e.OccurredAt, e.Summary, names.Get(e.UserId), e.SubjectType, e.SubjectId, e.VehicleId, e.DriverId,
+            AutomationTriggerCatalog.EventCategory(e.Type))).ToList();
         return new PagedResult<HistoryEntryResponse>(items, page.Page, page.PageSize, page.TotalCount);
     }
 }

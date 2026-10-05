@@ -1,0 +1,135 @@
+import { PERMISSIONS } from '../../../auth/permissions';
+import type { HelpArticle, HelpCategory } from '../types';
+
+export const CATEGORY: HelpCategory = {
+  id: 'reports',
+  label: 'Relatórios e análises',
+  description: 'Desempenho da frota, manutenção e problemas recorrentes, comparação de veículos, saúde do veículo, destaques do painel, exportação, busca e linha do tempo.',
+  requiredPermission: PERMISSIONS.vehicles.view,
+};
+
+export const ARTICLES: HelpArticle[] = [
+  {
+    id: 'reports-fleet-performance',
+    categoryId: 'reports',
+    title: 'Relatório de desempenho da frota',
+    summary: 'Em "Relatórios", cada linha é um veículo com km rodados, consumo médio, custo de combustível, manutenção, pneus e outras despesas, custo total e custo por km no período.',
+    whyItMatters: 'Mostra numa tela só o que antes exigia abrir combustível, manutenção, pneus e financeiro separadamente — e quais veículos puxam o custo da frota.',
+    steps: [
+      'Abra "Relatórios" no menu.',
+      'Escolha o período (padrão: últimos 90 dias) e, se quiser, o tipo de veículo.',
+      'Clique no título de uma coluna para ordenar (ex.: custo total, do maior para o menor).',
+      'Clique na placa para abrir o veículo.',
+      'Use "Exportar" para baixar em CSV, Excel ou PDF.',
+    ],
+    notes: [
+      'Km do período = a leitura de hodômetro mais alta até o fim do período menos a mais alta antes do início. Sem leitura antes do período, o km aparece com * e o custo/km não é calculado (seria enganoso).',
+      'Consumo = km ÷ litros dos trechos de tanque cheio a tanque cheio.',
+      'Os custos vêm direto de cada módulo — nada precisa ser lançado de novo.',
+      'Valores em R$ só aparecem para quem tem permissão; "—" significa sem acesso ou sem dado, nunca zero.',
+    ],
+    keywords: ['relatório', 'desempenho', 'custo por veículo', 'km rodados', 'custo por km'],
+    relatedArticleIds: ['reports-export', 'reports-compare'],
+  },
+  {
+    id: 'reports-maintenance',
+    categoryId: 'reports',
+    title: 'Relatório de manutenção e problemas recorrentes',
+    summary: 'Na aba "Manutenção" dos Relatórios: ordens de serviço concluídas, corretivas, tempo parado, custo de manutenção e trocas de pneu por veículo, além da lista de problemas que se repetem.',
+    notes: [
+      'Tempo parado = soma do tempo de indisponibilidade informado nas ordens de serviço concluídas no período.',
+      'Problema recorrente = o mesmo serviço corretivo feito duas ou mais vezes no mesmo veículo no período. A comparação ignora maiúsculas, acentos e pontuação ("Troca de pastilhas" = "troca de PASTILHAS.").',
+      'Um problema recorrente pede análise: pode ser reparo que não resolveu a causa, peça de baixa qualidade ou uso inadequado.',
+    ],
+    keywords: ['manutenção', 'tempo parado', 'indisponibilidade', 'recorrente', 'repetido'],
+    relatedArticleIds: ['reports-fleet-performance'],
+    requiredPermission: PERMISSIONS.maintenance.view,
+  },
+  {
+    id: 'reports-compare',
+    categoryId: 'reports',
+    title: 'Comparar veículos',
+    summary: 'Compare até 6 veículos lado a lado — consumo, custos, custo por km, manutenção, tempo parado e trocas de pneu — junto da média da frota e da média dos veículos do mesmo tipo.',
+    steps: [
+      'Abra "Relatórios" › "Comparar veículos", ou clique em "Comparar" na página de um veículo.',
+      'Adicione os veículos pela placa ou modelo.',
+      'Escolha o período.',
+      'Abaixo de cada valor aparece a diferença para a média da frota; em vermelho, 15% ou mais para pior.',
+    ],
+    notes: [
+      'As médias usam só os veículos que têm aquele dado (um veículo sem abastecimento não puxa a média de consumo para zero).',
+      'A comparação é interna (sua própria frota); não usamos médias de mercado.',
+      'Diferença não é conclusão: um veículo que roda mais ou carrega mais peso naturalmente custa mais.',
+    ],
+    keywords: ['comparar', 'comparação', 'benchmark', 'média da frota', 'média do tipo'],
+    relatedArticleIds: ['reports-fleet-performance', 'reports-health'],
+  },
+  {
+    id: 'reports-health',
+    categoryId: 'reports',
+    title: 'Saúde operacional do veículo',
+    summary: 'No cabeçalho da página do veículo, uma nota de 0 a 100 que resume manutenção, combustível, pneus, custos, documentos, ocorrências e hodômetro. Clique em "ver fatores" para ver o porquê.',
+    example: 'Saúde operacional: 65/100 (Atenção)\nManutenção: Crítico — 1 item da preventiva atrasado\nCombustível: Atenção — 2 abastecimentos aguardando revisão\nPneus: Bom\nDocumentos: Bom',
+    notes: [
+      'É um resumo prático, não uma medida científica: começa em 100; cada área em atenção tira 10 pontos e cada área crítica tira 25.',
+      '80 ou mais = Boa; de 50 a 79 = Atenção; abaixo de 50 = Crítica.',
+      'Áreas que você não tem permissão para ver aparecem como "Sem acesso" e não entram na conta.',
+      'Cada fator tem um link para a aba do veículo onde está o detalhe.',
+    ],
+    keywords: ['saúde', 'nota do veículo', 'score', 'condição do veículo'],
+    relatedArticleIds: ['reports-compare'],
+  },
+  {
+    id: 'reports-insights',
+    categoryId: 'reports',
+    title: 'Destaques do painel',
+    summary: 'O bloco "Destaques" do painel mostra poucas descobertas importantes, comparando os últimos 30 dias com os 30 anteriores: custos que subiram ou caíram, consumo da frota, tempo parado, manutenções corretivas, trocas de pneu e veículos que concentram o custo de manutenção.',
+    notes: [
+      'Todos os números são calculados pelo sistema a partir dos registros — nada é estimado. Passe o mouse em "base do cálculo" para ver os valores usados.',
+      'Só aparece variação relevante (em geral, 10% ou mais sobre uma base mínima), para não poluir o painel com pequenas oscilações.',
+      'Destaques com valores em R$ só aparecem para quem pode ver os custos de todos os módulos.',
+    ],
+    keywords: ['destaques', 'insights', 'tendência', 'aumentou', 'caiu'],
+    relatedArticleIds: ['dashboard-overview'],
+  },
+  {
+    id: 'reports-export',
+    categoryId: 'reports',
+    title: 'Exportar relatórios (CSV, Excel, PDF)',
+    summary: 'Os relatórios têm o botão "Exportar": CSV (planilha simples), Excel (.xlsx) ou PDF, com os mesmos filtros e período que estão na tela.',
+    notes: [
+      'A exportação traz só o que você pode ver: valores ocultos por permissão saem vazios.',
+      'O limite é de 5.000 linhas por arquivo; acima disso, o arquivo avisa e você pode filtrar para exportar o restante.',
+      'O CSV usa ";" e abre direto no Excel em português.',
+      'Disponível nos relatórios da frota, de combustível, de pneus e na comparação de veículos.',
+    ],
+    keywords: ['exportar', 'excel', 'csv', 'pdf', 'baixar', 'planilha'],
+    relatedArticleIds: ['reports-fleet-performance'],
+  },
+  {
+    id: 'reports-search',
+    categoryId: 'reports',
+    title: 'Busca global',
+    summary: 'A caixa "Buscar" no cabeçalho (ou Ctrl+K) procura em todo o sistema: veículos, implementos, motoristas, pneus, ordens de serviço, abastecimentos, despesas, documentos, ocorrências e alertas.',
+    steps: [
+      'Clique em "Buscar" no cabeçalho ou pressione Ctrl+K.',
+      'Digite pelo menos 2 caracteres: placa (com ou sem hífen), nome, nº de fogo, número da OS, descrição…',
+      'Use as setas e Enter, ou clique no resultado. Cada resultado mostra de que tipo ele é.',
+    ],
+    notes: ['Só aparecem resultados dos módulos que você tem permissão para ver.'],
+    keywords: ['buscar', 'pesquisar', 'procurar', 'ctrl k', 'atalho'],
+    relatedArticleIds: ['search-lists'],
+  },
+  {
+    id: 'reports-timeline',
+    categoryId: 'reports',
+    title: 'Linha do tempo do veículo',
+    summary: 'A aba "Histórico" do veículo junta tudo o que aconteceu com ele, de todos os módulos, em ordem: alocações, hodômetro, documentos, checklists, ocorrências, manutenções, abastecimentos, pneus e despesas.',
+    steps: [
+      'Abra o veículo e vá na aba "Histórico".',
+      'Filtre por período e por área (manutenção, combustível, pneus, financeiro…).',
+    ],
+    notes: ['Cada registro só aparece para quem pode ver o módulo de onde ele vem — por exemplo, despesas só aparecem para quem acessa o financeiro.'],
+    keywords: ['histórico', 'linha do tempo', 'timeline', 'o que aconteceu'],
+  },
+];

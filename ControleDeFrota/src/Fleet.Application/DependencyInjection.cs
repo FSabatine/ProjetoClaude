@@ -1,4 +1,5 @@
 using System.Globalization;
+using Fleet.Application.Analytics;
 using Fleet.Application.Assignments;
 using Fleet.Application.Audit;
 using Fleet.Application.Auth;
@@ -117,6 +118,13 @@ public static class DependencyInjection
         services.AddScoped<FleetAlertService>();
         services.AddScoped<NotificationService>();
         services.AddScoped<AttentionService>();
+
+        // Final phase — cross-module analytics (reports, comparison, health, insights, search)
+        services.AddScoped<VehicleMetricsService>();
+        services.AddScoped<FleetReportsService>();
+        services.AddScoped<VehicleHealthService>();
+        services.AddScoped<InsightService>();
+        services.AddScoped<GlobalSearchService>();
         return services;
     }
 }

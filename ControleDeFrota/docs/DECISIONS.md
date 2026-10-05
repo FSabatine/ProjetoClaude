@@ -405,3 +405,26 @@ Formato: **Problema · Alternativas · Decisão · Motivo · Impacto**. Um ADR n
 - **Retenção**: `AutomationExecutions` e `UserNotifications` crescem sem limite (pequenos); definir limpeza (ex.: 180 dias) quando houver produção.
 - **Preferências por usuário** (silenciar uma regra só para mim) e canais externos (e-mail/WhatsApp) ficam como ações futuras das regras.
 - **Revisão visual automatizada**: não executada (headless desaconselhado nesta máquina) — conferir painel, central de alertas, sino e regras em 375px/tablet/desktop e nos dois temas.
+
+## ADR-047 — Análises cruzadas num serviço só de métricas por veículo
+- **Status**: aceito (fase final, etapa B).
+- **Decisão**: `VehicleMetricsService` calcula, agregando no banco, as métricas de um conjunto de veículos num período (km pelo histórico de hodômetro, consumo ponderado, custos via `CostAggregationService`, OS concluídas, corretivas, tempo parado, trocas de pneu). Relatório de desempenho, relatório de manutenção, comparação, médias de benchmark e destaques **leem dele** — o mesmo número é o mesmo em todo lugar. Campos de módulos sem permissão voltam `null` (nunca zero); custo/km só com total completo e km confiável (leitura antes do período e ≥ 50 km, ADR-044).
+- **Benchmark** só interno (média da frota ativa e do mesmo tipo de veículo; médias ignoram veículos sem o dado). Sem referências externas.
+- **Tendências** (`TrendAnalysis`) = comparação período a período com base mínima e variação mínima (regra, não ML). Os destaques (`InsightService`) usam frases fixas e neutras e carregam a "base do cálculo"; o assistente de IA (etapa C) poderá explicá-los, nunca recalculá-los.
+- **Saúde do veículo** (`VehicleHealthPolicy`): checklist transparente → nota 0–100 (−10 atenção, −25 crítico por área), áreas sem permissão não contam. Explicitamente "não é medida científica".
+
+## ADR-048 — Exportação no navegador a partir do mesmo endpoint da tela
+- **Status**: aceito.
+- **Decisão**: CSV/Excel/PDF gerados no frontend (`lib/export.ts`; `write-excel-file` e `jspdf` + `jspdf-autotable`, MIT, carregados sob demanda) lendo **o mesmo endpoint e os mesmos filtros** da tela, página a página, até 5.000 linhas. Assim permissões, empresa e período são exatamente os da tela, sem endpoints de exportação paralelos para manter.
+- **Alternativa descartada**: QuestPDF no servidor — licença comunitária limitada por faturamento. jsPDF 3.x tinha vulnerabilidades conhecidas; fixado em 4.2.1 (`npm audit` limpo).
+- **Segurança**: CSV com proteção contra injeção de fórmula (célula que começa com `= + - @` recebe `'`).
+
+## ADR-049 — Linha do tempo filtrada pelo módulo de cada evento
+- **Status**: aceito.
+- **Problema** (achado na revisão desta etapa): o histórico do veículo/motorista mostrava eventos de todos os módulos a quem tinha só `vehicles.view` — por exemplo, a descrição de despesas para quem não acessa o financeiro.
+- **Decisão**: `OperationalHistoryService` filtra os tipos de evento pelo mesmo mapa de público dos alertas (`AutomationTriggerCatalog.EventAudience` + `AlertAudiences`), e ganhou filtro por área. Alocações passaram a exigir `assignments.view` (nomeiam motorista).
+
+## Pontos em aberto da fase final — etapa B
+- Custo por km da frota/veículo em relatórios usa leitura **antes** do período como base; veículos sem histórico anterior ficam sem custo/km (indicado com *).
+- Exportação de listas operacionais (despesas, alertas, abastecimentos) segue pela tela de relatórios do módulo; listas com `DataTable` ainda não têm o botão.
+- Relatórios financeiros (centro de custo, mensal, orçado x realizado, TCO) usam tabelas próprias, ainda sem o botão de exportar.

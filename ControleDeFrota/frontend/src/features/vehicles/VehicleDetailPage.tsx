@@ -1,6 +1,6 @@
 import { Alert, Anchor, Button, Group, Paper, SimpleGrid, Stack, Text } from '@mantine/core';
 import {
-  IconAlertTriangle, IconChecklist, IconCircleDot, IconCoin, IconFileText, IconGasStation, IconGauge, IconHistory, IconInfoCircle, IconPencil, IconPlayerPlay, IconSteeringWheel, IconTool,
+  IconAlertTriangle, IconArrowsDiff, IconChecklist, IconCircleDot, IconCoin, IconFileText, IconGasStation, IconGauge, IconHistory, IconInfoCircle, IconPencil, IconPlayerPlay, IconSteeringWheel, IconTool,
 } from '@tabler/icons-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
@@ -19,6 +19,7 @@ import { HistoryTimeline } from '../history/HistoryTimeline';
 import { VehicleFuelPanel } from '../fuel/VehicleFuelPanel';
 import { VehicleFinancialPanel } from '../finance/VehicleFinancialPanel';
 import { AssetTirePanel } from '../tires/AssetTirePanel';
+import { VehicleHealthFact } from '../analytics/components';
 import { VehicleMaintenancePanel } from '../maintenance/VehicleMaintenancePanel';
 import { MileagePanel } from '../mileage/MileagePanel';
 import { OccurrencesPanel } from '../occurrences/OccurrencesPanel';
@@ -71,6 +72,7 @@ function VehicleHub({ vehicle: v }: { vehicle: Vehicle }) {
         action={
           <Group gap="xs">
             <AuditHistoryButton entity="Vehicle" id={v.id} />
+            <Button variant="default" leftSection={<IconArrowsDiff size={18} />} onClick={() => navigate(`/veiculos/comparar?ids=${v.id}`)}>Comparar</Button>
             <Button variant="default" leftSection={<IconPencil size={18} />} onClick={() => navigate(`/veiculos/${v.id}/editar`)}>
               {can(PERMISSIONS.vehicles.update) ? 'Editar' : 'Ver cadastro'}
             </Button>
@@ -79,13 +81,14 @@ function VehicleHub({ vehicle: v }: { vehicle: Vehicle }) {
         }
       />
       <Paper p="md" mb="md">
-        <SimpleGrid cols={{ base: 2, md: 4 }} spacing="md">
+        <SimpleGrid cols={{ base: 2, md: 5 }} spacing="md">
           <HeaderFact label="Situação" value={<StatusBadge value={v.operationalStatus} map={VEHICLE_OPERATIONAL_STATUS} />} />
           <HeaderFact label="Placa" value={<Text ff="monospace" fw={700} size="lg">{plate}</Text>} />
           <HeaderFact label="Hodômetro" value={`${formatNumber(v.currentOdometerKm)} km`}
             hint={v.odometerUpdatedAt ? `em ${formatDateTime(v.odometerUpdatedAt)}` : 'sem leitura registrada'} />
           <HeaderFact label="Motorista" value={v.currentAssignment ? v.currentAssignment.driverName : 'Sem motorista'}
             hint={v.currentAssignment && `desde ${formatDate(v.currentAssignment.startedAt)}`} />
+          <VehicleHealthFact vehicleId={v.id} />
         </SimpleGrid>
       </Paper>
       <DetailTabs tabs={tabs} />

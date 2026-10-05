@@ -5,7 +5,7 @@ import { useAuth } from '../../auth/AuthContext';
 import { PERMISSIONS } from '../../auth/permissions';
 import { StatusBadge } from '../../components/common';
 import { PageHeader } from '../../components/PageHeader';
-import { ReportTable, useReportState } from '../../components/ReportTable';
+import { pagedLoader, ReportTable, useReportState } from '../../components/ReportTable';
 import { formatCurrency, formatDateTime, formatNumber, formatPlate } from '../../lib/format';
 import { formatConsumption, formatDeviation, formatQuantity, formatUnitPrice } from '../../lib/fuel';
 import { fuelAnalyticsApi, fuelingsApi } from './api';
@@ -59,6 +59,7 @@ function FuelingReport({ from, to }: { from: string; to: string }) {
       </Text>
       <ReportTable state={state} data={query.data} isLoading={query.isFetching} error={query.error} onRetry={() => void query.refetch()} getKey={(r) => r.id}
         empty="Nenhum abastecimento no período."
+        exportAs={{ title: 'Abastecimentos', subtitle: `Período ${from} a ${to}`, load: pagedLoader('/fuelings', { from, to, ...state.params }) }}
         columns={[
           { key: 'date', header: 'Data', sortKey: 'fueledAt', render: (r) => <Anchor component={Link} to={`/abastecimentos/${r.id}`} size="sm">{formatDateTime(r.fueledAt)}</Anchor> },
           { key: 'vehicle', header: 'Veículo', sortKey: 'licensePlate', render: (r) => <Text span ff="monospace" size="sm">{formatPlate(r.licensePlate)}</Text> },
@@ -86,6 +87,7 @@ function ConsumptionReport({ from, to }: { from: string; to: string }) {
       </Group>
       <ReportTable state={state} data={query.data?.rows} isLoading={query.isFetching} error={query.error} onRetry={() => void query.refetch()}
         getKey={(r) => `${r.vehicleId}-${r.unit}`} empty="Nenhum trecho de consumo medido no período."
+        exportAs={{ title: 'Consumo por veículo', subtitle: `Período ${from} a ${to}`, load: pagedLoader('/fuel/reports/consumption', { from, to, ...state.params }, (d) => (d as { rows: { items: never[]; totalPages: number } }).rows) }}
         columns={[
           { key: 'vehicle', header: 'Veículo', sortKey: 'licensePlate', render: (r) => <Anchor component={Link} to={`/veiculos/${r.vehicleId}?aba=combustivel`} ff="monospace" size="sm">{formatPlate(r.licensePlate)}</Anchor> },
           { key: 'segments', header: 'Trechos', align: 'right', render: (r) => r.segments },
@@ -113,6 +115,7 @@ function CostReport({ from, to }: { from: string; to: string }) {
       </Group>
       <ReportTable state={state} data={query.data?.rows} isLoading={query.isFetching} error={query.error} onRetry={() => void query.refetch()}
         getKey={(r) => r.key ?? r.name} empty="Nenhum abastecimento no período."
+        exportAs={{ title: 'Custos de combustível', subtitle: `Período ${from} a ${to}`, load: pagedLoader('/fuel/reports/costs', { from, to, groupBy, ...state.params }, (d) => (d as { rows: { items: never[]; totalPages: number } }).rows) }}
         columns={[
           { key: 'name', header: COST_GROUPING[groupBy].label.replace('Por ', '').replace(/^./, (c) => c.toUpperCase()), sortKey: 'name',
             render: (r) => byVehicle && r.key ? <Anchor component={Link} to={`/veiculos/${r.key}?aba=combustivel`} ff="monospace" size="sm">{formatPlate(r.name)}</Anchor> : r.name },
@@ -135,6 +138,7 @@ function StationReport({ from, to }: { from: string; to: string }) {
   return (
     <ReportTable state={state} data={query.data?.rows} isLoading={query.isFetching} error={query.error} onRetry={() => void query.refetch()}
       getKey={(r) => `${r.fuelStationId}-${r.fuelTypeId}`} empty="Nenhum abastecimento no período."
+      exportAs={{ title: 'Postos', subtitle: `Período ${from} a ${to}`, load: pagedLoader('/fuel/reports/stations', { from, to, ...state.params }, (d) => (d as { rows: { items: never[]; totalPages: number } }).rows) }}
       columns={[
         { key: 'station', header: 'Posto', sortKey: 'name', render: (r) => r.fuelStationId ? <Anchor component={Link} to={`/postos/${r.fuelStationId}`} size="sm">{r.stationName}</Anchor> : r.stationName },
         { key: 'fuel', header: 'Combustível', render: (r) => r.fuelTypeName },
@@ -157,6 +161,7 @@ function PriceReport({ from, to }: { from: string; to: string }) {
       <Text size="sm" c="dimmed" px="md" pt="sm">Preço médio ponderado: total pago ÷ quantidade, por combustível e mês.</Text>
       <ReportTable state={state} data={query.data?.rows} isLoading={query.isFetching} error={query.error} onRetry={() => void query.refetch()}
         getKey={(r) => `${r.year}-${r.month}-${r.fuelTypeId}`} empty="Nenhum abastecimento no período."
+        exportAs={{ title: 'Preços de combustível', subtitle: `Período ${from} a ${to}`, load: pagedLoader('/fuel/reports/prices', { from, to, ...state.params }, (d) => (d as { rows: { items: never[]; totalPages: number } }).rows) }}
         columns={[
           { key: 'month', header: 'Mês', render: (r) => `${MONTHS[r.month - 1]}/${r.year}` },
           { key: 'fuel', header: 'Combustível', render: (r) => r.fuelTypeName },

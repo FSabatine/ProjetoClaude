@@ -2,7 +2,7 @@
 
 Guia rápido para agentes de IA neste repositório. **A fonte da verdade é `docs/`**: leia o documento da área antes de alterá-la e atualize-o no mesmo trabalho. Em qualquer implementação, siga a skill de projeto `fleet-development` (`.claude/skills/fleet-development/SKILL.md`).
 
-Controle de Frota é um sistema de gestão de frotas multiempresa em .NET 8 + React. A fase atual e o escopo estão em `docs/ROADMAP.md` (Fases 1 — Fundação, 2 — Controle operacional, 3 — Manutenção, 4 — Combustível, 5 — Pneus e 6 — Financeiro concluídas; **fase final em andamento, em etapas A–E** — A (alertas/automação) concluída, ver ROADMAP; a Fase 2.5 — Viagens e composição foi adiada por decisão do usuário, ADR-026/ADR-031/ADR-035, e é a próxima recomendada). **Não implemente módulos de fases futuras** (viagens, almoxarifado, rastreamento…); apenas deixe o ponto de extensão (normalmente um novo valor em `OperationalEventType`).
+Controle de Frota é um sistema de gestão de frotas multiempresa em .NET 8 + React. A fase atual e o escopo estão em `docs/ROADMAP.md` (Fases 1 — Fundação, 2 — Controle operacional, 3 — Manutenção, 4 — Combustível, 5 — Pneus e 6 — Financeiro concluídas; **fase final em andamento, em etapas A–E** — A (alertas/automação) e B (relatórios/análises) concluídas, ver ROADMAP; a Fase 2.5 — Viagens e composição foi adiada por decisão do usuário, ADR-026/ADR-031/ADR-035, e é a próxima recomendada). **Não implemente módulos de fases futuras** (viagens, almoxarifado, rastreamento…); apenas deixe o ponto de extensão (normalmente um novo valor em `OperationalEventType`).
 
 ## Comandos (a partir de `ControleDeFrota/`)
 
@@ -95,6 +95,14 @@ Login de desenvolvimento: `admin@frota.local` / `FrotaDev!2026`. Os demais usuá
 - Jobs que precisam de serviços completos agem como sistema de uma empresa por vez: escopo novo + `SystemExecutionContext.ActAsSystemFor(companyId)` (ADR-046). Nunca ative isso numa requisição.
 - O outbox `OperationalEvents` agora tem consumidor: o motor marca `PublishedAt`. Canal novo (e-mail/WhatsApp) = ação nova da regra, não outro leitor.
 - `FleetAlert` não é auditável (atualizado a cada verificação); o rastro fica nos campos `ReadBy/AssignedToUserId/ClosedBy`.
+
+## Análises cruzadas (fase final, etapa B) em uma tela
+
+- `Fleet.Application/Analytics`: **`VehicleMetricsService` é a única fonte das métricas por veículo** (km, consumo, custos por fatia, OS, tempo parado, trocas de pneu) usadas por relatórios, comparação, médias e destaques (ADR-047). Métrica nova por veículo = campo novo lá, nunca um cálculo paralelo numa tela.
+- Campos de módulos sem permissão = `null`; custo/km só com total completo e km confiável (leitura antes do período). Tendência = `TrendAnalysis` (base e variação mínimas). Saúde = `VehicleHealthPolicy`.
+- Exportação: `ReportTable exportAs={{ title, load: pagedLoader(url, params, select?) }}` — mesmo endpoint e filtros da tela (ADR-048). Colunas sem `exportValue` exportam o texto da célula.
+- Histórico (`OperationalHistoryService`) filtra cada evento pela permissão do seu módulo (`EventAudience`, ADR-049): tipo de evento novo precisa cair no público certo.
+- Busca global (`GlobalSearchService`): tipo novo pesquisável = bloco novo com a permissão da lista do módulo.
 
 ## Regras que não são óbvias pelo código
 

@@ -8,7 +8,7 @@ import { PERMISSIONS } from '../../auth/permissions';
 import { StatusBadge, toSelectData } from '../../components/common';
 import { VehiclePicker } from '../../components/EntityPickers';
 import { PageHeader } from '../../components/PageHeader';
-import { ReportTable, useReportState } from '../../components/ReportTable';
+import { pagedLoader, ReportTable, useReportState } from '../../components/ReportTable';
 import { formatCurrency, formatDate, formatDateTime, formatNumber } from '../../lib/format';
 import { formatCostPerKm, formatPressure, formatTread } from '../../lib/tires';
 import { InfoHint } from '../fuel/components';
@@ -73,7 +73,7 @@ export function TireReportsPage() {
         </Tabs.List>
         <Paper>
           <Tabs.Panel value="inventario">
-            <ReportTable data={inventory.data?.rows} isLoading={inventory.isFetching} error={inventory.error} onRetry={() => void inventory.refetch()}
+            <ReportTable exportAs={{ title: 'Inventário de pneus', load: pagedLoader('/tires/reports/inventory', { ...filters, ...inventoryState.params }, (d) => (d as { rows: { items: never[]; totalPages: number } }).rows) }} data={inventory.data?.rows} isLoading={inventory.isFetching} error={inventory.error} onRetry={() => void inventory.refetch()}
               getKey={(r) => r.id} state={inventoryState} empty="Nenhum pneu com estes filtros."
               columns={[
                 { key: 'code', header: 'Nº de fogo', sortKey: 'code', render: (r) => code(r.id, r.code) },
@@ -87,7 +87,7 @@ export function TireReportsPage() {
               ]} />
           </Tabs.Panel>
           <Tabs.Panel value="ciclo-de-vida">
-            <ReportTable data={lifecycle.data?.rows} isLoading={lifecycle.isFetching} error={lifecycle.error} onRetry={() => void lifecycle.refetch()}
+            <ReportTable exportAs={{ title: 'Ciclo de vida dos pneus', load: pagedLoader('/tires/reports/lifecycle', { ...filters, ...period, ...lifecycleState.params }, (d) => (d as { rows: { items: never[]; totalPages: number } }).rows) }} data={lifecycle.data?.rows} isLoading={lifecycle.isFetching} error={lifecycle.error} onRetry={() => void lifecycle.refetch()}
               getKey={(r) => r.installationId} state={lifecycleState} empty="Nenhuma instalação no período."
               columns={[
                 { key: 'code', header: 'Pneu', sortKey: 'code', render: (r) => <>{code(r.tireId, r.code)}<Text size="xs" c="dimmed">{r.brand} {r.modelName}</Text></> },
@@ -105,7 +105,7 @@ export function TireReportsPage() {
               ]} />
           </Tabs.Panel>
           <Tabs.Panel value="inspecoes">
-            <ReportTable data={inspections.data?.rows} isLoading={inspections.isFetching} error={inspections.error} onRetry={() => void inspections.refetch()}
+            <ReportTable exportAs={{ title: 'Inspeções de pneus', load: pagedLoader('/tires/reports/inspections', { ...filters, ...period, condition, ...inspectionState.params }, (d) => (d as { rows: { items: never[]; totalPages: number } }).rows) }} data={inspections.data?.rows} isLoading={inspections.isFetching} error={inspections.error} onRetry={() => void inspections.refetch()}
               getKey={(r) => r.inspectionId} state={inspectionState} empty="Nenhuma inspeção no período."
               columns={[
                 { key: 'code', header: 'Pneu', sortKey: 'code', render: (r) => code(r.tireId, r.code) },
@@ -120,7 +120,7 @@ export function TireReportsPage() {
           {canSeeCosts && (
             <Tabs.Panel value="custos">
               <Group gap={4} p="sm" pb={0}><Text size="sm" c="dimmed">Custo do ciclo de vida de cada pneu (desde a compra).</Text><InfoHint label="Custo por km">{COST_PER_KM_HELP}</InfoHint></Group>
-              <ReportTable data={costs.data?.rows} isLoading={costs.isFetching} error={costs.error} onRetry={() => void costs.refetch()}
+              <ReportTable exportAs={{ title: 'Custos de pneus', load: pagedLoader('/tires/reports/costs', { ...filters, ...period, ...costState.params }, (d) => (d as { rows: { items: never[]; totalPages: number } }).rows) }} data={costs.data?.rows} isLoading={costs.isFetching} error={costs.error} onRetry={() => void costs.refetch()}
                 getKey={(r) => r.tireId} state={costState} empty="Nenhum pneu comprado no período."
                 columns={[
                   { key: 'code', header: 'Pneu', sortKey: 'code', render: (r) => <>{code(r.tireId, r.code)}<Text size="xs" c="dimmed">{r.brand} {r.modelName}</Text></> },

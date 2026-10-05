@@ -15,6 +15,7 @@ import { EmptyState, ErrorState } from '../../components/States';
 import { formatCurrency, formatNumber, formatPlate } from '../../lib/format';
 import { alertsApi } from '../alerts/api';
 import { AlertLine, AttentionPanel } from '../alerts/components';
+import { InsightsPanel } from '../analytics/components';
 import { InfoHint } from '../finance/components';
 import classes from './DashboardPage.module.css';
 
@@ -187,6 +188,8 @@ export function DashboardPage() {
             </Paper>
           )}
         </SimpleGrid>
+
+        <InsightsPanel />
 
         <Block title={d ? `Frota (${d.fleet.total} veículos)` : 'Frota'}>
           {!d ? loading(7) : (

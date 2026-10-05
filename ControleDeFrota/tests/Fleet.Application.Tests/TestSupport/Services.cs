@@ -11,6 +11,7 @@ using Fleet.Application.Operations;
 using Fleet.Application.Companies;
 using Fleet.Application.Dashboard;
 using Fleet.Application.Drivers;
+using Fleet.Application.Analytics;
 using Fleet.Application.Implements;
 using Fleet.Application.Intelligence;
 using Fleet.Domain.Intelligence;
@@ -36,7 +37,7 @@ public static class Services
 
     // Phase 2
     public static OperationalEventLog Events(TestDb t) => new(t.Db, t.Clock, t.CurrentUser);
-    public static OperationalHistoryService History(TestDb t) => new(t.Db, t.Clock, new HistoryRequestValidator());
+    public static OperationalHistoryService History(TestDb t) => new(t.Db, t.Clock, t.CurrentUser, new HistoryRequestValidator());
     public static AssignmentService Assignments(TestDb t) => new(
         t.Db, t.Clock, Events(t), new AssignmentCreateRequestValidator(t.Clock), new AssignmentEndRequestValidator(t.Clock));
     public static MileageService Mileage(TestDb t) => new(
@@ -119,4 +120,11 @@ public static class Services
     public static FleetAlertService Alerts(TestDb t) => new(t.Db, t.CurrentUser, t.Clock, new FleetAlertStatusRequestValidator());
     public static NotificationService Notifications(TestDb t) => new(t.Db, t.CurrentUser, t.Clock);
     public static AttentionService Attention(TestDb t) => new(t.Db, t.CurrentUser, t.Clock);
+
+    // Final phase — analytics
+    public static VehicleMetricsService VehicleMetrics(TestDb t) => new(t.Db, t.Clock, t.CurrentUser, CostAggregation(t));
+    public static FleetReportsService FleetReports(TestDb t) => new(t.Db, t.Clock, VehicleMetrics(t), new FleetPerformanceRequestValidator());
+    public static VehicleHealthService VehicleHealth(TestDb t) => new(t.Db, t.Clock, t.CurrentUser, MaintenanceSchedules(t));
+    public static InsightService Insights(TestDb t) => new(t.Db, t.Clock, t.CurrentUser, CostAggregation(t));
+    public static GlobalSearchService Search(TestDb t) => new(t.Db, t.Clock, t.CurrentUser);
 }

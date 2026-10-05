@@ -47,6 +47,12 @@ describe('resolveContextualCategory', () => {
     expect(resolveContextualCategory('/financeiro/relatorios', '')).toBe('financial');
   });
 
+  it('resolves reports, comparison and the vehicle history tab', () => {
+    expect(resolveContextualCategory('/relatorios', '')).toBe('reports');
+    expect(resolveContextualCategory('/veiculos/comparar', '?ids=1')).toBe('reports');
+    expect(resolveContextualCategory('/veiculos/123', '?aba=historico')).toBe('reports');
+  });
+
   it('resolves alert and automation routes', () => {
     expect(resolveContextualCategory('/alertas', '')).toBe('alerts');
     expect(resolveContextualCategory('/alertas/123', '')).toBe('alerts');

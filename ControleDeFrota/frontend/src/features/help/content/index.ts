@@ -14,6 +14,7 @@ import * as implementsContent from './implements';
 import * as maintenance from './maintenance';
 import * as mileage from './mileage';
 import * as occurrences from './occurrences';
+import * as reports from './reports';
 import * as rolesPermissions from './rolesPermissions';
 import * as searchAndFilters from './searchAndFilters';
 import * as tires from './tires';
@@ -42,6 +43,7 @@ const MODULES = [
   fuel,
   tires,
   financial,
+  reports,
   searchAndFilters,
   faq,
 ];

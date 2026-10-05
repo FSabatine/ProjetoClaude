@@ -32,6 +32,7 @@ Prioridades: Clareza > Esperteza · Manutenibilidade > Complexidade · UX > Nº 
 - Módulo que precisa do custo/valor de outro módulo (ex.: custo total do veículo) **nunca duplica** esse dado numa tabela nova: leia direto da fonte (`GROUP BY`/`SUM` no banco) e combine em memória só o estritamente necessário — ver `CostAggregationService` (ADR-040).
 
 - **Alertas e avisos passam pelo motor de automação** (ADR-045): condição nova = um `IAlertDetector` novo (gatilho em `AutomationTrigger` + entrada no `AutomationTriggerCatalog`), reaproveitando a política do módulo. Nunca crie um job, tabela de alerta ou bloco de painel paralelo. Fato novo que alguém precise saber = valor em `OperationalEventType` (+ `NotifiableEvents` se fizer sentido avisar).
+- Número por veículo usado em relatório/comparação/destaque vem do `VehicleMetricsService` (ADR-047); exportação reaproveita o endpoint da tela via `ReportTable exportAs` (ADR-048). Nunca crie endpoint de exportação ou cálculo paralelo.
 - Job que precisa de serviços completos roda por empresa com `SystemExecutionContext.ActAsSystemFor` num escopo próprio (ADR-046) — nunca numa requisição.
 
 ## Código

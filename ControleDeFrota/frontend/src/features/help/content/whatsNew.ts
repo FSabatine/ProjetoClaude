@@ -6,6 +6,12 @@ import type { HelpWhatsNewEntry } from '../types';
  */
 export const WHATS_NEW: HelpWhatsNewEntry[] = [
   {
+    id: 'whats-new-reports',
+    title: 'Relatórios cruzados, comparação, saúde do veículo e busca global',
+    description: 'Novo menu Relatórios (desempenho da frota, manutenção e problemas recorrentes), comparação de até 6 veículos com a média da frota e do tipo, nota de saúde operacional no veículo, destaques no painel, exportação em CSV/Excel/PDF, busca global (Ctrl+K) e linha do tempo do veículo com filtro por área.',
+    date: 'outubro de 2026',
+  },
+  {
     id: 'whats-new-alerts',
     title: 'Alertas, "Requer atenção" e automações',
     description: 'O painel agora começa pelo que precisa de atenção. O sistema confere a frota a cada hora e cria alertas explicados (manutenção atrasada, consumo fora do padrão, custo acima da média do tipo, orçamento perto do limite, pneu com sulco baixo, despesa e documento vencidos), com central de alertas, notificações no sino e regras de automação configuráveis.',

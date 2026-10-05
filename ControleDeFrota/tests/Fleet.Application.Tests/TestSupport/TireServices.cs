@@ -46,7 +46,7 @@ public static class TireServices
     {
         var d = db ?? t.Db;
         return new TireService(d, t.Clock, t.CurrentUser, Files(t, d), Lifecycle(t, d), Monitoring(t, d), Settings(t, d),
-            new OperationalHistoryService(d, t.Clock, new HistoryRequestValidator()), new TireRequestValidator(t.Clock), new TireListRequestValidator());
+            new OperationalHistoryService(d, t.Clock, t.CurrentUser, new HistoryRequestValidator()), new TireRequestValidator(t.Clock), new TireListRequestValidator());
     }
 
     public static TireOperationsService Operations(TestDb t, FleetDbContext? db = null)

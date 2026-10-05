@@ -68,6 +68,8 @@ const FinancialReportsPage = page(() => import('./features/finance/FinancialRepo
 const AlertsPage = page(() => import('./features/alerts/AlertsPage'), 'AlertsPage');
 const AlertDetailPage = page(() => import('./features/alerts/AlertDetailPage'), 'AlertDetailPage');
 const AutomationRulesPage = page(() => import('./features/alerts/AutomationRulesPage'), 'AutomationRulesPage');
+const FleetReportsPage = page(() => import('./features/analytics/FleetReportsPage'), 'FleetReportsPage');
+const VehicleComparePage = page(() => import('./features/analytics/VehicleComparePage'), 'VehicleComparePage');
 const P = PERMISSIONS;
 
 // Routes are in Portuguese (what users see in the address bar); code stays in English.
@@ -91,6 +93,8 @@ const router = createBrowserRouter([
             children: [
               { index: true, element: <RequirePermission permission={P.dashboard.view}><DashboardPage /></RequirePermission> },
               { path: 'veiculos', element: <RequirePermission permission={P.vehicles.view}><VehicleListPage /></RequirePermission> },
+              { path: 'veiculos/comparar', element: <RequirePermission permission={P.vehicles.view}><VehicleComparePage /></RequirePermission> },
+              { path: 'relatorios', element: <RequirePermission permission={P.vehicles.view}><FleetReportsPage /></RequirePermission> },
               { path: 'veiculos/novo', element: <RequirePermission permission={P.vehicles.create}><VehicleFormPage /></RequirePermission> },
               { path: 'veiculos/:id', element: <RequirePermission permission={P.vehicles.view}><VehicleDetailPage /></RequirePermission> },
               { path: 'veiculos/:id/editar', element: <RequirePermission permission={P.vehicles.view}><VehicleFormPage /></RequirePermission> },

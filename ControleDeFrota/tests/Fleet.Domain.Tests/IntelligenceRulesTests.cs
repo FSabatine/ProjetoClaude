@@ -83,3 +83,52 @@ public class AutomationCatalogTests
         AlertAudiences.VisibleTo(all).Should().BeEmpty();
     }
 }
+
+public class TrendAnalysisTests
+{
+    [Fact]
+    public void Compare_SmallBase_IsStable() =>
+        TrendAnalysis.Compare(300m, 100m, minBase: 500m, minChangePercent: 10m).IsSignificant.Should().BeFalse();
+
+    [Fact]
+    public void Compare_SmallVariation_IsStableButReportsTheChange()
+    {
+        var result = TrendAnalysis.Compare(1_050m, 1_000m, 500m, 10m);
+        result.Direction.Should().Be(TrendDirection.Stable);
+        result.ChangePercent.Should().Be(5m);
+    }
+
+    [Fact]
+    public void Compare_RelevantIncreaseAndDecrease()
+    {
+        TrendAnalysis.Compare(1_180m, 1_000m, 500m, 10m).Should().Be(new TrendResult(TrendDirection.Up, 18m, true));
+        TrendAnalysis.Compare(800m, 1_000m, 500m, 10m).Should().Be(new TrendResult(TrendDirection.Down, -20m, true));
+    }
+}
+
+public class VehicleHealthPolicyTests
+{
+    [Fact]
+    public void Score_SubtractsAttentionAndCritical_IgnoringHiddenAreas()
+    {
+        var factors = new[]
+        {
+            new HealthFactor(HealthFactorArea.Maintenance, HealthFactorStatus.Critical, "", null),
+            new HealthFactor(HealthFactorArea.Fuel, HealthFactorStatus.Attention, "", null),
+            new HealthFactor(HealthFactorArea.Costs, HealthFactorStatus.NotVisible, "", null),
+            new HealthFactor(HealthFactorArea.Tires, HealthFactorStatus.Good, "", null),
+        };
+        VehicleHealthPolicy.Score(factors).Should().Be(65);
+    }
+
+    [Theory]
+    [InlineData(100, HealthLevel.Good)]
+    [InlineData(80, HealthLevel.Good)]
+    [InlineData(79, HealthLevel.Attention)]
+    [InlineData(49, HealthLevel.Critical)]
+    public void Level_Bands(int score, HealthLevel expected) => VehicleHealthPolicy.Level(score).Should().Be(expected);
+
+    [Fact]
+    public void Score_NeverBelowZero() =>
+        VehicleHealthPolicy.Score(Enumerable.Repeat(new HealthFactor(HealthFactorArea.Tires, HealthFactorStatus.Critical, "", null), 7)).Should().Be(0);
+}

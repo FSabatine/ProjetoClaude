@@ -2,6 +2,25 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Datas no padrão AAAA-MM-DD.
 
+## [0.7.0-b] — 2026-10-05 — Fase final, etapa B: relatórios cruzados, comparação, saúde, destaques, exportação e busca
+
+### Adicionado
+- **Relatórios da frota** (`/relatorios`): desempenho por veículo (km, consumo, combustível, manutenção, pneus, outras, total, custo/km) e manutenção por veículo (OS, corretivas, tempo parado, custo, trocas de pneu) + **problemas recorrentes** (ADR-047).
+- **Comparar veículos** (até 6) com **média da frota** e **média do tipo** (benchmark interno) e diferença % para a frota.
+- **Saúde operacional do veículo** (0–100) no cabeçalho do hub, com explicação por área.
+- **Destaques** no painel (tendências calculadas: custos por fatia, concentração de manutenção, consumo da frota, tempo parado, corretivas, trocas de pneu).
+- **Exportação CSV/Excel/PDF** (ADR-048) nos relatórios da frota, de combustível, de pneus, problemas recorrentes e comparação.
+- **Busca global** (cabeçalho, Ctrl+K) em veículos, implementos, motoristas, pneus, OS, abastecimentos, despesas, documentos, ocorrências e alertas.
+- Linha do tempo com **filtro por área** e ícones por módulo.
+- **Central de Ajuda**: categoria "Relatórios e análises" (8 artigos), ajuda contextual e "Novidades".
+- **Testes**: Domain 349, Application 379 (métricas, km confiável, custo oculto sem permissão, comparação/benchmark, recorrentes, saúde e áreas ocultas, destaques sem R$ para quem não pode, busca por permissão e tenant, histórico filtrado), HTTP 99; frontend 88 (exportação CSV, nome do arquivo, paginação da exportação, ajuda contextual).
+
+### Corrigido
+- **Segurança**: o histórico do veículo/motorista mostrava eventos de módulos que o usuário não pode ver (ex.: despesas para quem só vê veículos). Agora cada evento segue a permissão do seu módulo; alocações exigem `assignments.view` (ADR-049).
+
+### Dependências
+- Frontend: `write-excel-file` 2.x, `jspdf` 4.2.1, `jspdf-autotable` 5.x (MIT; carregados só ao exportar; `npm audit` sem vulnerabilidades).
+
 ## [0.7.0-a] — 2026-10-05 — Fase final, etapa A: alertas, automação e "Requer atenção"
 
 ### Adicionado
@@ -15,7 +34,7 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). 
 - Filtro de veículos "Leitura de hodômetro aguardando revisão".
 - Permissões `alerts.view`, `alerts.manage`, `automation.manage` e mapeamento nos papéis.
 - **Central de Ajuda**: categoria "Alertas e automações" (8 artigos), artigos do Painel e "Primeiros passos" atualizados, ajuda contextual e "Novidades".
-- **Testes**: Domain 351, Application 390 (ciclo de vida do alerta, deduplicação, encerramento automático, recorrência, descarte, notificação por público, resumo, regras de fato e outbox, isolamento de tenant, "Requer atenção") e HTTP 89 (permissões, 404 fora do público e entre empresas, validação do descarte).
+- **Testes**: Domain 340, Application 364 (ciclo de vida do alerta, deduplicação, encerramento automático, recorrência, descarte, notificação por público, resumo, regras de fato e outbox, isolamento de tenant, "Requer atenção") e HTTP 89 (permissões, 404 fora do público e entre empresas, validação do descarte).
 
 ### Alterado
 - `ICurrentUser` da API passa a ser `SystemAwareCurrentUser` (JWT nas requisições; "sistema da empresa" só dentro de jobs).

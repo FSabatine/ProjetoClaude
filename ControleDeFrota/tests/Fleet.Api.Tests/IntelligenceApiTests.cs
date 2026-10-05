@@ -45,6 +45,13 @@ public class IntelligenceApiTests(FleetApiFactory factory) : IClassFixture<Fleet
     [InlineData(FleetApiFactory.OperationsA, "/api/v1/dashboard/attention", HttpStatusCode.OK)]
     [InlineData(FleetApiFactory.AdminA, "/api/v1/automation/rules", HttpStatusCode.OK)]
     [InlineData(FleetApiFactory.AdminA, "/api/v1/automation/catalog", HttpStatusCode.OK)]
+    [InlineData(FleetApiFactory.ViewerA, "/api/v1/analytics/fleet-performance", HttpStatusCode.OK)]
+    [InlineData(FleetApiFactory.ViewerA, "/api/v1/analytics/recurring-problems", HttpStatusCode.OK)]
+    [InlineData(FleetApiFactory.ViewerA, "/api/v1/analytics/insights", HttpStatusCode.OK)]
+    [InlineData(FleetApiFactory.ViewerA, "/api/v1/search?q=abc", HttpStatusCode.OK)]
+    [InlineData(FleetApiFactory.DriverA, "/api/v1/analytics/fleet-performance", HttpStatusCode.Forbidden)]
+    [InlineData(FleetApiFactory.DriverA, "/api/v1/search?q=abc", HttpStatusCode.Forbidden)]
+    [InlineData(FleetApiFactory.DriverA, "/api/v1/analytics/insights", HttpStatusCode.Forbidden)]
     public async Task Endpoints_FollowThePermissionsOfEachRole(string user, string url, HttpStatusCode expected)
     {
         var client = await factory.CreateSignedInClientAsync(user);
@@ -104,5 +111,26 @@ public class IntelligenceApiTests(FleetApiFactory factory) : IClassFixture<Fleet
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         (await JsonAsync(response)).GetProperty("errors").TryGetProperty("notes", out _).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task VehicleHealth_UnknownOrForeignVehicle_Is404()
+    {
+        var admin = await factory.CreateSignedInClientAsync(FleetApiFactory.AdminA);
+        (await admin.GetAsync($"/api/v1/vehicles/{Guid.NewGuid()}/health")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Compare_WithoutVehicles_Is422()
+    {
+        var admin = await factory.CreateSignedInClientAsync(FleetApiFactory.AdminA);
+        (await admin.GetAsync("/api/v1/analytics/compare")).StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+    }
+
+    [Fact]
+    public async Task FleetPerformance_InvertedPeriod_Is400()
+    {
+        var admin = await factory.CreateSignedInClientAsync(FleetApiFactory.AdminA);
+        (await admin.GetAsync("/api/v1/analytics/fleet-performance?from=2026-10-10&to=2026-10-01")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 }

@@ -353,3 +353,17 @@ GET  /dashboard/attention                                             [dashboard
 ```
 
 Módulo: `Fleet.Domain/Intelligence` (`FleetAlert`, `AutomationRule`, `AutomationExecution`, `UserNotification`, `FleetAlertWorkflow`, `AlertPriority`, `AutomationTriggerCatalog`, `AlertAudiences`), `Fleet.Application/Intelligence` (`AlertDetectors`, `AutomationEngine`, `AutomationRuleService`, `FleetAlertService` + `NotificationService`, `AttentionService`), `Api/Controllers/IntelligenceControllers.cs`, `Api/Infrastructure/AutomationJob.cs`, `Api/Authorization/SystemAwareCurrentUser.cs`, `Persistence/Configurations/IntelligenceConfigurations.cs`; frontend em `features/alerts/` (central, detalhe, regras, sino `NotificationBell`, `AttentionPanel`).
+
+### Fase final, etapa B — análises cruzadas (ADR-047/048/049)
+
+```
+GET /analytics/fleet-performance?from&to&type&includeInactive&search&sortBy&sortDirection&page   [vehicles.view] (campos por permissão)
+GET /analytics/recurring-problems?from&to                                                       [maintenance.view]
+GET /analytics/compare?vehicleIds=…&vehicleIds=…&from&to   (1–6 veículos)                        [vehicles.view]
+GET /analytics/insights                                                                         [dashboard.view]
+GET /vehicles/{id}/health                                                                       [vehicles.view]
+GET /search?q                                                                                   [dashboard.view | vehicles.view | drivers.view]
+GET /vehicles|drivers/{id}/history?…&category                                                   (eventos filtrados por módulo)
+```
+
+Módulo: `Fleet.Domain/Intelligence/AnalyticsRules.cs` (`TrendAnalysis`, `VehicleHealthPolicy`), `Fleet.Application/Analytics` (`VehicleMetricsService`, `FleetReportsService`, `VehicleHealthService`, `InsightService`, `GlobalSearchService`), `Api/Controllers/AnalyticsControllers.cs`; frontend em `features/analytics/` (`/relatorios`, `/veiculos/comparar`, `VehicleHealthFact`, `InsightsPanel`, `GlobalSearch`), `components/ExportMenu.tsx` + `lib/export.ts` (CSV/Excel/PDF) e `ReportTable` com `exportAs`.

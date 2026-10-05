@@ -1,0 +1,29 @@
+.row {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  border-radius: var(--mantine-radius-md);
+  transition: background-color 120ms ease;
+}
+
+.row:hover,
+.row:focus-visible {
+  background-color: var(--mantine-color-default-hover);
+}
+
+.notification {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}
+
+.notification:hover,
+.notification:focus-visible {
+  background-color: var(--mantine-color-default-hover);
+}
+
+.notification[data-unread] {
+  background-color: var(--mantine-color-blue-light);
+}

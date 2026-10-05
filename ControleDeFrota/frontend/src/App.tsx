@@ -65,6 +65,9 @@ const RecurringExpensesPage = page(() => import('./features/finance/RecurringExp
 const BudgetsPage = page(() => import('./features/finance/BudgetsPage'), 'BudgetsPage');
 const VehicleCostRankingPage = page(() => import('./features/finance/VehicleCostRankingPage'), 'VehicleCostRankingPage');
 const FinancialReportsPage = page(() => import('./features/finance/FinancialReportsPage'), 'FinancialReportsPage');
+const AlertsPage = page(() => import('./features/alerts/AlertsPage'), 'AlertsPage');
+const AlertDetailPage = page(() => import('./features/alerts/AlertDetailPage'), 'AlertDetailPage');
+const AutomationRulesPage = page(() => import('./features/alerts/AutomationRulesPage'), 'AutomationRulesPage');
 const P = PERMISSIONS;
 
 // Routes are in Portuguese (what users see in the address bar); code stays in English.
@@ -143,6 +146,9 @@ const router = createBrowserRouter([
               { path: 'financeiro/centros-de-custo', element: <RequirePermission permission={P.finance.view}><CostCentersPage /></RequirePermission> },
               { path: 'financeiro/recorrentes', element: <RequirePermission permission={P.finance.view}><RecurringExpensesPage /></RequirePermission> },
               { path: 'financeiro/orcamentos', element: <RequirePermission permission={P.finance.view}><BudgetsPage /></RequirePermission> },
+              { path: 'alertas', element: <RequirePermission permission={P.alerts.view}><AlertsPage /></RequirePermission> },
+              { path: 'alertas/:id', element: <RequirePermission permission={P.alerts.view}><AlertDetailPage /></RequirePermission> },
+              { path: 'configuracoes/automacoes', element: <RequirePermission permission={P.automation.manage}><AutomationRulesPage /></RequirePermission> },
               { path: 'usuarios', element: <RequirePermission permission={P.users.view}><UserListPage /></RequirePermission> },
               { path: 'usuarios/novo', element: <RequirePermission permission={P.users.manage}><UserFormPage /></RequirePermission> },
               { path: 'usuarios/:id', element: <RequirePermission permission={P.users.view}><UserFormPage /></RequirePermission> },

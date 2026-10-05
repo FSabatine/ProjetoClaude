@@ -563,3 +563,20 @@ Permissões 200–209 e papéis via `InsertData` na migration. O catálogo padr�
 
 ### Revisão da migration `FinanceManagement`
 `Up` somente aditivo: 5 tabelas novas, seed de permissões/papéis e descrição de dois papéis (Gestor de frota, Financeiro). Nenhuma coluna existente alterada ou removida. O aviso "may result in the loss of data" refere-se só ao `Down`.
+
+## Entidades e relacionamentos (fase final, etapa A — migration `IntelligenceAndAutomation`)
+
+| Tabela | Conteúdo | Observações |
+|---|---|---|
+| `AutomationRules` | regra por empresa: gatilho, fato (`EventType`), limite (`decimal(10,2)`), período, gravidade, ações, destinatário | `ISoftDeletable` + auditada; regras padrão não são excluídas |
+| `AutomationExecutions` | uma linha por regra avaliada por execução (contagens, erro) | log append-only, não auditado |
+| `FleetAlerts` | alertas (textos, público, prioridade, situação, datas, quem leu/assumiu/encerrou) | **não** auditada (ADR-045) — o rastro está nos próprios campos |
+| `UserNotifications` | caixa pessoal (título, mensagem, link interno, lida em) | FK para `Users` e `FleetAlerts` |
+
+### Índices
+- `UX_FleetAlerts_OpenFinding`: único em `(CompanyId, AutomationRuleId, DedupKey)` **filtrado** por `[Status] IN ('New','Read','InProgress')` — um alerta aberto por achado, garantido no banco.
+- `FleetAlerts (CompanyId, Status, Priority)` (lista e painel), `(CompanyId, VehicleId, Status)` (alertas do veículo), `(CompanyId, AutomationRuleId, DedupKey, Status)` (histórico de recorrência/descartes).
+- `UserNotifications (CompanyId, UserId, ReadAt, CreatedAt)` (sino), `AutomationExecutions (CompanyId, AutomationRuleId, StartedAt)` e `(CompanyId, FinishedAt)`.
+
+### Revisão da migration `IntelligenceAndAutomation`
+Só cria as quatro tabelas, os índices e as permissões 210–212 com o mapeamento nos papéis (via `HasData`). Nenhuma coluna existente foi alterada. Consultas novas executadas no SQL Server (LocalDB) com a verificação completa (`POST /automation/run`): 8 regras, sem falhas.

@@ -12,6 +12,7 @@ using Fleet.Domain.Files;
 using Fleet.Domain.Finance;
 using Fleet.Domain.Fuel;
 using Fleet.Domain.Implements;
+using Fleet.Domain.Intelligence;
 using Fleet.Domain.Maintenance;
 using Fleet.Domain.Mileage;
 using Fleet.Domain.Occurrences;
@@ -90,6 +91,11 @@ public sealed class FleetDbContext : DbContext, IFleetDbContext
     public DbSet<Expense> Expenses => Set<Expense>();
     public DbSet<RecurringExpense> RecurringExpenses => Set<RecurringExpense>();
     public DbSet<Budget> Budgets => Set<Budget>();
+
+    public DbSet<AutomationRule> AutomationRules => Set<AutomationRule>();
+    public DbSet<AutomationExecution> AutomationExecutions => Set<AutomationExecution>();
+    public DbSet<FleetAlert> FleetAlerts => Set<FleetAlert>();
+    public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
 
     /// <summary>Read by the tenant query filter on every query (EF parameterizes this per context instance).</summary>
     private Guid? CurrentCompanyId => _currentUser.CompanyId;

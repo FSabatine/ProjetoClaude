@@ -18,6 +18,12 @@ public static class BrazilianFormat
     /// <summary>Up to one decimal, no thousands separator ("26,5", "3") — percentages and hours in messages.</summary>
     public static string Compact(decimal value) => value.ToString("0.#", Numbers);
 
+    /// <summary>"R$ 18.420,50" — only in texts already behind the *.viewcosts permissions.</summary>
+    public static string Currency(decimal value) => "R$ " + value.ToString("N2", Numbers);
+
+    /// <summary>Signed whole percent ("+19%", "-7%") for comparisons.</summary>
+    public static string SignedPercent(decimal value) => (value > 0 ? "+" : "") + Math.Round(value, 0, MidpointRounding.AwayFromZero).ToString("0", Numbers) + "%";
+
     public static string Date(DateOnly date) => date.ToString("dd'/'MM'/'yyyy", CultureInfo.InvariantCulture);
 
     public static string DateTime(DateTime local) => local.ToString("dd'/'MM'/'yyyy HH':'mm", CultureInfo.InvariantCulture);

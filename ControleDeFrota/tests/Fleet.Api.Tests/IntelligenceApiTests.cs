@@ -1,0 +1,108 @@
+using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
+using FluentAssertions;
+
+namespace Fleet.Api.Tests;
+
+/// <summary>Alerts, notifications and automation over the real HTTP pipeline: permissions, audiences and tenant isolation.</summary>
+public class IntelligenceApiTests(FleetApiFactory factory) : IClassFixture<FleetApiFactory>
+{
+    private static async Task<JsonElement> JsonAsync(HttpResponseMessage response) =>
+        JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement;
+
+    /// <summary>Creates an overdue expense, runs the scan as admin A and returns the id of the resulting alert.</summary>
+    private async Task<Guid> OverdueExpenseAlertAsync(HttpClient admin)
+    {
+        var categories = await JsonAsync(await admin.GetAsync("/api/v1/expense-categories?includeInactive=true"));
+        var categoryId = categories.EnumerateArray().Single(c => c.GetProperty("code").GetString() == "INSURANCE").GetProperty("id").GetGuid();
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var description = $"Seguro {Guid.NewGuid():N}";
+        (await admin.PostAsJsonAsync("/api/v1/expenses", new
+        {
+            expenseCategoryId = categoryId, description, expenseDate = today.AddDays(-30), dueDate = today.AddDays(-10), amount = 300m,
+        })).EnsureSuccessStatusCode();
+        (await admin.PostAsync("/api/v1/automation/run", null)).EnsureSuccessStatusCode();
+
+        var alerts = await JsonAsync(await admin.GetAsync($"/api/v1/alerts?search={description}"));
+        return alerts.GetProperty("items").EnumerateArray().Single().GetProperty("id").GetGuid();
+    }
+
+    [Fact]
+    public async Task Alerts_RequireAuthentication()
+    {
+        (await factory.CreateClient().GetAsync("/api/v1/alerts")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        (await factory.CreateClient().GetAsync("/api/v1/notifications")).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Theory]
+    [InlineData(FleetApiFactory.ViewerA, "/api/v1/alerts", HttpStatusCode.OK)]
+    [InlineData(FleetApiFactory.ViewerA, "/api/v1/alerts/summary", HttpStatusCode.OK)]
+    [InlineData(FleetApiFactory.ViewerA, "/api/v1/notifications", HttpStatusCode.OK)]
+    [InlineData(FleetApiFactory.ViewerA, "/api/v1/automation/rules", HttpStatusCode.Forbidden)]
+    [InlineData(FleetApiFactory.DriverA, "/api/v1/alerts", HttpStatusCode.Forbidden)]
+    [InlineData(FleetApiFactory.DriverA, "/api/v1/notifications", HttpStatusCode.Forbidden)]
+    [InlineData(FleetApiFactory.OperationsA, "/api/v1/dashboard/attention", HttpStatusCode.OK)]
+    [InlineData(FleetApiFactory.AdminA, "/api/v1/automation/rules", HttpStatusCode.OK)]
+    [InlineData(FleetApiFactory.AdminA, "/api/v1/automation/catalog", HttpStatusCode.OK)]
+    public async Task Endpoints_FollowThePermissionsOfEachRole(string user, string url, HttpStatusCode expected)
+    {
+        var client = await factory.CreateSignedInClientAsync(user);
+        (await client.GetAsync(url)).StatusCode.Should().Be(expected);
+    }
+
+    [Fact]
+    public async Task Run_RequiresAutomationManage()
+    {
+        var viewer = await factory.CreateSignedInClientAsync(FleetApiFactory.ViewerA);
+        (await viewer.PostAsync("/api/v1/automation/run", null)).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task Alert_OfAnotherCompany_Is404()
+    {
+        var admin = await factory.CreateSignedInClientAsync(FleetApiFactory.AdminA);
+        var alertId = await OverdueExpenseAlertAsync(admin);
+
+        var otherCompany = await factory.CreateSignedInClientAsync(FleetApiFactory.AdminB);
+        (await otherCompany.GetAsync($"/api/v1/alerts/{alertId}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await otherCompany.PostAsJsonAsync($"/api/v1/alerts/{alertId}/status", new { status = "Resolved" }))
+            .StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Alert_OutsideTheReadersAudience_Is404()
+    {
+        var admin = await factory.CreateSignedInClientAsync(FleetApiFactory.AdminA);
+        var alertId = await OverdueExpenseAlertAsync(admin);
+
+        // Maintenance role: alerts.view but no finance.view → a finance alert does not exist for them.
+        var maintenance = await factory.CreateSignedInClientAsync(FleetApiFactory.MaintenanceA);
+        (await maintenance.GetAsync($"/api/v1/alerts/{alertId}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Viewer_SeesButCannotHandleAlerts()
+    {
+        var admin = await factory.CreateSignedInClientAsync(FleetApiFactory.AdminA);
+        var alertId = await OverdueExpenseAlertAsync(admin);
+
+        var viewer = await factory.CreateSignedInClientAsync(FleetApiFactory.ViewerA);
+        var alert = await JsonAsync(await viewer.GetAsync($"/api/v1/alerts/{alertId}"));
+        alert.GetProperty("nextStatuses").GetArrayLength().Should().Be(0);
+        (await viewer.PostAsJsonAsync($"/api/v1/alerts/{alertId}/status", new { status = "Resolved" }))
+            .StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task Dismiss_WithoutReason_Is400WithFieldError()
+    {
+        var admin = await factory.CreateSignedInClientAsync(FleetApiFactory.AdminA);
+        var alertId = await OverdueExpenseAlertAsync(admin);
+
+        var response = await admin.PostAsJsonAsync($"/api/v1/alerts/{alertId}/status", new { status = "Dismissed" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await JsonAsync(response)).GetProperty("errors").TryGetProperty("notes", out _).Should().BeTrue();
+    }
+}

@@ -41,6 +41,14 @@ Cada pneu pelo número de fogo (identidade própria, passa por vários veículos
 Centros de custo e categorias de despesa hierárquicos e configuráveis (três categorias — Combustível, Manutenção, Pneus — automáticas, alimentadas pelos próprios módulos, sem lançamento manual nem duplicação de dado). Despesas manuais com situação de pagamento calculada (pendente, agendado, parcialmente pago, pago, atrasado, cancelado — nunca excluída, só cancelada), pagamento parcial/total, anexos e aviso neutro de possível duplicidade. Despesas recorrentes geradas automaticamente até 30 dias antes do vencimento (job idempotente). Orçamentos por ano/mês × categoria × (centro de custo ou veículo opcional) com orçado x realizado calculado na leitura. Custo do veículo e da frota combinando, sem duplicar, os dados de combustível/manutenção/pneus com as despesas manuais — cada fatia só aparece para quem tem a permissão de custo daquele módulo e de `finance.viewcosts`, com aviso de "totais parciais" quando falta alguma. Custo por km e TCO (valor de aquisição + custo operacional acumulado) com guarda contra quilometragem insuficiente. Ranking de veículos por custo, painel financeiro, aba Financeiro do veículo e relatórios (despesas, centro de custo, custo mensal da frota, orçado x realizado, TCO). Pedida diretamente pelo usuário, com a Fase 2.5 ainda no backlog (ADR-040).
 **Fora do escopo desta fase** (pontos de extensão deixados prontos): exportação de relatórios (Fase 8), rateio/depreciação contábil (análise operacional apenas), cadastro genérico de fornecedores (oficina da Fase 3 + texto livre).
 
+## FASE FINAL — Inteligência, automação, relatórios e integração (em andamento desde 2026-10-05)
+Pedida pelo usuário como a última fase planejada, reunindo as intenções das Fases 7–10 e um assistente de IA (ADR-045). Entregue em etapas, cada uma com quality gates e commit:
+- **A — concluída (2026-10-05)**: motor de automação, alertas persistidos, notificações no app, "Requer atenção" e painel executivo.
+- B — relatórios cruzados, exportação (CSV/Excel/PDF), busca global, linha do tempo unificada, saúde do veículo, comparação e benchmarking interno, tendências e insights.
+- C — assistente de IA (Claude opcional; números sempre calculados pelo sistema).
+- D — base de rastreamento/GPS (provedor, dispositivo, posição), API de recebimento, mapa OpenStreetMap e arquitetura de integrações.
+- E — revisão final de segurança, desempenho e UX; manual completo; documentação e skill.
+
 ## FASE 7 — Rastreamento
 Integração com rastreadores/telemetria, posição, cercas eletrônicas e telemetria de condução.
 

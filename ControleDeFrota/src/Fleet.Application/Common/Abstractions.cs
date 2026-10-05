@@ -9,6 +9,7 @@ using Fleet.Domain.Files;
 using Fleet.Domain.Finance;
 using Fleet.Domain.Fuel;
 using Fleet.Domain.Implements;
+using Fleet.Domain.Intelligence;
 using Fleet.Domain.Maintenance;
 using Fleet.Domain.Mileage;
 using Fleet.Domain.Occurrences;
@@ -83,6 +84,12 @@ public interface IFleetDbContext
     DbSet<RecurringExpense> RecurringExpenses { get; }
     DbSet<Budget> Budgets { get; }
 
+    // Final phase — intelligence and automation
+    DbSet<AutomationRule> AutomationRules { get; }
+    DbSet<AutomationExecution> AutomationExecutions { get; }
+    DbSet<FleetAlert> FleetAlerts { get; }
+    DbSet<UserNotification> UserNotifications { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -101,6 +108,24 @@ public interface ICurrentUser
     string? TraceId { get; }
 
     bool HasPermission(string permission) => Permissions.Contains(permission);
+}
+
+/// <summary>
+/// Lets a background job act for one company (ADR-045): while active, ICurrentUser reports that company and every
+/// permission, so tenant filters and permission-gated services work unchanged. Only job code activates it — never a
+/// request. What the job produces is filtered again per user when read (alert audiences).
+/// </summary>
+public sealed class SystemExecutionContext
+{
+    public Guid? CompanyId { get; private set; }
+    public bool IsActive => CompanyId.HasValue;
+
+    public void ActAsSystemFor(Guid companyId)
+    {
+        if (IsActive && CompanyId != companyId)
+            throw new InvalidOperationException("A system scope serves a single company; create a new scope per company.");
+        CompanyId = companyId;
+    }
 }
 
 public interface IClock

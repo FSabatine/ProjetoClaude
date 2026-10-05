@@ -17,6 +17,8 @@ public sealed class VehicleListRequest : ListRequest
     public int? MaxOdometerKm { get; set; }
     /// <summary>Active vehicles whose odometer was not updated in the last <see cref="Fleet.Domain.Mileage.OdometerPolicy.StaleAfterDays"/> days.</summary>
     public bool? StaleMileage { get; set; }
+    /// <summary>Vehicles with a suspicious odometer reading waiting for review.</summary>
+    public bool? PendingMileageReview { get; set; }
 }
 
 public sealed record CurrentAssignmentResponse(Guid Id, Guid DriverId, string DriverName, DateTime StartedAt);

@@ -3,6 +3,8 @@ import { ActionIcon, AppShell, Avatar, Burger, Divider, Group, Menu, NavLink, Sc
 import { useDisclosure } from '@mantine/hooks';
 import {
   IconAlertTriangle,
+  IconBellRinging,
+  IconSettingsAutomation,
   IconBuildingFactory2,
   IconChecklist,
   IconClipboardList,
@@ -35,6 +37,7 @@ import { NavLink as RouterNavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext';
 import { PERMISSIONS, type Permission } from '../auth/permissions';
 import { openChangePassword } from '../features/auth/ChangePasswordModal';
+import { NotificationBell } from '../features/alerts/components';
 import { HelpButton } from '../features/help/HelpButton';
 import { FormSkeleton } from './EntityFormPage';
 
@@ -47,6 +50,7 @@ interface NavItem {
 
 const OPERATION: NavItem[] = [
   { label: 'Painel', to: '/', icon: IconLayoutDashboard, permission: PERMISSIONS.dashboard.view },
+  { label: 'Alertas', to: '/alertas', icon: IconBellRinging, permission: PERMISSIONS.alerts.view },
   { label: 'Veículos', to: '/veiculos', icon: IconTruck, permission: PERMISSIONS.vehicles.view },
   { label: 'Implementos', to: '/implementos', icon: IconTruckLoading, permission: PERMISSIONS.implements.view },
   { label: 'Motoristas', to: '/motoristas', icon: IconSteeringWheel, permission: PERMISSIONS.drivers.view },
@@ -64,6 +68,7 @@ const OPERATION: NavItem[] = [
 ];
 
 const SETTINGS: NavItem[] = [
+  { label: 'Regras de automação', to: '/configuracoes/automacoes', icon: IconSettingsAutomation, permission: PERMISSIONS.automation.manage },
   { label: 'Modelos de checklist', to: '/configuracoes/checklists', icon: IconListCheck, permission: PERMISSIONS.operations.configure },
   { label: 'Tipos de documento', to: '/configuracoes/tipos-de-documento', icon: IconFiles, permission: PERMISSIONS.operations.configure },
   { label: 'Planos de manutenção', to: '/planos-manutencao', icon: IconListCheck, permission: PERMISSIONS.maintenance.manageplans },
@@ -133,6 +138,7 @@ export function AppLayout() {
             </div>
           </Group>
           <Group gap="xs" wrap="nowrap">
+            <NotificationBell />
             <HelpButton />
             <Tooltip label={colorScheme === 'dark' ? 'Tema claro' : 'Tema escuro'}>
               <ActionIcon variant="subtle" color="gray" size="lg" onClick={toggleColorScheme} aria-label="Alternar tema claro/escuro">

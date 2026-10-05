@@ -67,11 +67,11 @@ export const ARTICLES: HelpArticle[] = [
     id: 'gs-notifications',
     categoryId: 'gettingStarted',
     title: 'Como funcionam os alertas do sistema',
-    summary: 'Hoje os alertas aparecem no Painel e nas telas de cada registro — ainda não há notificação por e-mail ou WhatsApp.',
+    summary: 'O sistema confere a frota a cada hora e mostra o que precisa de atenção no Painel ("Requer atenção" e "Alertas prioritários"), na central de Alertas e no sino do cabeçalho.',
     whyItMatters:
-      'CNH e documentos vencendo, ocorrências críticas em aberto, leituras de hodômetro suspeitas e ordens de serviço ' +
-      'críticas aparecem como alertas no Painel. Clicar em um alerta leva direto para a aba certa do registro.',
-    notes: ['Avisos por e-mail, push ou WhatsApp ainda não existem nesta versão do sistema.'],
-    relatedArticleIds: ['dashboard-overview'],
+      'Manutenções atrasadas, consumo fora do padrão, custos acima da média, orçamentos perto do limite, pneus no limite, ' +
+      'despesas e documentos vencidos viram alertas explicados, com os números que os geraram e uma sugestão do que fazer.',
+    notes: ['Os avisos são apenas dentro do sistema (sino). Envio por e-mail, push ou WhatsApp ainda não existe nesta versão.'],
+    relatedArticleIds: ['dashboard-overview', 'alerts-overview', 'alerts-notifications'],
   },
 ];

@@ -14,11 +14,14 @@ using Fleet.Application.Companies;
 using Fleet.Application.Dashboard;
 using Fleet.Application.Drivers;
 using Fleet.Application.Implements;
+using Fleet.Application.Intelligence;
 using Fleet.Application.Maintenance;
 using Fleet.Application.Roles;
 using Fleet.Application.Tires;
 using Fleet.Application.Users;
 using Fleet.Application.Vehicles;
+using Fleet.Application.Common;
+using Fleet.Domain.Intelligence;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -94,6 +97,26 @@ public static class DependencyInjection
         services.AddScoped<BudgetService>();
         services.AddScoped<CostAggregationService>();
         services.AddScoped<FinanceAnalyticsService>();
+
+        // Final phase — alerts and automation (ADR-045). One detector per scheduled trigger.
+        services.AddScoped<SystemExecutionContext>();
+        services.AddScoped<IAlertDetector>(sp => new MaintenanceDueDetector(
+            sp.GetRequiredService<IFleetDbContext>(), sp.GetRequiredService<IClock>(), sp.GetRequiredService<MaintenanceScheduleService>(),
+            AutomationTrigger.MaintenanceOverdue));
+        services.AddScoped<IAlertDetector>(sp => new MaintenanceDueDetector(
+            sp.GetRequiredService<IFleetDbContext>(), sp.GetRequiredService<IClock>(), sp.GetRequiredService<MaintenanceScheduleService>(),
+            AutomationTrigger.MaintenanceDueSoon));
+        services.AddScoped<IAlertDetector, FuelConsumptionDetector>();
+        services.AddScoped<IAlertDetector, VehicleCostDetector>();
+        services.AddScoped<IAlertDetector, BudgetThresholdDetector>();
+        services.AddScoped<IAlertDetector, TireTreadDetector>();
+        services.AddScoped<IAlertDetector, ExpenseOverdueDetector>();
+        services.AddScoped<IAlertDetector, DocumentExpiringDetector>();
+        services.AddScoped<AutomationRuleService>();
+        services.AddScoped<AutomationEngine>();
+        services.AddScoped<FleetAlertService>();
+        services.AddScoped<NotificationService>();
+        services.AddScoped<AttentionService>();
         return services;
     }
 }

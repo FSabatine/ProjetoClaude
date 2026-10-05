@@ -47,6 +47,12 @@ describe('resolveContextualCategory', () => {
     expect(resolveContextualCategory('/financeiro/relatorios', '')).toBe('financial');
   });
 
+  it('resolves alert and automation routes', () => {
+    expect(resolveContextualCategory('/alertas', '')).toBe('alerts');
+    expect(resolveContextualCategory('/alertas/123', '')).toBe('alerts');
+    expect(resolveContextualCategory('/configuracoes/automacoes', '')).toBe('alerts');
+  });
+
   it('resolves the dashboard route exactly, not by prefix', () => {
     expect(resolveContextualCategory('/', '')).toBe('dashboard');
     expect(resolveContextualCategory('/veiculos', '')).not.toBe('dashboard');

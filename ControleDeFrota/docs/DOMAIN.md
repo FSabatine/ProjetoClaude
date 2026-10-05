@@ -805,3 +805,46 @@ Sem um subsistema novo de anomalia: reaproveita os dois padrões já existentes 
 - **Rateio/depreciação contábil**: fora do escopo desta fase (seção 35 do pedido); o TCO é uma análise operacional, não substitui um módulo contábil.
 - **Fornecedor genérico**: se o negócio precisar de um cadastro de fornecedores além da oficina (`Workshop`), ele entra como entidade própria referenciada por `Expense`/`RecurringExpense`, sem mudar o modelo atual (`SupplierName` continua como texto livre de fallback).
 - **Implementos com km**: com o engate (Fase 2.5), a km da vigência em implemento pode vir do veículo trator — hoje é desconhecida.
+
+# Alertas e automação (fase final, etapa A) — ADR-045
+
+## Regra de automação (`AutomationRule`)
+QUANDO (gatilho + condição) → ENTÃO (criar alerta e/ou avisar). Gatilhos e o que observam:
+
+| Gatilho | Condição | Público (quem vê) | Observação |
+|---|---|---|---|
+| `MaintenanceOverdue` | item do plano em `Overdue` (`MaintenanceSchedulePolicy`, com carência) | manutenção | crítico se o item é de prioridade crítica |
+| `MaintenanceDueSoon` | item em `DueSoon` ou `Due` | manutenção | texto diz quanto falta (km/dias/horas) |
+| `FuelConsumptionAbnormal` | consumo do período ≥ X% pior que a média dos 180 dias anteriores do próprio veículo | combustível | mín. 2 trechos no período e 3 na referência; média ponderada (km ÷ litros) |
+| `VehicleCostAboveAverage` | custo do período ≥ X% acima da média dos outros veículos ativos do mesmo tipo | custos da frota (todas as `*.viewcosts`) | mín. 3 pares com custo; aponta a fatia que mais puxou |
+| `BudgetThreshold` | utilização do orçamento do mês/ano ≥ X% | custos da frota | > 100% = crítico |
+| `TireTreadLow` | pneu instalado com sulco ≤ aviso da empresa | pneus | no mínimo = crítico |
+| `ExpenseOverdue` | despesa não paga com vencimento há ≥ X dias | `finance.view` (sem R$) | |
+| `DocumentExpiring` | documento vencido/vencendo (`WhereAlert`) | documentos (+ motoristas se o dono é motorista) | vencido = crítico |
+| `OperationalEvent` | um fato do outbox (`NotifiableEvents`) | o do módulo do evento | só eventos posteriores à regra |
+
+Limites, faixas e textos ficam em `AutomationTriggerCatalog`. Regras padrão: uma por gatilho agendado + "Checklist reprovado" (só avisa).
+
+## Alerta (`FleetAlert`)
+Título, explicação (o que e por quê), **base** (os números) e sugestão; gravidade (Crítico/Atenção/Informativo); categoria; público; registro de destino (`EntityType/EntityId`, `VehicleId`, aba).
+
+Situação (`FleetAlertWorkflow`): `Novo → Lido → Em andamento → Resolvido | Descartado` (Novo pode ir direto para qualquer uma; finais não reabrem). Descartar exige motivo. Abrir o alerta marca como lido. "Assumir" = Em andamento + responsável.
+
+Ciclo automático por chave de deduplicação: condição continua → alerta atualizado; condição some → **Resolvido automaticamente**; volta depois de resolvido → alerta novo com recorrência; descartado → silêncio por 30 dias.
+
+Prioridade (`AlertPriority`): gravidade (100/50/10) + impacto (0–30) + urgência (0–30) + 10 por recorrência (até 30).
+
+## Notificação (`UserNotification`)
+Caixa pessoal (o sino). Destinatários: usuários ativos da empresa que podem ver o alerta (público + `alerts.view`), todos ou um escolhido. Mais de 3 alertas novos de uma regra numa execução → uma notificação-resumo. Nunca contém R$.
+
+## "Requer atenção" (`AttentionService`)
+Grupos de alertas abertos por gatilho + filas ao vivo: abastecimentos para revisão (`fuel.reviewanomalies`), leituras de hodômetro suspeitas (`mileage.manage`), solicitações de manutenção abertas (`maintenance.manageworkorders`), ocorrências críticas abertas (`occurrences.view`), motoristas ativos com CNH vencida (`drivers.view`). Ordenado por gravidade e quantidade; zeros omitidos.
+
+## Catálogo de permissões (fase final)
+| Permissão | Libera |
+|---|---|
+| `alerts.view` | central de alertas, "Requer atenção" (grupos de alertas) e o sino — cada alerta ainda filtrado pelo público |
+| `alerts.manage` | assumir, resolver e descartar alertas |
+| `automation.manage` | configurar regras e rodar a verificação na hora |
+
+Papéis: Administrador/Plataforma (todas); Gestor de frota (as três); Operações, Manutenção e Financeiro (`alerts.view` + `alerts.manage`); Visualizador (`alerts.view`); Motorista (nenhuma).

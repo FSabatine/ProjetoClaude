@@ -25,7 +25,9 @@ if (!builder.Environment.IsDevelopment()) builder.Logging.AddJsonConsole();
 builder.Services.AddFleetApplication();
 builder.Services.AddFleetInfrastructure(configuration);
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
+builder.Services.AddScoped<HttpCurrentUser>();
+// ADR-045: background jobs act for one company through SystemExecutionContext; requests always use the JWT caller.
+builder.Services.AddScoped<ICurrentUser, SystemAwareCurrentUser>();
 builder.Services.Configure<RefreshCookieOptions>(configuration.GetSection(RefreshCookieOptions.SectionName));
 // Relative storage paths live next to the app's content root (not bin/), outside the web root.
 builder.Services.PostConfigure<FileStorageOptions>(o =>
@@ -63,6 +65,9 @@ builder.Services.Configure<DocumentExpirationJobOptions>(configuration.GetSectio
 builder.Services.AddHostedService<DocumentExpirationJob>();
 builder.Services.Configure<RecurringExpenseGenerationJobOptions>(configuration.GetSection(RecurringExpenseGenerationJobOptions.SectionName));
 builder.Services.AddHostedService<RecurringExpenseGenerationJob>();
+builder.Services.Configure<AutomationJobOptions>(configuration.GetSection(AutomationJobOptions.SectionName));
+builder.Services.AddSingleton<AutomationRunner>();
+builder.Services.AddHostedService<AutomationJob>();
 builder.Services.AddProblemDetails(o => o.CustomizeProblemDetails = ctx =>
 {
     // Friendly titles for responses produced by the framework itself (401/403/404/429 without body).

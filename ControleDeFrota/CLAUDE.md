@@ -2,7 +2,7 @@
 
 Guia rápido para agentes de IA neste repositório. **A fonte da verdade é `docs/`**: leia o documento da área antes de alterá-la e atualize-o no mesmo trabalho. Em qualquer implementação, siga a skill de projeto `fleet-development` (`.claude/skills/fleet-development/SKILL.md`).
 
-Controle de Frota é um sistema de gestão de frotas multiempresa em .NET 8 + React. A fase atual e o escopo estão em `docs/ROADMAP.md` (Fases 1 — Fundação, 2 — Controle operacional, 3 — Manutenção, 4 — Combustível, 5 — Pneus e 6 — Financeiro concluídas; a Fase 2.5 — Viagens e composição foi adiada por decisão do usuário, ADR-026/ADR-031/ADR-035, e é a próxima recomendada). **Não implemente módulos de fases futuras** (viagens, almoxarifado, rastreamento…); apenas deixe o ponto de extensão (normalmente um novo valor em `OperationalEventType`).
+Controle de Frota é um sistema de gestão de frotas multiempresa em .NET 8 + React. A fase atual e o escopo estão em `docs/ROADMAP.md` (Fases 1 — Fundação, 2 — Controle operacional, 3 — Manutenção, 4 — Combustível, 5 — Pneus e 6 — Financeiro concluídas; **fase final em andamento, em etapas A–E** — A (alertas/automação) concluída, ver ROADMAP; a Fase 2.5 — Viagens e composição foi adiada por decisão do usuário, ADR-026/ADR-031/ADR-035, e é a próxima recomendada). **Não implemente módulos de fases futuras** (viagens, almoxarifado, rastreamento…); apenas deixe o ponto de extensão (normalmente um novo valor em `OperationalEventType`).
 
 ## Comandos (a partir de `ControleDeFrota/`)
 
@@ -86,6 +86,15 @@ Login de desenvolvimento: `admin@frota.local` / `FrotaDev!2026`. Os demais usuá
 - `RecurringExpenseGenerationScanner` (job em background, mesmo molde do `DocumentExpirationScanner`) gera despesas com até **30 dias de antecedência** do vencimento, avançando o cursor `LastGeneratedDueDate`; idempotente por índice único `(RecurringExpenseId, DueDate)`.
 - **`finance.viewcosts` controla qualquer tela 100% monetária do módulo**; um total que combina módulos (painel, custo do veículo) exige essa permissão **e** o `*.viewcosts` de cada fonte somada — faltando uma, a fatia zera e a resposta marca `IsPartial` (ADR-043/044).
 - Custo/km exige ≥ 50 km no período (`VehicleCostPolicy.MinKmForCostPerKm`) com leitura de hodômetro cobrindo as duas pontas (`MileageService.OdometerAtAsync`); sem isso, `null` com motivo — nunca um número enganoso.
+
+## Alertas e automação (fase final, etapa A) em uma tela
+
+- Módulo: `Fleet.Domain/Intelligence` (`FleetAlert`, `AutomationRule`, `AutomationExecution`, `UserNotification`, `FleetAlertWorkflow`, `AlertPriority`, `AutomationTriggerCatalog`, `AlertAudiences`), `Fleet.Application/Intelligence` (`AlertDetectors.cs` — um `IAlertDetector` por gatilho; `AutomationEngine`; `AutomationRuleService`; `FleetAlertService` + `NotificationService`; `AttentionService`), `Api/Controllers/IntelligenceControllers.cs`, `Api/Infrastructure/AutomationJob.cs` (+ `AutomationRunner`), `Api/Authorization/SystemAwareCurrentUser.cs`; frontend em `features/alerts/` (central `/alertas`, detalhe, regras `/configuracoes/automacoes`, `NotificationBell`, `AttentionPanel`).
+- **Alerta novo = gatilho + detector, nunca um job ou bloco de painel novo** (ADR-045). O detector reaproveita a política/serviço do módulo e devolve `AlertCandidate` com chave de deduplicação estável, público (`AlertAudience`), explicação, base numérica e sugestão. O motor cuida de criar/atualizar/encerrar, recorrência, silêncio pós-descarte e notificações.
+- **Público do alerta** decide quem vê (filtro no SQL). Texto com R$ → `AlertAudience.FleetCosts`. Notificação nunca leva R$.
+- Jobs que precisam de serviços completos agem como sistema de uma empresa por vez: escopo novo + `SystemExecutionContext.ActAsSystemFor(companyId)` (ADR-046). Nunca ative isso numa requisição.
+- O outbox `OperationalEvents` agora tem consumidor: o motor marca `PublishedAt`. Canal novo (e-mail/WhatsApp) = ação nova da regra, não outro leitor.
+- `FleetAlert` não é auditável (atualizado a cada verificação); o rastro fica nos campos `ReadBy/AssignedToUserId/ClosedBy`.
 
 ## Regras que não são óbvias pelo código
 

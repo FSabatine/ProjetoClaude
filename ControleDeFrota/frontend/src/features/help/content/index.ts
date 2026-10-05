@@ -1,4 +1,5 @@
 import type { HelpArticle, HelpCategory } from '../types';
+import * as alerts from './alerts';
 import * as assignments from './assignments';
 import * as checklists from './checklists';
 import * as companies from './companies';
@@ -25,6 +26,7 @@ export { WHATS_NEW } from './whatsNew';
 const MODULES = [
   gettingStarted,
   dashboard,
+  alerts,
   companies,
   users,
   rolesPermissions,

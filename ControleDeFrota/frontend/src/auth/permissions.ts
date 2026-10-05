@@ -58,6 +58,8 @@ export const PERMISSIONS = {
     managerecurring: 'finance.managerecurring',
     viewcosts: 'finance.viewcosts',
   },
+  alerts: { view: 'alerts.view', manage: 'alerts.manage' },
+  automation: { manage: 'automation.manage' },
 } as const;
 
 type Values<T> = T[keyof T];

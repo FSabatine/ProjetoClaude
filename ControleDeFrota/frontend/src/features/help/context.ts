@@ -37,6 +37,8 @@ const RULES: { test: (pathname: string, aba: string | null) => boolean; category
 
   { test: (p) => p.startsWith('/financeiro'), categoryId: 'financial' },
 
+  { test: (p) => p.startsWith('/alertas') || p.startsWith('/configuracoes/automacoes'), categoryId: 'alerts' },
+
   { test: (p) => p.startsWith('/usuarios'), categoryId: 'users' },
   { test: (p) => p.startsWith('/papeis'), categoryId: 'rolesPermissions' },
   { test: (p) => p.startsWith('/minha-empresa') || p.startsWith('/empresas'), categoryId: 'companies' },

@@ -132,3 +132,11 @@ Princípio: **Segurança > Conveniência**. O backend é a única autoridade. Es
 - NuGet: `dotnet list package --vulnerable --include-transitive` sem vulnerabilidades, inclusive nos projetos de teste.
 - npm (produção): `npm audit --omit=dev` sem vulnerabilidades.
 - npm (desenvolvimento): 1 aviso moderado no Vitest 3.x (path traversal no mock redirect do runner de testes). Não vai para o bundle de produção. A correção exige Vitest 4, que por sua vez exige Node 20+ (ADR-015). **Ação recomendada**: atualizar o Node para 20 LTS ou superior.
+
+### Autorização na fase final — alertas e automação (ADR-045/046)
+- `alerts.view` abre a central, o sino e os grupos de alertas do "Requer atenção"; **cada alerta** ainda é filtrado pelo seu público (permissões do módulo de origem). Fora do público = 404, igual a registro de outra empresa. Alertas com R$ exigem todas as `*.viewcosts` (ADR-042); notificações nunca carregam R$.
+- `alerts.manage` para mudar a situação; `automation.manage` para regras e "Verificar agora".
+- Notificações: cada usuário só lê/marca as suas (`UserId` do token); id de outra pessoa = 404.
+- Destinatário específico de uma regra precisa ser usuário ativo **da mesma empresa** (validado no serviço; `Users` não tem filtro de tenant).
+- Jobs agem como "sistema" de uma empresa por vez (`SystemExecutionContext`), em escopo próprio; requisições nunca ativam esse modo.
+- Links de notificação são rotas internas geradas pelo servidor (nunca URL externa).

@@ -12,6 +12,8 @@ using Fleet.Application.Companies;
 using Fleet.Application.Dashboard;
 using Fleet.Application.Drivers;
 using Fleet.Application.Implements;
+using Fleet.Application.Intelligence;
+using Fleet.Domain.Intelligence;
 using Fleet.Application.Maintenance;
 using Fleet.Application.Users;
 using Fleet.Application.Vehicles;
@@ -98,4 +100,23 @@ public static class Services
     public static CostAggregationService CostAggregation(TestDb t) => new(t.Db, t.CurrentUser, t.Clock);
     public static BudgetService Budgets(TestDb t) => new(t.Db, t.CurrentUser, new BudgetRequestValidator(), CostAggregation(t));
     public static FinanceAnalyticsService FinanceAnalytics(TestDb t) => new(t.Db, t.CurrentUser, t.Clock, CostAggregation(t), Mileage(t));
+
+    // Final phase — alerts and automation
+    public static IReadOnlyList<IAlertDetector> Detectors(TestDb t) =>
+    [
+        new MaintenanceDueDetector(t.Db, t.Clock, MaintenanceSchedules(t), AutomationTrigger.MaintenanceOverdue),
+        new MaintenanceDueDetector(t.Db, t.Clock, MaintenanceSchedules(t), AutomationTrigger.MaintenanceDueSoon),
+        new FuelConsumptionDetector(t.Db, t.Clock),
+        new VehicleCostDetector(t.Db, t.Clock, CostAggregation(t)),
+        new BudgetThresholdDetector(t.Clock, Budgets(t)),
+        new TireTreadDetector(t.Db, t.Clock),
+        new ExpenseOverdueDetector(t.Db, t.Clock),
+        new DocumentExpiringDetector(t.Db, t.Clock),
+    ];
+    public static AutomationRuleService AutomationRules(TestDb t) => new(t.Db, t.CurrentUser, t.Clock, new AutomationRuleRequestValidator());
+    public static AutomationEngine Automation(TestDb t) => new(
+        t.Db, t.Clock, t.CurrentUser, Detectors(t), AutomationRules(t), NullLogger<AutomationEngine>.Instance);
+    public static FleetAlertService Alerts(TestDb t) => new(t.Db, t.CurrentUser, t.Clock, new FleetAlertStatusRequestValidator());
+    public static NotificationService Notifications(TestDb t) => new(t.Db, t.CurrentUser, t.Clock);
+    public static AttentionService Attention(TestDb t) => new(t.Db, t.CurrentUser, t.Clock);
 }

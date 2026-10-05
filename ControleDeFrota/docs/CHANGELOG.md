@@ -2,6 +2,25 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Datas no padrão AAAA-MM-DD.
 
+## [0.7.0-a] — 2026-10-05 — Fase final, etapa A: alertas, automação e "Requer atenção"
+
+### Adicionado
+- **Motor de automação** (ADR-045): regras por empresa "QUANDO → ENTÃO" com gatilhos agendados (manutenção atrasada/próxima, consumo fora do padrão do veículo, custo acima da média do tipo, orçamento perto do limite, pneu com sulco baixo, despesa em atraso, documento vencido/vencendo) e gatilho de fato (consome o outbox `OperationalEvents`). Regras padrão criadas por empresa; limites, período, gravidade e destinatários configuráveis.
+- **Alertas persistidos** com explicação, base numérica, sugestão, gravidade, prioridade (gravidade + impacto + urgência + recorrência) e situação (Novo, Lido, Em andamento, Resolvido, Descartado); encerramento automático quando a condição some, recorrência contada, silêncio de 30 dias após descarte; um alerta aberto por achado garantido no banco.
+- **Notificações no app** (sino no cabeçalho) para quem pode ver o alerta; resumo quando muitos alertas surgem de uma vez; nunca com R$.
+- **"Requer atenção"** no painel: grupos de alertas + filas ao vivo (revisões de abastecimento e hodômetro, solicitações de manutenção, ocorrências críticas, CNH vencida), cada linha levando à lista filtrada.
+- **Painel executivo**: "Alertas prioritários" e custo do mês por fatia (combustível, manutenção, pneus, outras despesas), cada fatia só para quem pode vê-la.
+- **Central de alertas** (`/alertas`), detalhe do alerta e **Regras de automação** (`/configuracoes/automacoes`, com "Verificar agora").
+- `AutomationJob` (a cada 60 min) e `SystemExecutionContext` para jobs agirem por empresa (ADR-046).
+- Filtro de veículos "Leitura de hodômetro aguardando revisão".
+- Permissões `alerts.view`, `alerts.manage`, `automation.manage` e mapeamento nos papéis.
+- **Central de Ajuda**: categoria "Alertas e automações" (8 artigos), artigos do Painel e "Primeiros passos" atualizados, ajuda contextual e "Novidades".
+- **Testes**: Domain 351, Application 390 (ciclo de vida do alerta, deduplicação, encerramento automático, recorrência, descarte, notificação por público, resumo, regras de fato e outbox, isolamento de tenant, "Requer atenção") e HTTP 89 (permissões, 404 fora do público e entre empresas, validação do descarte).
+
+### Alterado
+- `ICurrentUser` da API passa a ser `SystemAwareCurrentUser` (JWT nas requisições; "sistema da empresa" só dentro de jobs).
+- `FinanceSummary` do painel ganhou as fatias mensais (aditivo). O bloco "Atenção" do painel foi renomeado para "Operação"; o bloco antigo "Alertas" aparece só para quem não tem `alerts.view`.
+
 ## [0.6.0] — 2026-10-05 — Fase 6: Gestão financeira
 
 ### Adicionado

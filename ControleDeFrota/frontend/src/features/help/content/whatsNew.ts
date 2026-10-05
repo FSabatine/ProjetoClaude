@@ -6,6 +6,12 @@ import type { HelpWhatsNewEntry } from '../types';
  */
 export const WHATS_NEW: HelpWhatsNewEntry[] = [
   {
+    id: 'whats-new-alerts',
+    title: 'Alertas, "Requer atenção" e automações',
+    description: 'O painel agora começa pelo que precisa de atenção. O sistema confere a frota a cada hora e cria alertas explicados (manutenção atrasada, consumo fora do padrão, custo acima da média do tipo, orçamento perto do limite, pneu com sulco baixo, despesa e documento vencidos), com central de alertas, notificações no sino e regras de automação configuráveis.',
+    date: 'outubro de 2026',
+  },
+  {
     id: 'whats-new-financial',
     title: 'Gestão financeira',
     description: 'Painel financeiro, despesas, categorias e centros de custo configuráveis, despesas recorrentes geradas automaticamente, orçamentos e orçado x realizado, aba Financeiro do veículo, custo por km, TCO, ranking de veículos e relatórios financeiros — tudo integrado ao que já é registrado em combustível, manutenção e pneus.',

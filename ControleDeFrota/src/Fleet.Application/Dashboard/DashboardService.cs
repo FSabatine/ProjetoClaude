@@ -96,7 +96,8 @@ public sealed record DashboardAlert(
 /// </summary>
 public sealed record FinanceSummary(
     decimal? MonthlyCost, decimal? CostPerKm, bool CostPerKmHasSufficientData,
-    int OverdueExpenseCount, decimal? OverdueExpenseAmount, bool IsPartial);
+    int OverdueExpenseCount, decimal? OverdueExpenseAmount, bool IsPartial,
+    decimal? MonthlyFuelCost = null, decimal? MonthlyMaintenanceCost = null, decimal? MonthlyTireCost = null, decimal? MonthlyOtherCost = null);
 
 public sealed record DashboardResponse(
     DashboardIndicators Indicators,
@@ -156,8 +157,12 @@ public sealed class DashboardService(
     private async Task<FinanceSummary> GetFinanceAsync(CancellationToken ct)
     {
         var full = await financeAnalytics.GetDashboardAsync(ct);
+        // Each slice only for who can see that source (ADR-042): null means "not visible", never a misleading zero.
+        decimal? Slice(decimal value, string sourcePermission) => full.CanSeeCosts && Can(sourcePermission) ? value : null;
         return new FinanceSummary(full.CanSeeCosts ? full.MonthlyCost : null, full.FleetCostPerKm, full.CostPerKmHasSufficientData,
-            full.OverdueExpenseCount, full.OverdueExpenseAmount, full.IsPartial);
+            full.OverdueExpenseCount, full.OverdueExpenseAmount, full.IsPartial,
+            Slice(full.FuelCost, Permissions.Fuel.ViewCosts), Slice(full.MaintenanceCost, Permissions.Maintenance.ViewCosts),
+            Slice(full.TireCost, Permissions.Tires.ViewCosts), full.CanSeeCosts ? full.OtherCost : null);
     }
 
     private bool Can(string permission) => currentUser.HasPermission(permission);

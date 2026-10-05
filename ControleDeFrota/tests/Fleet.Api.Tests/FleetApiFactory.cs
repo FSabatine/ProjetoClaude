@@ -38,6 +38,8 @@ public sealed class FleetApiFactory : WebApplicationFactory<Program>
         builder.UseSetting("Auth:RefreshCookie:Secure", "false");
         builder.UseSetting("Auth:RequestsPerMinutePerIp", "10000");
         builder.UseSetting("Jobs:DocumentExpirationScan:Enabled", "false");
+        builder.UseSetting("Jobs:Automation:Enabled", "false");
+        builder.UseSetting("Jobs:RecurringExpenseGeneration:Enabled", "false");
         builder.UseSetting("Storage:LocalRootPath", Path.Combine(Path.GetTempPath(), "fleet-api-tests", Guid.NewGuid().ToString("N")));
 
         builder.ConfigureServices(services =>

@@ -13,6 +13,9 @@ import { PERMISSIONS } from '../../auth/permissions';
 import { PageHeader } from '../../components/PageHeader';
 import { EmptyState, ErrorState } from '../../components/States';
 import { formatCurrency, formatNumber, formatPlate } from '../../lib/format';
+import { alertsApi } from '../alerts/api';
+import { AlertLine, AttentionPanel } from '../alerts/components';
+import { InfoHint } from '../finance/components';
 import classes from './DashboardPage.module.css';
 
 type AlertType =
@@ -66,6 +69,10 @@ interface DashboardData {
     overdueExpenseCount: number;
     overdueExpenseAmount: number | null;
     isPartial: boolean;
+    monthlyFuelCost: number | null;
+    monthlyMaintenanceCost: number | null;
+    monthlyTireCost: number | null;
+    monthlyOtherCost: number | null;
   } | null;
   alerts: DashboardAlert[];
   totalAlerts: number;
@@ -139,6 +146,8 @@ export function DashboardPage() {
   const query = useQuery({ queryKey: ['dashboard'], queryFn: () => api.get<DashboardData>('/dashboard').then((r) => r.data) });
   const firstName = user?.name.split(' ')[0];
   const d = query.data;
+  const canSeeAlerts = can(PERMISSIONS.alerts.view);
+  const topAlerts = alertsApi.useTop(canSeeAlerts);
 
   if (query.error && !d) return <><PageHeader title={`Olá, ${firstName}`} /><Paper><ErrorState error={query.error} onRetry={() => void query.refetch()} /></Paper></>;
 
@@ -159,8 +168,26 @@ export function DashboardPage() {
 
   return (
     <>
-      <PageHeader title={`Olá, ${firstName}`} description="Situação operacional da frota agora." />
+      <PageHeader title={`Olá, ${firstName}`} description="O que está acontecendo com a frota agora e o que precisa da sua atenção." />
       <Stack gap="xl">
+        <SimpleGrid cols={{ base: 1, lg: canSeeAlerts ? 2 : 1 }} spacing="lg">
+          <AttentionPanel />
+          {canSeeAlerts && (
+            <Paper p={{ base: 'md', sm: 'lg' }}>
+              <Group justify="space-between" mb="sm">
+                <Text fw={650}>Alertas prioritários</Text>
+                <Anchor component={Link} to="/alertas" size="sm">Ver todos</Anchor>
+              </Group>
+              {!topAlerts.data && <Stack gap="xs">{[1, 2, 3].map((i) => <Skeleton key={i} height={56} />)}</Stack>}
+              {topAlerts.data?.items.length === 0 && (
+                <EmptyState icon={<IconCircleCheck size={28} />} title="Nenhum alerta em aberto"
+                  description="As regras de automação conferem a frota a cada hora e listam aqui o que for mais importante." />
+              )}
+              <Stack gap={4}>{topAlerts.data?.items.map((a) => <AlertLine key={a.id} alert={a} />)}</Stack>
+            </Paper>
+          )}
+        </SimpleGrid>
+
         <Block title={d ? `Frota (${d.fleet.total} veículos)` : 'Frota'}>
           {!d ? loading(7) : (
             <SimpleGrid cols={{ base: 2, sm: 3, lg: 6 }} spacing="sm">
@@ -193,25 +220,46 @@ export function DashboardPage() {
         {can(PERMISSIONS.finance.view) && (
           <Block title="Financeiro" action={<Anchor component={Link} to="/financeiro" size="sm">Ver painel financeiro</Anchor>}>
             {!d ? loading(3) : d.finance === null ? null : (
-              <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="sm">
-                <Paper p="md">
-                  <Text size="xs" c="dimmed" fw={500}>Custo do mês</Text>
-                  <Text fz={22} fw={700}>{formatCurrency(d.finance.monthlyCost)}</Text>
-                </Paper>
-                <Paper p="md">
-                  <Text size="xs" c="dimmed" fw={500}>Custo/km da frota</Text>
-                  <Text fz={22} fw={700}>{d.finance.costPerKmHasSufficientData ? formatCurrency(d.finance.costPerKm) : '—'}</Text>
-                  {!d.finance.costPerKmHasSufficientData && <Text size="xs" c="dimmed">dados insuficientes</Text>}
-                </Paper>
-                <Stat label="Despesas em atraso" value={d.finance.overdueExpenseCount} icon={IconCoin} color="red" to="/financeiro/despesas?status=Overdue" />
-              </SimpleGrid>
+              <Stack gap="sm">
+                <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="sm">
+                  <Paper p="md">
+                    <Text size="xs" c="dimmed" fw={500}>Custo do mês</Text>
+                    <Text fz={22} fw={700}>{formatCurrency(d.finance.monthlyCost)}</Text>
+                    {d.finance.isPartial && d.finance.monthlyCost !== null && <Text size="xs" c="orange">total parcial (sem permissão para algumas fontes)</Text>}
+                  </Paper>
+                  <Paper p="md">
+                    <Group gap={2}>
+                      <Text size="xs" c="dimmed" fw={500}>Custo/km da frota</Text>
+                      <InfoHint label="Custo/km da frota">Custo do mês dividido pelos km rodados no mês, medidos pelas leituras de hodômetro. Sem km suficientes, o valor não é mostrado para não enganar.</InfoHint>
+                    </Group>
+                    <Text fz={22} fw={700}>{d.finance.costPerKmHasSufficientData ? formatCurrency(d.finance.costPerKm) : '—'}</Text>
+                    {!d.finance.costPerKmHasSufficientData && <Text size="xs" c="dimmed">dados insuficientes</Text>}
+                  </Paper>
+                  <Stat label="Despesas em atraso" value={d.finance.overdueExpenseCount} icon={IconCoin} color="red" to="/financeiro/despesas?status=Overdue" />
+                </SimpleGrid>
+                {d.finance.monthlyCost !== null && (
+                  <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="sm">
+                    {[
+                      { label: 'Combustível no mês', value: d.finance.monthlyFuelCost },
+                      { label: 'Manutenção no mês', value: d.finance.monthlyMaintenanceCost },
+                      { label: 'Pneus no mês', value: d.finance.monthlyTireCost },
+                      { label: 'Outras despesas no mês', value: d.finance.monthlyOtherCost },
+                    ].map((slice) => (
+                      <Paper p="sm" key={slice.label}>
+                        <Text size="xs" c="dimmed">{slice.label}</Text>
+                        <Text fw={650}>{slice.value === null ? 'sem acesso' : formatCurrency(slice.value)}</Text>
+                      </Paper>
+                    ))}
+                  </SimpleGrid>
+                )}
+              </Stack>
             )}
           </Block>
         )}
 
         <SimpleGrid cols={{ base: 1, lg: 3 }} spacing="lg">
           <div style={{ gridColumn: 'span 2' }}>
-            <Block title="Atenção">
+            <Block title="Operação">
               {!operations ? loading(4) : (
                 <SimpleGrid cols={{ base: 2, md: 3 }} spacing="sm">
                   {operations.map((s) => <Stat key={s.label} {...s} />)}
@@ -247,7 +295,7 @@ export function DashboardPage() {
           </Block>
         </SimpleGrid>
 
-        <Paper p={{ base: 'md', sm: 'lg' }}>
+        {!canSeeAlerts && <Paper p={{ base: 'md', sm: 'lg' }}>
           <Group justify="space-between" mb="md">
             <Group gap="xs">
               <Title order={4} fz="md">Alertas</Title>
@@ -278,7 +326,7 @@ export function DashboardPage() {
               );
             })}
           </Stack>
-        </Paper>
+        </Paper>}
 
         {d && d.fleet.total === 0 && can(PERMISSIONS.vehicles.create) && (
           <Paper p="lg">

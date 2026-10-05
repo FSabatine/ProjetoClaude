@@ -178,6 +178,20 @@ public static class Permissions
         /// </summary>
         public const string ViewCosts = "finance.viewcosts";
     }
+
+    public static class Alerts
+    {
+        /// <summary>Alert center, "Requer atenção" and personal notifications. Each alert is still filtered by its audience.</summary>
+        public const string View = "alerts.view";
+        /// <summary>Take, resolve and dismiss alerts.</summary>
+        public const string Manage = "alerts.manage";
+    }
+
+    public static class Automation
+    {
+        /// <summary>Configure automation rules (thresholds, who is notified) and run the scan on demand.</summary>
+        public const string Manage = "automation.manage";
+    }
 }
 
 public sealed record PermissionDefinition(int Id, string Key, string Description)
@@ -259,6 +273,9 @@ public static class PermissionCatalog
         new(207, Permissions.Finance.ManageBudgets, "Configurar orçamentos"),
         new(208, Permissions.Finance.ManageRecurring, "Configurar despesas recorrentes"),
         new(209, Permissions.Finance.ViewCosts, "Visualizar valores financeiros (despesas, painel, relatórios, custo/km, TCO)"),
+        new(210, Permissions.Alerts.View, "Visualizar alertas, \"Requer atenção\" e notificações"),
+        new(211, Permissions.Alerts.Manage, "Assumir, resolver e descartar alertas"),
+        new(212, Permissions.Automation.Manage, "Configurar regras de automação"),
     ];
 
     public static PermissionDefinition Get(string key) => All.Single(p => p.Key == key);

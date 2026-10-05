@@ -15,7 +15,7 @@ import { DriverPicker } from '../../components/EntityPickers';
 import { VEHICLE_OPERATIONAL_STATUS } from '../operations/labels';
 import { VEHICLE_TYPE, vehiclesApi, type VehicleListItem } from './vehicles';
 
-const FILTERS = ['operationalStatus', 'type', 'driverId', 'minOdometerKm', 'maxOdometerKm', 'staleMileage'] as const;
+const FILTERS = ['operationalStatus', 'type', 'driverId', 'minOdometerKm', 'maxOdometerKm', 'staleMileage', 'pendingMileageReview'] as const;
 
 export function VehicleListPage() {
   const navigate = useNavigate();
@@ -85,6 +85,8 @@ export function VehicleListPage() {
           value={list.filters.maxOdometerKm ?? ''} onChange={(v) => list.setFilter('maxOdometerKm', v === '' ? null : String(v))} />
         <Checkbox size="xs" mb={6} label="Sem leitura de hodômetro há 7 dias" checked={list.filters.staleMileage === 'true'}
           onChange={(e) => list.setFilter('staleMileage', e.currentTarget.checked ? 'true' : null)} />
+        <Checkbox size="xs" mb={6} label="Leitura de hodômetro aguardando revisão" checked={list.filters.pendingMileageReview === 'true'}
+          onChange={(e) => list.setFilter('pendingMileageReview', e.currentTarget.checked ? 'true' : null)} />
       </Group>
       <DataTable
         columns={columns}

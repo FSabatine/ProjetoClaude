@@ -31,6 +31,9 @@ Prioridades: Clareza > Esperteza · Manutenibilidade > Complexidade · UX > Nº 
 - Totais e relatórios agregam **no banco** (sem carregar registros para somar), paginam o resultado agrupado e ganham um teste de volume.
 - Módulo que precisa do custo/valor de outro módulo (ex.: custo total do veículo) **nunca duplica** esse dado numa tabela nova: leia direto da fonte (`GROUP BY`/`SUM` no banco) e combine em memória só o estritamente necessário — ver `CostAggregationService` (ADR-040).
 
+- **Alertas e avisos passam pelo motor de automação** (ADR-045): condição nova = um `IAlertDetector` novo (gatilho em `AutomationTrigger` + entrada no `AutomationTriggerCatalog`), reaproveitando a política do módulo. Nunca crie um job, tabela de alerta ou bloco de painel paralelo. Fato novo que alguém precise saber = valor em `OperationalEventType` (+ `NotifiableEvents` se fizer sentido avisar).
+- Job que precisa de serviços completos roda por empresa com `SystemExecutionContext.ActAsSystemFor` num escopo próprio (ADR-046) — nunca numa requisição.
+
 ## Código
 
 - Código, rotas e tabelas em **inglês**. Textos de UI e mensagens para o usuário em **pt-BR**.
@@ -61,6 +64,7 @@ Prioridades: Clareza > Esperteza · Manutenibilidade > Complexidade · UX > Nº 
 - Regra que depende do **alvo** (ex.: correção só com `mileage.manage`, download conforme o dono do arquivo) é checada no serviço com `ICurrentUser.HasPermission`, além do `[HasPermission]` da rota.
 - Valores em R$ ficam atrás de uma permissão `*.viewcosts` decidida **no serviço** (campos `null` na resposta); eventos operacionais e mensagens exibidas fora desse controle nunca carregam valores em R$.
 - Total que combina dinheiro de vários módulos exige o **"E" de todas** as permissões `*.viewcosts` envolvidas (a do módulo que mostra o total **e** a de cada fonte somada) — nenhuma isolada libera o todo. Falta uma fonte: a fatia dela zera e a resposta sinaliza dado parcial (`IsPartial`), nunca um total menor sem aviso — ver ADR-043/ADR-044.
+- Alerta tem **público** (`AlertAudience`) gravado e filtrado no SQL; texto com R$ usa `FleetCosts`. Notificação (sino) nunca leva R$.
 - Entidade auditável nova: inclua o nome na whitelist do `AuditController` e no tipo `AuditEntity` do `AuditHistoryButton`.
 
 ## Testes

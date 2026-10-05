@@ -36,6 +36,8 @@ public sealed class VehicleService(IFleetDbContext db, IClock clock, Operational
         if (request.MinOdometerKm is { } min) query = query.Where(v => v.CurrentOdometerKm >= min);
         if (request.MaxOdometerKm is { } max) query = query.Where(v => v.CurrentOdometerKm <= max);
         if (request.StaleMileage == true) query = WhereStaleMileage(query, clock.UtcNow);
+        if (request.PendingMileageReview == true)
+            query = query.Where(v => db.OdometerReadings.Any(r => r.VehicleId == v.Id && r.Status == Fleet.Domain.Mileage.OdometerReadingStatus.PendingReview));
         if (request.SearchTerm is { } term)
         {
             var identifier = LicensePlate.Normalize(term);

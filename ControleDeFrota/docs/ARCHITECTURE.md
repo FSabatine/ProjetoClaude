@@ -326,3 +326,30 @@ Fluxo de sessão: ao abrir o app, `POST /auth/refresh` restaura a sessão pelo c
 ### Central de Ajuda (manual do usuário)
 
 Só frontend — não é um módulo do backend. O conteúdo é dado estático versionado em `features/help/content/*.ts` (um arquivo por categoria, cada um exportando `HELP_CATEGORY`/`ARTICLES`), não um CMS nem uma tabela no banco (ADR em DECISIONS.md). A busca (`search.ts`) e a ajuda contextual por rota (`context.ts`) são funções puras, sem dependência nova. É deliberadamente **separado** da documentação técnica em `docs/`: o manual é para quem usa o sistema, pt-BR e sem detalhe de implementação; `docs/` é para quem desenvolve.
+
+### Fase final, etapa A — alertas e automação (ADR-045/046)
+
+```
+AutomationJob (a cada Jobs:Automation:IntervalMinutes, padrão 60)   POST /automation/run
+   └── AutomationRunner: escopo novo + SystemExecutionContext.ActAsSystemFor(empresa)
+         └── AutomationEngine.RunAsync
+               ├── regras agendadas → IAlertDetector (um por gatilho; reaproveita políticas/serviços dos módulos)
+               │      └── FleetAlerts: cria / atualiza / encerra sozinho (chave de deduplicação) → UserNotifications
+               └── regras de fato → OperationalEvents (PublishedAt IS NULL) → alerta e/ou notificação → PublishedAt
+Leitura: FleetAlertService / NotificationService / AttentionService — filtro por público (AlertAudience) no SQL
+```
+
+```
+GET  /alerts?status&includeClosed&category&severity&trigger&ruleId&vehicleId&assignedToMe&search&sortBy&page…  [alerts.view]
+GET  /alerts/summary, /alerts/{id}                                    [alerts.view]   (fora do público = 404)
+POST /alerts/{id}/read                                                [alerts.view]
+POST /alerts/{id}/status (status, notes)                              [alerts.manage] (descartar exige notes)
+GET  /notifications?unreadOnly&page, /notifications/unread-count      [alerts.view]   (só as do próprio usuário)
+POST /notifications/{id}/read, /notifications/read-all                [alerts.view]
+GET  /automation/catalog                                              [automation.manage | alerts.view]
+GET|POST /automation/rules, GET|PUT|DELETE /automation/rules/{id}, GET /automation/rules/{id}/executions   [automation.manage]
+POST /automation/run                                                  [automation.manage]
+GET  /dashboard/attention                                             [dashboard.view] (cada linha conforme a permissão do assunto)
+```
+
+Módulo: `Fleet.Domain/Intelligence` (`FleetAlert`, `AutomationRule`, `AutomationExecution`, `UserNotification`, `FleetAlertWorkflow`, `AlertPriority`, `AutomationTriggerCatalog`, `AlertAudiences`), `Fleet.Application/Intelligence` (`AlertDetectors`, `AutomationEngine`, `AutomationRuleService`, `FleetAlertService` + `NotificationService`, `AttentionService`), `Api/Controllers/IntelligenceControllers.cs`, `Api/Infrastructure/AutomationJob.cs`, `Api/Authorization/SystemAwareCurrentUser.cs`, `Persistence/Configurations/IntelligenceConfigurations.cs`; frontend em `features/alerts/` (central, detalhe, regras, sino `NotificationBell`, `AttentionPanel`).

@@ -233,3 +233,17 @@ Revisão de UX e responsividade feita no código. **Sem revisão visual automati
 
 ### Revisão desta fase
 Revisão de UX e responsividade feita no código. Sem revisão visual automatizada (mesmo motivo das fases anteriores): conferir manualmente o painel, a aba Financeiro do veículo e os formulários em 375px, tablet e desktop, nos dois temas.
+
+## Fase final — alertas e "Requer atenção"
+
+### Princípio: o sistema aponta, a pessoa decide
+- Todo alerta tem **O que aconteceu**, **Base do alerta** (os números) e **Sugestão** — com o lembrete "é uma sugestão do sistema, a decisão é sua". Linguagem neutra (nunca "fraude"/"culpa").
+- Gravidade sempre como **texto + cor** (Crítico/Atenção/Informativo).
+- Painel começa por **Requer atenção** (contagem + rótulo, clique leva à lista filtrada; zeros omitidos; hora da última verificação visível) e **Alertas prioritários** (5 primeiros).
+- Central de alertas: `DataTable` padrão (filtros na URL, cartões no celular), ordenada por prioridade; resumo (em aberto, críticos, novos, última verificação com `[?]`).
+- Detalhe: ações conforme `nextStatuses` da API (Assumir, Resolver, Descartar com motivo obrigatório); "Abrir o registro" leva à aba certa do hub.
+- Sino no cabeçalho: contador de não lidas (atualiza a cada minuto), lista com destaque das não lidas, "Marcar todas como lidas".
+- Regras de automação: tabela com condição em linguagem natural, formulário "Quando / Então" gerado do catálogo (limites e faixas vêm da API).
+
+### Revisão desta etapa
+Sem revisão visual automatizada (headless desaconselhado nesta máquina). Conferir manualmente em 375px/tablet/desktop e nos dois temas.

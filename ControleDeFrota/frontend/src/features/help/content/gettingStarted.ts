@@ -11,14 +11,14 @@ export const ARTICLES: HelpArticle[] = [
     id: 'gs-overview',
     categoryId: 'gettingStarted',
     title: 'O que é o Controle de Frota',
-    summary: 'Um sistema para gerenciar veículos, motoristas, manutenção e tudo o que acontece na operação diária da frota.',
+    summary: 'Um sistema para gerenciar a frota de ponta a ponta — e para mostrar o que precisa da sua atenção, sem você ter de procurar.',
     whyItMatters:
-      'Ele reúne em um só lugar o cadastro da frota (veículos, implementos, motoristas), o controle do dia a dia ' +
-      '(quem está com qual veículo, quilometragem, documentos vencendo, checklists, ocorrências) e a manutenção ' +
-      '(planos preventivos, solicitações e ordens de serviço).',
+      'Ele reúne em um só lugar o cadastro da frota (veículos, implementos, motoristas), o dia a dia (alocações, quilometragem, ' +
+      'documentos, checklists, ocorrências), a manutenção, o combustível, os pneus e o financeiro — e conecta tudo isso em alertas, ' +
+      'relatórios, comparações, mapa e um assistente que responde perguntas sobre a frota.',
     steps: [
       'Faça login com seu e-mail e senha.',
-      'O Painel mostra um resumo da frota e os alertas mais urgentes.',
+      'O Painel começa por "Requer atenção" e "Alertas prioritários": é por ali que o dia começa.',
       'O menu à esquerda leva a cada módulo que você tem permissão para ver.',
       'Cada módulo tem uma lista (com busca e filtros) e, para veículos e motoristas, uma tela de detalhe com abas.',
     ],
@@ -73,5 +73,24 @@ export const ARTICLES: HelpArticle[] = [
       'despesas e documentos vencidos viram alertas explicados, com os números que os geraram e uma sugestão do que fazer.',
     notes: ['Os avisos são apenas dentro do sistema (sino). Envio por e-mail, push ou WhatsApp ainda não existe nesta versão.'],
     relatedArticleIds: ['dashboard-overview', 'alerts-overview', 'alerts-notifications'],
+  },
+  {
+    id: 'gs-first-steps',
+    categoryId: 'gettingStarted',
+    title: 'Por onde começar (gestor de frota)',
+    summary: 'Uma ordem prática para deixar o sistema útil desde a primeira semana.',
+    steps: [
+      'Cadastre veículos, implementos e motoristas (com CNH) e aloque cada motorista ao seu veículo.',
+      'Cadastre os tipos de documento e os documentos com vencimento (CRLV, seguro, ANTT…).',
+      'Configure os planos de manutenção preventiva e as oficinas.',
+      'Registre os abastecimentos sempre com tanque cheio quando possível — é o que permite medir o consumo.',
+      'Cadastre os pneus e a configuração de eixos dos veículos; faça inspeções periódicas.',
+      'Configure categorias, centros de custo e orçamentos no Financeiro.',
+      'Revise as regras de automação (limites de alerta) em Configurações › Regras de automação.',
+      'Use o Painel, a central de Alertas, os Relatórios e o Assistente para acompanhar e decidir.',
+    ],
+    notes: ['Quanto mais completos os registros (hodômetro, tanque cheio, custos), mais confiáveis ficam alertas, custo/km, saúde do veículo e respostas do assistente.'],
+    keywords: ['começar', 'implantação', 'primeiro dia', 'configurar'],
+    relatedArticleIds: ['gs-overview', 'dashboard-overview', 'automation-rules'],
   },
 ];

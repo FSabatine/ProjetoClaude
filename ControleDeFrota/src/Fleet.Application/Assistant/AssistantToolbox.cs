@@ -236,7 +236,10 @@ public sealed class AssistantToolbox(
         if (vehicleId is null)
             return new ToolOutcome("get_vehicle_analysis", new { unavailable = "Veículo não encontrado nesta empresa (confira a placa) ou nenhum veículo aberto na tela." }, []);
 
-        var vehicle = await db.Vehicles.Where(v => v.Id == vehicleId).Select(v => new { v.Id, v.LicensePlate, v.Model, v.Type, v.Status }).SingleAsync(ct);
+        // The id may come from the client (page context): the tenant filter hides other companies' vehicles.
+        var vehicle = await db.Vehicles.Where(v => v.Id == vehicleId).Select(v => new { v.Id, v.LicensePlate, v.Model, v.Type, v.Status }).SingleOrDefaultAsync(ct);
+        if (vehicle is null)
+            return new ToolOutcome("get_vehicle_analysis", new { unavailable = "Veículo não encontrado nesta empresa (confira a placa) ou nenhum veículo aberto na tela." }, []);
         var period = AssistantPeriods.Resolve(periodKey, clock.Today);
         var previous = AssistantPeriods.Previous(period);
         var current = (await metrics.ForVehiclesAsync(db.Vehicles.Where(v => v.Id == vehicle.Id), period.From, period.To, ct)).Single();
@@ -408,8 +411,10 @@ public sealed class AssistantToolbox(
             .OrderBy(i => i.Tire.CurrentTreadDepthMm).Take(15)
             .Select(i => new { i.Tire.Code, Tread = i.Tire.CurrentTreadDepthMm, i.PositionLabel, Plate = i.Vehicle != null ? i.Vehicle.LicensePlate : i.Implement!.LicensePlate })
             .ToListAsync(ct);
-        var anomalies = await db.FleetAlerts.Where(a => a.Audience == AlertAudience.Tires && FleetAlertWorkflow.OpenStatuses.Contains(a.Status))
-            .OrderByDescending(a => a.Priority).Take(5).Select(a => a.Title).ToListAsync(ct);
+        var anomalies = Can(Permissions.Alerts.View)
+            ? await db.FleetAlerts.Where(a => a.Audience == AlertAudience.Tires && FleetAlertWorkflow.OpenStatuses.Contains(a.Status))
+                .OrderByDescending(a => a.Priority).Take(5).Select(a => a.Title).ToListAsync(ct)
+            : [];
         var openTireAnomalies = await db.TireAnomalies.CountAsync(a => a.ReviewedAt == null, ct);
         var rows = await metrics.ForVehiclesAsync(db.Vehicles.Where(v => v.Status != VehicleStatus.Inactive), period.From, period.To, ct);
         return new ToolOutcome("get_tire_overview", new

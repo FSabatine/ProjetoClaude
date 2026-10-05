@@ -1,6 +1,6 @@
 # Controle de Frota
 
-Plataforma de **gestão e controle de frotas** multiempresa: veículos, implementos, motoristas, controle operacional (alocação, hodômetro, documentos, checklists, ocorrências e histórico) e, nas próximas fases, viagens, manutenção, combustível, pneus, custos, rastreamento e relatórios.
+Plataforma de **gestão e controle de frotas** multiempresa: cadastros, controle operacional, manutenção, combustível, pneus e financeiro, conectados por alertas automáticos, "Requer atenção", relatórios cruzados, comparação e saúde dos veículos, assistente de análise (IA opcional), rastreamento/mapa e integrações.
 
 ## Objetivos
 
@@ -30,7 +30,12 @@ Plataforma de **gestão e controle de frotas** multiempresa: veículos, implemen
 | Manutenção preventiva e corretiva (planos, solicitações, ordens de serviço, oficinas, horímetro) | Fase 3 |
 | Combustível (abastecimentos, postos, preços, consumo, alertas, painel e relatórios) | Fase 4 |
 | Pneus (número de fogo, configurações de eixos, diagrama, instalação, rodízio, inspeção, consertos, recapagens, custo/km, baixa, painel e relatórios) | Fase 5 |
-| Viagens, financeiro, rastreamento, relatórios gerenciais, automação, integrações | ver [ROADMAP.md](ROADMAP.md) |
+| Financeiro (despesas, recorrentes, orçamentos, centros de custo, custo do veículo e da frota, custo/km, TCO) | Fase 6 |
+| Alertas automáticos, regras de automação, notificações no app, "Requer atenção", painel executivo | Fase final A |
+| Relatórios cruzados, exportação CSV/Excel/PDF, busca global, linha do tempo, saúde e comparação de veículos, destaques | Fase final B |
+| Assistente da frota (cálculos do sistema + Claude opcional) | Fase final C |
+| Rastreamento (rastreadores, API de recebimento, mapa, localização) e página de integrações | Fase final D |
+| Viagens e composição (veículo ↔ implemento), app do motorista | não implementados — ver [ROADMAP.md](ROADMAP.md) |
 
 ## Stack
 
@@ -98,7 +103,7 @@ Para recomeçar do zero, apague o banco (`sqllocaldb` / SSMS: `DROP DATABASE Con
 | `Assistant:Anthropic:Enabled` | appsettings | liga a IA (Claude) no assistente — **desligado por padrão**; sem ela, respostas calculadas pelo sistema |
 | `Assistant:Anthropic:ApiKey` | **env `ANTHROPIC_API_KEY` ou cofre** | chave da API da Anthropic (nunca no repositório) |
 | `Assistant:Anthropic:Model`, `TimeoutSeconds`, `MaxToolRounds` | appsettings | `claude-opus-5-5` / 60 / 4 |
-| `Tracking:IngestRequestsPerMinutePerDevice` | appsettings | limite de envios de posição por rastreador (120) |
+| `Tracking:IngestRequestsPerMinutePerIp` | appsettings | limite de envios de posição por IP de origem (1200) |
 | `VITE_MAP_TILE_URL`, `VITE_MAP_TILE_ATTRIBUTION` | `.env` do frontend | servidor de blocos do mapa (padrão OpenStreetMap; em produção com muito uso, use um provedor próprio) |
 
 ## Estrutura
@@ -123,7 +128,7 @@ ControleDeFrota/
 
 ## Status
 
-**Fases 1 (Fundação), 2 (Controle operacional), 3 (Manutenção), 4 (Combustível) e 5 (Pneus): concluídas** (até 2026-10-02). Próximo passo recomendado: Fase 2.5 — Viagens e composição. Ver [CHANGELOG.md](CHANGELOG.md) e [ROADMAP.md](ROADMAP.md).
+**Todas as fases planejadas concluídas** (Fases 1–6 e a fase final de inteligência, automação, relatórios e integração, 2026-10-05). O produto está pronto para validação final. Fora do escopo por decisão: Fase 2.5 — Viagens e composição (próximo passo natural, se o negócio confirmar). Ver [CHANGELOG.md](CHANGELOG.md) e [ROADMAP.md](ROADMAP.md).
 
 ## Documentos
 
@@ -136,3 +141,7 @@ Com `Database:SeedSampleData`, a primeira execução (ou a próxima, em bancos d
 ### Dados de exemplo da Fase 5
 
 Com `Database:SeedSampleData`, a primeira execução (ou a próxima, em bancos de fases anteriores) cria 3 modelos de pneu, define as configurações de eixos dos veículos de exemplo (RDX1A23 e RDX3C45 cavalo 6x2, RDX2B34 6x4, ABC1234 picape) e do semirreboque RDX4D56, instala 11 pneus no RDX1A23 (há 75 dias, com o km que o histórico tinha) e registra inspeções com um pneu perto do mínimo, um no mínimo, um com desgaste no ombro e um com furo. Há ainda 3 pneus em estoque, 1 na recapadora e 1 baixado — para demonstrar o diagrama, os alertas e o painel.
+
+### Dados de exemplo da fase final
+
+Com `Database:SeedSampleData`: um provedor "Simulador" com 3 rastreadores nos caminhões de exemplo (um transmitindo agora na BR-277, um visto há 5 horas, um sem sinal há 3 dias). As regras de automação padrão são criadas na primeira execução da verificação (a cada hora, ou "Verificar agora" em Configurações › Regras de automação). O assistente funciona sem configuração (modo calculado); para ligar o Claude, defina `Assistant:Anthropic:Enabled=true` e a variável de ambiente `ANTHROPIC_API_KEY` no servidor.

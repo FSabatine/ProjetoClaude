@@ -10,6 +10,7 @@ import * as drivers from './drivers';
 import * as faq from './faq';
 import * as financial from './financial';
 import * as fuel from './fuel';
+import * as glossary from './glossary';
 import * as gettingStarted from './gettingStarted';
 import * as implementsContent from './implements';
 import * as maintenance from './maintenance';
@@ -20,6 +21,7 @@ import * as rolesPermissions from './rolesPermissions';
 import * as searchAndFilters from './searchAndFilters';
 import * as tires from './tires';
 import * as tracking from './tracking';
+import * as troubleshooting from './troubleshooting';
 import * as users from './users';
 import * as vehicles from './vehicles';
 
@@ -50,6 +52,8 @@ const MODULES = [
   tracking,
   searchAndFilters,
   faq,
+  troubleshooting,
+  glossary,
 ];
 
 export const HELP_CATEGORIES: HelpCategory[] = MODULES.map((m) => m.CATEGORY);

@@ -101,6 +101,7 @@ public sealed class FleetDbContext : DbContext, IFleetDbContext
     public DbSet<TrackingDevice> TrackingDevices => Set<TrackingDevice>();
     public DbSet<VehicleDevice> VehicleDevices => Set<VehicleDevice>();
     public DbSet<VehiclePosition> VehiclePositions => Set<VehiclePosition>();
+    public DbSet<TrackingDeviceLastPosition> TrackingDeviceLastPositions => Set<TrackingDeviceLastPosition>();
 
     /// <summary>Read by the tenant query filter on every query (EF parameterizes this per context instance).</summary>
     private Guid? CurrentCompanyId => _currentUser.CompanyId;

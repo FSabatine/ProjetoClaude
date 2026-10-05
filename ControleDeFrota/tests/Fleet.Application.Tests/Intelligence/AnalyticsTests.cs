@@ -296,6 +296,23 @@ public class TimelineVisibilityTests : AnalyticsTestBase
     }
 
     [Fact]
+    public async Task VehicleHistory_VehicleDocumentEvents_VisibleWithDocumentsViewEvenWithoutDriversView()
+    {
+        await ArrangeAsync();
+        var vehicle = await Scenario.VehicleAsync(T);
+        Services.Events(T).Record(OperationalEventType.DocumentCreated, new Fleet.Application.Operations.EventSubject("Document", Guid.NewGuid(), VehicleId: vehicle.Id), "CRLV cadastrado.");
+        await T.Db.SaveChangesAsync();
+
+        T.CurrentUser.PermissionSet = [Permissions.Vehicles.View, Permissions.Documents.View];
+        var withDocuments = await Services.History(T).ForVehicleAsync(vehicle.Id, new HistoryRequest(), default);
+        T.CurrentUser.PermissionSet = [Permissions.Vehicles.View];
+        var withoutDocuments = await Services.History(T).ForVehicleAsync(vehicle.Id, new HistoryRequest(), default);
+
+        withDocuments.Items.Should().Contain(e => e.Type == OperationalEventType.DocumentCreated);
+        withoutDocuments.Items.Should().NotContain(e => e.Type == OperationalEventType.DocumentCreated);
+    }
+
+    [Fact]
     public async Task VehicleHistory_CategoryFilter_KeepsOnlyThatArea()
     {
         await ArrangeAsync();

@@ -41,6 +41,12 @@ internal sealed class DevTrackingSeeder(FleetDbContext db, IClock clock)
             var vehicleId = vehicles[route.Plate];
             db.VehicleDevices.Add(new VehicleDevice { CompanyId = companyId, TrackingDeviceId = device.Id, VehicleId = vehicleId, StartedAt = now.AddDays(-10) });
             var end = now - route.EndsAgo;
+            db.TrackingDeviceLastPositions.Add(new TrackingDeviceLastPosition
+            {
+                TrackingDeviceId = device.Id, CompanyId = companyId, VehicleId = vehicleId, RecordedAt = end,
+                Latitude = Math.Round(route.To.Lat + (decimal)Math.Sin((route.Points - 1) * 0.9) * 0.004m, 6), Longitude = Math.Round(route.To.Lon, 6),
+                SpeedKmh = route.Speed == 0 ? 0 : route.Speed + ((route.Points - 1) % 5) * 3, Heading = 100, Ignition = route.Speed > 0,
+            });
             for (var i = 0; i < route.Points; i++)
             {
                 var t = route.Points == 1 ? 1m : i / (decimal)(route.Points - 1);

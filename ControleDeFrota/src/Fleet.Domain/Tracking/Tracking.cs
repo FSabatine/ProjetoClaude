@@ -90,6 +90,24 @@ public class VehiclePosition : ITenantScoped
     public int? DeviceOdometerKm { get; set; }
 }
 
+/// <summary>
+/// Latest fix of each device (one row per device), upserted by the ingestion — the map and the device list read this
+/// small table instead of grouping the whole position history (ADR-051). Not audited (updated on every fix).
+/// </summary>
+public class TrackingDeviceLastPosition : ITenantScoped
+{
+    public Guid TrackingDeviceId { get; set; }
+    public Guid CompanyId { get; set; }
+    /// <summary>Vehicle carrying the device when this fix was received.</summary>
+    public Guid? VehicleId { get; set; }
+    public DateTime RecordedAt { get; set; }
+    public decimal Latitude { get; set; }
+    public decimal Longitude { get; set; }
+    public decimal? SpeedKmh { get; set; }
+    public int? Heading { get; set; }
+    public bool? Ignition { get; set; }
+}
+
 public enum TrackingConnectionStatus
 {
     NeverConnected,

@@ -27,7 +27,7 @@ public sealed class IntegrationStatusService(IFleetDbContext db, IClock clock, I
         var providers = await db.TrackingProviders.CountAsync(p => p.IsActive, ct);
         var devices = await db.TrackingDevices.CountAsync(d => d.IsActive, ct);
         var since = clock.UtcNow.AddMinutes(-TrackingRules.OnlineMinutes);
-        var online = await db.VehiclePositions.Where(p => p.RecordedAt >= since).Select(p => p.TrackingDeviceId).Distinct().CountAsync(ct);
+        var online = await db.TrackingDeviceLastPositions.CountAsync(p => p.RecordedAt >= since, ct);
 
         return
         [

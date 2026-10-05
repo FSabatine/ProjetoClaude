@@ -118,10 +118,12 @@ builder.Services.AddRateLimiter(o =>
     o.AddPolicy(AssistantController.RateLimitPolicy, http => RateLimitPartition.GetFixedWindowLimiter(
         http.User.FindFirst(FleetClaims.UserId)?.Value ?? http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = assistantPerMinute, Window = TimeSpan.FromMinutes(1) }));
-    // ADR-051: trackers batch positions; a misbehaving device (or a guessed key) is throttled per key.
-    var ingestPerMinute = configuration.GetValue("Tracking:IngestRequestsPerMinutePerDevice", 120);
+    // ADR-051: limited per client IP — the device key is caller-controlled, so it must not choose the bucket
+    // (inventing a key per request would bypass the limit). A provider platform pushing many devices from one IP
+    // gets a generous default; tune per deployment.
+    var ingestPerMinute = configuration.GetValue("Tracking:IngestRequestsPerMinutePerIp", 1200);
     o.AddPolicy(TrackingController.IngestRateLimitPolicy, http => RateLimitPartition.GetFixedWindowLimiter(
-        http.Request.Headers[TrackingController.DeviceKeyHeader].ToString() is { Length: > 0 } key ? key[..Math.Min(key.Length, 11)] : http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = ingestPerMinute, Window = TimeSpan.FromMinutes(1) }));
 });
 

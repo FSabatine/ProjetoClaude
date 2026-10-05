@@ -94,6 +94,7 @@ public interface IFleetDbContext
     DbSet<TrackingDevice> TrackingDevices { get; }
     DbSet<VehicleDevice> VehicleDevices { get; }
     DbSet<VehiclePosition> VehiclePositions { get; }
+    DbSet<TrackingDeviceLastPosition> TrackingDeviceLastPositions { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 

@@ -137,8 +137,9 @@ export function AppLayout() {
         <Group h="100%" px="md" justify="space-between" wrap="nowrap">
           <Group gap="sm" wrap="nowrap">
             <Burger opened={opened} onClick={toggle} hiddenFrom="md" size="sm" aria-label="Abrir menu" />
-            <img src="/favicon.svg" alt="" width={28} height={28} />
-            <div>
+            <img src="/favicon.svg" alt="Controle de Frota" width={28} height={28} />
+            {/* Below 576px the header icons need the room; the logo stays. */}
+            <div className="hide-below-xs">
               <Text fw={700} lh={1.1}>
                 Controle de Frota
               </Text>
@@ -153,7 +154,7 @@ export function AppLayout() {
             <NotificationBell />
             <HelpButton />
             <Tooltip label={colorScheme === 'dark' ? 'Tema claro' : 'Tema escuro'}>
-              <ActionIcon variant="subtle" color="gray" size="lg" onClick={toggleColorScheme} aria-label="Alternar tema claro/escuro">
+              <ActionIcon variant="subtle" color="gray" size="lg" onClick={toggleColorScheme} aria-label="Alternar tema claro/escuro" visibleFrom="sm">
                 {colorScheme === 'dark' ? <IconSun size={18} /> : <IconMoon size={18} />}
               </ActionIcon>
             </Tooltip>
@@ -181,6 +182,9 @@ export function AppLayout() {
                   </Text>
                 </Menu.Label>
                 <Menu.Divider />
+                <Menu.Item hiddenFrom="sm" leftSection={colorScheme === 'dark' ? <IconSun size={16} /> : <IconMoon size={16} />} onClick={toggleColorScheme}>
+                  {colorScheme === 'dark' ? 'Tema claro' : 'Tema escuro'}
+                </Menu.Item>
                 <Menu.Item leftSection={<IconKey size={16} />} onClick={openChangePassword}>
                   Trocar senha
                 </Menu.Item>

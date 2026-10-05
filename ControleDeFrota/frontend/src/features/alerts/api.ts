@@ -29,7 +29,7 @@ export const alertsApi = {
   useList: (params: ListParams) =>
     useQuery({ queryKey: ['alerts', 'list', params], queryFn: () => get<PagedResult<FleetAlert>>('/alerts', params), placeholderData: keepPreviousData }),
   useTop: (enabled: boolean) =>
-    useQuery({ queryKey: ['alerts', 'top'], queryFn: () => get<PagedResult<FleetAlert>>('/alerts', { pageSize: 5 }), enabled }),
+    useQuery({ queryKey: ['alerts', 'top'], queryFn: () => get<PagedResult<FleetAlert>>('/alerts', { pageSize: 5 }), enabled, staleTime: 60_000 }),
   useDetail: (id: string | undefined) =>
     useQuery({ queryKey: ['alerts', 'detail', id], queryFn: () => get<FleetAlert>(`/alerts/${id}`), enabled: !!id }),
   useSummary: (enabled = true) => useQuery({ queryKey: ['alerts', 'summary'], queryFn: () => get<AlertSummary>('/alerts/summary'), enabled }),
@@ -40,7 +40,7 @@ export const alertsApi = {
 };
 
 export const attentionApi = {
-  useAttention: () => useQuery({ queryKey: ['attention'], queryFn: () => get<AttentionResponse>('/dashboard/attention') }),
+  useAttention: () => useQuery({ queryKey: ['attention'], queryFn: () => get<AttentionResponse>('/dashboard/attention'), staleTime: 60_000 }),
 };
 
 export const notificationsApi = {

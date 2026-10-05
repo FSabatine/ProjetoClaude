@@ -68,3 +68,19 @@ internal sealed class VehiclePositionConfiguration : IEntityTypeConfiguration<Ve
         builder.HasIndex(p => new { p.CompanyId, p.RecordedAt });
     }
 }
+
+internal sealed class TrackingDeviceLastPositionConfiguration : IEntityTypeConfiguration<TrackingDeviceLastPosition>
+{
+    public void Configure(EntityTypeBuilder<TrackingDeviceLastPosition> builder)
+    {
+        builder.ToTable("TrackingDeviceLastPositions");
+        builder.HasKey(p => p.TrackingDeviceId);
+        builder.Property(p => p.TrackingDeviceId).ValueGeneratedNever();
+        builder.Property(p => p.Latitude).HasPrecision(9, 6);
+        builder.Property(p => p.Longitude).HasPrecision(9, 6);
+        builder.Property(p => p.SpeedKmh).HasPrecision(6, 2);
+        builder.HasOne<Company>().WithMany().HasForeignKey(p => p.CompanyId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<TrackingDevice>().WithOne().HasForeignKey<TrackingDeviceLastPosition>(p => p.TrackingDeviceId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(p => new { p.CompanyId, p.RecordedAt });
+    }
+}

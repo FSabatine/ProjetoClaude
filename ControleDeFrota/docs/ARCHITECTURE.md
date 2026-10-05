@@ -396,3 +396,23 @@ GET  /integrations                                               [tracking.manag
 ```
 
 Módulo: `Fleet.Domain/Tracking/Tracking.cs` (entidades + `TrackingRules`), `Fleet.Application/Tracking` (`TrackingServices.cs`: provedores, aparelhos, recebimento, consultas; `IntegrationStatusService`), `Api/Controllers/TrackingControllers.cs`, `Persistence/Configurations/TrackingConfigurations.cs`, `Persistence/DevTrackingSeeder.cs`; frontend em `features/tracking/` (`/mapa`, aba Localização, `/configuracoes/rastreadores`, `/configuracoes/integracoes`; Leaflet só em `maps.tsx`, carregado sob demanda).
+
+## Visão final do produto (após a fase final)
+
+```
+                         ┌──────────────── Fontes de dados (módulos) ─────────────────┐
+ Cadastros · Operação · Manutenção · Combustível · Pneus · Financeiro · Rastreamento
+                         └──────┬───────────────────────────────┬─────────────────────┘
+                                │ fatos (OperationalEvents)     │ dados (consultas no banco)
+                ┌───────────────▼──────────┐        ┌───────────▼───────────────────────────┐
+                │ Automação (ADR-045)       │        │ Análises (ADR-047)                     │
+                │ regras → detectores →     │        │ VehicleMetrics · CostAggregation ·     │
+                │ alertas · notificações    │        │ TrendAnalysis · Saúde · Busca          │
+                └───────────────┬──────────┘        └───────────┬───────────────────────────┘
+                                │                               │
+          ┌─────────────────────▼───────────────────────────────▼─────────────────────┐
+          │ Painel ("Requer atenção", alertas, destaques, custos) · Central de alertas │
+          │ Relatórios/exportação · Comparação · Histórico · Mapa · Assistente (ADR-050)│
+          └─────────────────────────────────────────────────────────────────────────────┘
+ Em todas as camadas: empresa (filtro global) + permissões (inclusive *.viewcosts e público dos alertas).
+```

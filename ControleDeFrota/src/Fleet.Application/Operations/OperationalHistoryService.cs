@@ -81,8 +81,17 @@ public sealed class OperationalHistoryService(IFleetDbContext db, IClock clock, 
         }
         if (request.Type is { } type) query = query.Where(e => e.Type == type);
         var types = VisibleTypes();
-        if (request.Category is { } category) types = types.Where(t => AutomationTriggerCatalog.EventCategory(t) == category).ToList();
-        query = query.Where(e => types.Contains(e.Type));
+        // Document events default to the driver-documents audience (they may name a driver). Without drivers.view,
+        // documents of vehicles/implements/the company are still visible to documents.view.
+        var documentTypes = Enum.GetValues<OperationalEventType>()
+            .Where(t => AutomationTriggerCatalog.EventAudience(t) == AlertAudience.DriverDocuments).ToList();
+        var nonDriverDocuments = currentUser.HasPermission(Domain.Authorization.Permissions.Documents.View) ? documentTypes.Except(types).ToList() : [];
+        if (request.Category is { } category)
+        {
+            types = types.Where(t => AutomationTriggerCatalog.EventCategory(t) == category).ToList();
+            nonDriverDocuments = nonDriverDocuments.Where(t => AutomationTriggerCatalog.EventCategory(t) == category).ToList();
+        }
+        query = query.Where(e => types.Contains(e.Type) || (nonDriverDocuments.Contains(e.Type) && e.DriverId == null));
 
         var page = await query.OrderByDescending(e => e.OccurredAt).ThenByDescending(e => e.Id)
             .ToPagedResultAsync(request, e => e, ct);

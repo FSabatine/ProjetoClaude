@@ -53,8 +53,23 @@ internal static class DetectorText
     public static string Days(int days) => days == 1 ? "1 dia" : $"{days} dias";
 }
 
+/// <summary>
+/// Per-scope memo of each vehicle's maintenance schedule: the overdue and due-soon rules run in the same scan and would
+/// otherwise evaluate every vehicle twice (same result, half the queries).
+/// </summary>
+public sealed class MaintenanceScheduleSnapshot(MaintenanceScheduleService schedules)
+{
+    private readonly Dictionary<Guid, IReadOnlyList<MaintenanceScheduleItemResponse>> _byVehicle = [];
+
+    public async Task<IReadOnlyList<MaintenanceScheduleItemResponse>> ForVehicleAsync(Guid vehicleId, CancellationToken ct)
+    {
+        if (!_byVehicle.TryGetValue(vehicleId, out var items)) _byVehicle[vehicleId] = items = await schedules.ForVehicleAsync(vehicleId, ct);
+        return items;
+    }
+}
+
 /// <summary>Preventive maintenance overdue (MaintenanceOverdue) or approaching (MaintenanceDueSoon), per vehicle and plan item.</summary>
-public sealed class MaintenanceDueDetector(IFleetDbContext db, IClock clock, MaintenanceScheduleService schedules, AutomationTrigger trigger) : IAlertDetector
+public sealed class MaintenanceDueDetector(IFleetDbContext db, IClock clock, MaintenanceScheduleSnapshot schedules, AutomationTrigger trigger) : IAlertDetector
 {
     public AutomationTrigger Trigger => trigger;
 

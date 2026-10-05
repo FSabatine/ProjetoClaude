@@ -105,10 +105,13 @@ public static class Services
     public static FinanceAnalyticsService FinanceAnalytics(TestDb t) => new(t.Db, t.CurrentUser, t.Clock, CostAggregation(t), Mileage(t));
 
     // Final phase — alerts and automation
-    public static IReadOnlyList<IAlertDetector> Detectors(TestDb t) =>
+    public static IReadOnlyList<IAlertDetector> Detectors(TestDb t)
+    {
+        var snapshot = new MaintenanceScheduleSnapshot(MaintenanceSchedules(t));
+        return
     [
-        new MaintenanceDueDetector(t.Db, t.Clock, MaintenanceSchedules(t), AutomationTrigger.MaintenanceOverdue),
-        new MaintenanceDueDetector(t.Db, t.Clock, MaintenanceSchedules(t), AutomationTrigger.MaintenanceDueSoon),
+        new MaintenanceDueDetector(t.Db, t.Clock, snapshot, AutomationTrigger.MaintenanceOverdue),
+        new MaintenanceDueDetector(t.Db, t.Clock, snapshot, AutomationTrigger.MaintenanceDueSoon),
         new FuelConsumptionDetector(t.Db, t.Clock),
         new VehicleCostDetector(t.Db, t.Clock, CostAggregation(t)),
         new BudgetThresholdDetector(t.Clock, Budgets(t)),
@@ -116,6 +119,7 @@ public static class Services
         new ExpenseOverdueDetector(t.Db, t.Clock),
         new DocumentExpiringDetector(t.Db, t.Clock),
     ];
+    }
     public static AutomationRuleService AutomationRules(TestDb t) => new(t.Db, t.CurrentUser, t.Clock, new AutomationRuleRequestValidator());
     public static AutomationEngine Automation(TestDb t) => new(
         t.Db, t.Clock, t.CurrentUser, Detectors(t), AutomationRules(t), NullLogger<AutomationEngine>.Instance);

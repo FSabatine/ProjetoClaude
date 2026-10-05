@@ -101,6 +101,21 @@ public class AssistantTests : AnalyticsTestBase
     }
 
     [Fact]
+    public async Task Calculated_VehicleIdOfAnotherCompanyInTheContext_IsNotFoundNotAnError()
+    {
+        await ArrangeAsync();
+        var ids = await FourVehiclesWithCostsAsync();
+        var other = await T.AddCompanyAsync("11444777000161", "Outra");
+        T.SignInAs(other, SystemRoles.Administrator);
+
+        var response = await Services.Assistant(T).AskAsync(
+            new AssistantRequest { Question = "Analise este veículo", VehicleId = ids[0], Page = "vehicle" }, default);
+
+        response.InsufficientData.Should().BeTrue();
+        response.Answer.Should().Contain("não encontrado");
+    }
+
+    [Fact]
     public async Task Calculated_UnknownQuestion_DoesNotGuess()
     {
         await ArrangeAsync();

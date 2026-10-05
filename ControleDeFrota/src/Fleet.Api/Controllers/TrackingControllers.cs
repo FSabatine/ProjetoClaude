@@ -21,7 +21,7 @@ public sealed class TrackingController(
     /// Trackers push positions here. Authenticated by the device key (header), not by a user token — the only
     /// non-user endpoint besides login/refresh. Invalid key = 401; rate limited per key.
     /// </summary>
-    [HttpPost("ingest"), AllowAnonymous, EnableRateLimiting(IngestRateLimitPolicy)]
+    [HttpPost("ingest"), AllowAnonymous, EnableRateLimiting(IngestRateLimitPolicy), RequestSizeLimit(256 * 1024)]
     public Task<IngestResponse> Ingest([FromHeader(Name = DeviceKeyHeader)] string? deviceKey, IngestRequest request, CancellationToken ct) =>
         ingestion.IngestAsync(deviceKey, request, ct);
 

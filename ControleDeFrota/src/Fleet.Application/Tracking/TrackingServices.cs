@@ -107,9 +107,8 @@ public sealed class TrackingDeviceService(IFleetDbContext db, IClock clock, IVal
             })
             .ToListAsync(ct);
         var ids = devices.Select(d => d.Id).ToList();
-        var last = await db.VehiclePositions.Where(p => ids.Contains(p.TrackingDeviceId))
-            .GroupBy(p => p.TrackingDeviceId).Select(g => new { g.Key, At = g.Max(p => p.RecordedAt) })
-            .ToDictionaryAsync(g => g.Key, g => (DateTime?)g.At, ct);
+        var last = await db.TrackingDeviceLastPositions.Where(p => ids.Contains(p.TrackingDeviceId))
+            .ToDictionaryAsync(p => p.TrackingDeviceId, p => (DateTime?)p.RecordedAt, ct);
         var now = clock.UtcNow;
         return devices.Select(d =>
         {
@@ -307,9 +306,39 @@ public sealed class TrackingIngestionService(IFleetDbContext db, IClock clock, I
         }
         duplicates += valid.Count - valid.DistinctBy(v => v.Input.RecordedAt).Count();
         await db.SaveChangesAsync(ct);
+        if (accepted > 0) await UpdateLastPositionAsync(device.Id, device.CompanyId, link, valid.Select(v => v.Input).MaxBy(i => i.RecordedAt)!, ct);
         logger.LogInformation("Tracking ingest for device {DeviceId}: {Accepted} accepted, {Duplicates} duplicates, {Rejected} rejected",
             device.Id, accepted, duplicates, rejected.Count);
         return new IngestResponse(accepted, duplicates, rejected);
+    }
+
+    /// <summary>Keeps the one-row-per-device latest fix the map reads (only moves forward in time).</summary>
+    private async Task UpdateLastPositionAsync(Guid deviceId, Guid companyId, Guid? vehicleId, PositionInput latest, CancellationToken ct)
+    {
+        // IgnoreQueryFilters: no user on this endpoint; the row is keyed by the authenticated device.
+        var row = await db.TrackingDeviceLastPositions.IgnoreQueryFilters().SingleOrDefaultAsync(p => p.TrackingDeviceId == deviceId, ct);
+        if (row is not null && row.RecordedAt >= latest.RecordedAt) return;
+        if (row is null)
+        {
+            row = new TrackingDeviceLastPosition { TrackingDeviceId = deviceId, CompanyId = companyId };
+            db.TrackingDeviceLastPositions.Add(row);
+        }
+        row.VehicleId = vehicleId;
+        row.RecordedAt = latest.RecordedAt;
+        row.Latitude = latest.Latitude;
+        row.Longitude = latest.Longitude;
+        row.SpeedKmh = latest.SpeedKmh;
+        row.Heading = latest.Heading;
+        row.Ignition = latest.Ignition;
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException ex)
+        {
+            // Two batches of the same device at once: the positions are already saved; the next batch fixes the row.
+            logger.LogWarning(ex, "Last position of device {DeviceId} not updated (concurrent batch)", deviceId);
+        }
     }
 }
 
@@ -333,18 +362,12 @@ public sealed class TrackingQueryService(IFleetDbContext db, IClock clock, ICurr
     {
         var now = clock.UtcNow;
         var since = now.AddDays(-TrackingRules.MaxPositionAgeDays);
-        var lastAt = await db.VehiclePositions.Where(p => p.VehicleId != null && p.RecordedAt >= since)
-            .GroupBy(p => p.VehicleId!.Value).Select(g => new { VehicleId = g.Key, At = g.Max(p => p.RecordedAt) })
-            .ToDictionaryAsync(g => g.VehicleId, g => g.At, ct);
+        // One row per device (TrackingDeviceLastPositions): a vehicle that changed devices keeps its most recent fix.
+        var fixes = (await db.TrackingDeviceLastPositions.Where(p => p.VehicleId != null && p.RecordedAt >= since).ToListAsync(ct))
+            .GroupBy(p => p.VehicleId!.Value).ToDictionary(g => g.Key, g => g.MaxBy(p => p.RecordedAt)!);
         var linked = await db.VehicleDevices.Where(l => l.EndedAt == null)
             .Select(l => new { l.VehicleId, l.TrackingDevice.Identifier }).ToDictionaryAsync(l => l.VehicleId, l => l.Identifier, ct);
-        var vehicleIds = lastAt.Keys.Union(linked.Keys).ToList();
-
-        var times = lastAt.Values.ToList();
-        var fixes = (await db.VehiclePositions.Where(p => p.VehicleId != null && vehicleIds.Contains(p.VehicleId.Value) && times.Contains(p.RecordedAt))
-                .ToListAsync(ct))
-            .Where(p => lastAt.TryGetValue(p.VehicleId!.Value, out var at) && at == p.RecordedAt)
-            .GroupBy(p => p.VehicleId!.Value).ToDictionary(g => g.Key, g => g.First());
+        var vehicleIds = fixes.Keys.Union(linked.Keys).ToList();
 
         var active = AssignmentService.Active(db);
         var canSeeDrivers = currentUser.HasPermission(Domain.Authorization.Permissions.Drivers.View);

@@ -460,3 +460,17 @@ Formato: **Problema · Alternativas · Decisão · Motivo · Impacto**. Um ADR n
 - Cercas eletrônicas, telemetria de condução (frenagem, excesso de velocidade) e rotas/roteirização ficam fora (spec §21).
 - Retenção de posições (volume alto): definir expurgo/arquivamento (ex.: 12 meses) e particionamento quando houver produção.
 - Recebimento roda na própria API; com muitos aparelhos, separar em serviço/fila próprios sem mudar o modelo.
+
+## ADR-052 — Revisão final de desempenho: última posição materializada e cache curto no painel
+- **Status**: aceito (fase final, etapa E).
+- **Achados e decisões** (frota de referência: 500 veículos, 2 anos de dados):
+  - O mapa agrupava 30 dias de posições a cada minuto (dezenas de milhões de linhas com rastreadores a cada 30 s). Criada `TrackingDeviceLastPositions` (uma linha por aparelho, não auditada), atualizada pelo recebimento só para frente no tempo; mapa, lista de rastreadores e integrações leem dela. O histórico continua em `VehiclePositions`.
+  - O painel recalculava os destaques (~30 consultas agregadas) a cada foco da janela: destaques com cache de 5 min e sem recarregar no foco; "Requer atenção" e alertas prioritários com 1 min. Os números são tendências de 30 dias e alertas verificados por hora — nada muda para o usuário.
+  - A verificação horária avaliava a manutenção de cada veículo duas vezes (regras "atrasada" e "próxima"): `MaintenanceScheduleSnapshot` compartilha a avaliação dentro da execução.
+- **Aceitos como estão**: rota do veículo (≤ 7 dias, ~20 mil linhas, sob demanda), assistente recalculando métricas da frota por pergunta (limitado por usuário e por consultas), última execução por regra (~9 regras, tela de administração), listas `Contains()` (OPENJSON no SQL Server), índices das tabelas novas.
+
+## Pontos em aberto — produto (após a fase final)
+- **Viagens e composição (Fase 2.5)** e **app do motorista** continuam fora, por decisão do usuário.
+- **Canais externos de notificação** (e-mail, WhatsApp, push), **cercas eletrônicas/telemetria de condução**, **integrações com ERP/cartão combustível/oficinas** e **consultas externas (CEP, CNPJ, placa)**: preparados como pontos de extensão, não implementados.
+- **Avaliação da IA com perguntas reais da empresa** antes de ligar o Claude em produção; **retenção** de posições, notificações e execuções; **várias instâncias da API** (trava distribuída para o outbox).
+- **Revisão visual**: feita no código (estados, responsividade das telas novas, cabeçalho em 375 px); a conferência visual nos dois temas e em 375 px/tablet/desktop deve ser feita por uma pessoa (navegador automatizado desaconselhado nesta máquina).

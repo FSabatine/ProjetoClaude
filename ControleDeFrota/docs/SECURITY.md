@@ -155,6 +155,20 @@ Princípio: **Segurança > Conveniência**. O backend é a única autoridade. Es
 - Respostas marcadas como "Calculado pelo sistema" ou "Explicado por IA", com fontes e aviso quando algum número não confere com os dados.
 
 ### Fase final, etapa D — rastreamento
-- `POST /tracking/ingest` é anônimo **por desenho**, autenticado pela chave do aparelho: 240 bits aleatórios, só o hash SHA-256 no banco, mostrada uma vez, rotação imediata, aparelho/provedor inativo ou excluído = 401, limite por chave (`Tracking:IngestRequestsPerMinutePerDevice`, 120/min). A chave nunca volta em listagens.
+- `POST /tracking/ingest` é anônimo **por desenho**, autenticado pela chave do aparelho: 240 bits aleatórios, só o hash SHA-256 no banco, mostrada uma vez, rotação imediata, aparelho/provedor inativo ou excluído = 401, limite por IP de origem (`Tracking:IngestRequestsPerMinutePerIp`, 1200/min — ver revisão final). A chave nunca volta em listagens.
 - Empresa da posição = empresa do aparelho (nunca do corpo da requisição). Mapa, rota e cadastro seguem o filtro de empresa normal.
 - Motorista no balão do mapa só para quem tem `drivers.view`.
+
+## Revisão final de segurança (fase final, etapa E — 2026-10-05)
+
+Revisão independente de todo o código da fase final e varredura de todos os controllers.
+
+**Verificado e correto**: todos os `IgnoreQueryFilters` novos têm condição de empresa explícita ou busca justificada por hash de chave; consultas a `Users` sempre filtradas por empresa; central de alertas, mudança de situação e leitura passam pelo filtro de público (404 fora dele); alertas com R$ exigem todas as `*.viewcosts`; notificações sem R$; resultados das ferramentas do assistente sem valores quando falta permissão (teste); destaques, fatias do painel, métricas, busca (despesas sem valor, documentos de motorista só com `drivers.view`) e exportações seguem as permissões; recebimento de posições pega empresa e veículo do aparelho, nunca do corpo; a chave nunca volta em listagens; sem `dangerouslySetInnerHTML`; balões do mapa renderizam componentes React; todo endpoint tem `[HasPermission]`, exceto login/refresh/logout, `/health` e o recebimento por chave de aparelho (anônimo por desenho).
+
+**Corrigido nesta revisão**:
+- Limite de requisições do recebimento era particionado pela chave enviada (controlada por quem chama) — inventar uma chave por requisição contornava o limite. Agora é por IP de origem (`Tracking:IngestRequestsPerMinutePerIp`, 1200/min).
+- Corpo do recebimento limitado a 256 KB (`RequestSizeLimit`), antes de ler o JSON.
+- Assistente: id de veículo de outra empresa no contexto da tela gerava erro 500 no modo calculado; agora responde "não encontrado".
+- Ferramenta de pneus do assistente lia títulos de alertas sem exigir `alerts.view`; agora exige.
+- Histórico de auditoria visível para `AutomationRule`, `TrackingProvider`, `TrackingDevice`, `VehicleDevice`.
+- Linha do tempo escondia eventos de documentos de **veículo** de quem tem `documents.view` sem `drivers.view` (restrição excessiva); corrigido mantendo os de motorista sob `drivers.view`.

@@ -145,7 +145,8 @@ export const analyticsApi = {
     }),
   useHealth: (vehicleId: string | undefined) =>
     useQuery({ queryKey: ['analytics', 'health', vehicleId], queryFn: () => api.get<VehicleHealth>(`/vehicles/${vehicleId}/health`).then((r) => r.data), enabled: !!vehicleId }),
-  useInsights: () => useQuery({ queryKey: ['analytics', 'insights'], queryFn: () => api.get<Insight[]>('/analytics/insights').then((r) => r.data) }),
+  // 30-day trends: a few minutes of staleness changes nothing and saves ~30 aggregate queries per dashboard view.
+  useInsights: () => useQuery({ queryKey: ['analytics', 'insights'], queryFn: () => api.get<Insight[]>('/analytics/insights').then((r) => r.data), staleTime: 5 * 60_000, refetchOnWindowFocus: false }),
   useSearch: (q: string) =>
     useQuery({
       queryKey: ['search', q],

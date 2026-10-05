@@ -114,6 +114,8 @@ public sealed class AuditController(AuditService service) : ControllerBase
         "Tire", "TireModel", "TireLayout", "TireInstallation", "TireRotation", "TireInspection", "TireServiceOrder", "TireCost", "TireSettings",
         // Phase 6
         "Expense", "ExpenseCategory", "CostCenter", "RecurringExpense", "Budget",
+        // Final phase (FleetAlert is deliberately not audited — ADR-045)
+        "AutomationRule", "TrackingProvider", "TrackingDevice", "VehicleDevice",
     ];
 
     [HttpGet("{entityName}/{entityId:guid}"), HasPermission(Permissions.Audit.View)]

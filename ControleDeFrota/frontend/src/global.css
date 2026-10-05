@@ -14,3 +14,10 @@ body {
     min-height: 40px;
   }
 }
+
+/* Header: on phones the action icons (search, assistant, bell, help, user) take the space of the product name. */
+@media (max-width: 575px) {
+  .hide-below-xs {
+    display: none;
+  }
+}

@@ -160,6 +160,19 @@ public class TrackingTests : IDisposable
     }
 
     [Fact]
+    public async Task Ingest_LateOlderBatch_DoesNotMoveTheLastPositionBack()
+    {
+        var (_, device) = await ArrangeAsync();
+        await Services.TrackingIngestion(T).IngestAsync(device.ApiKey, Positions((2, -25.45m, -49.10m)), default);
+        await Services.TrackingIngestion(T).IngestAsync(device.ApiKey, Positions((60, -25.00m, -49.90m)), default);
+
+        var last = await T.NewContext().TrackingDeviceLastPositions.SingleAsync();
+
+        last.Latitude.Should().Be(-25.45m);
+        (await T.NewContext().VehiclePositions.CountAsync()).Should().Be(2);
+    }
+
+    [Fact]
     public async Task Track_PeriodLongerThanAWeek_IsRefused()
     {
         var (vehicleId, _) = await ArrangeAsync();

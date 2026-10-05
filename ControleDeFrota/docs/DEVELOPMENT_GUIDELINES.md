@@ -145,3 +145,23 @@ cd frontend && npm run lint && npm run build && npm test && npm audit --omit=dev
 ```
 
 Além dos comandos, revise a UX e a responsividade (desktop, tablet e 375px de largura).
+
+## Produto completo: reutilize antes de criar (fase final)
+
+Depois da fase final, quase tudo que uma funcionalidade nova precisa já existe. Antes de criar entidade, serviço, tela ou job, procure o ponto de extensão:
+
+| Preciso de… | Use |
+|---|---|
+| avisar alguém de uma condição | um `IAlertDetector` + gatilho no `AutomationTriggerCatalog` (ADR-045) — nunca um job/tabela de alerta próprio |
+| reagir a um fato | valor em `OperationalEventType` + `NotifiableEvents`; o motor consome o outbox |
+| número por veículo (custo, km, consumo, OS…) | `VehicleMetricsService` (ADR-047) |
+| dinheiro de vários módulos | `CostAggregationService` + regra do "E" das `*.viewcosts` (ADR-042) |
+| tendência / comparação de períodos | `TrendAnalysis` |
+| relatório com exportação | `ReportTable` + `exportAs`/`pagedLoader` (ADR-048) |
+| pergunta respondida pelo assistente | ferramenta em `AssistantToolbox` + rota + modelo (ADR-050) — a IA nunca calcula |
+| integração externa | porta + adaptador; linha em `IntegrationStatusService` (ADR-051) |
+| job que usa serviços completos | `SystemExecutionContext` em escopo próprio (ADR-046) |
+| item pesquisável | bloco no `GlobalSearchService` com a permissão da lista |
+| registro na linha do tempo | evento operacional no público certo (`EventAudience`, ADR-049) |
+
+Regras que não mudam: permissões e empresa em todo caminho (telas, alertas, busca, exportação, assistente); valores calculados pelo sistema; números ausentes explicados, nunca zero; manual do usuário e `docs/` no mesmo trabalho; testes de permissão e de isolamento de empresa para tudo que é novo.

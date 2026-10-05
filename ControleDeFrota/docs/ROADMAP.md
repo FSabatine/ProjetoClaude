@@ -41,24 +41,30 @@ Cada pneu pelo número de fogo (identidade própria, passa por vários veículos
 Centros de custo e categorias de despesa hierárquicos e configuráveis (três categorias — Combustível, Manutenção, Pneus — automáticas, alimentadas pelos próprios módulos, sem lançamento manual nem duplicação de dado). Despesas manuais com situação de pagamento calculada (pendente, agendado, parcialmente pago, pago, atrasado, cancelado — nunca excluída, só cancelada), pagamento parcial/total, anexos e aviso neutro de possível duplicidade. Despesas recorrentes geradas automaticamente até 30 dias antes do vencimento (job idempotente). Orçamentos por ano/mês × categoria × (centro de custo ou veículo opcional) com orçado x realizado calculado na leitura. Custo do veículo e da frota combinando, sem duplicar, os dados de combustível/manutenção/pneus com as despesas manuais — cada fatia só aparece para quem tem a permissão de custo daquele módulo e de `finance.viewcosts`, com aviso de "totais parciais" quando falta alguma. Custo por km e TCO (valor de aquisição + custo operacional acumulado) com guarda contra quilometragem insuficiente. Ranking de veículos por custo, painel financeiro, aba Financeiro do veículo e relatórios (despesas, centro de custo, custo mensal da frota, orçado x realizado, TCO). Pedida diretamente pelo usuário, com a Fase 2.5 ainda no backlog (ADR-040).
 **Fora do escopo desta fase** (pontos de extensão deixados prontos): exportação de relatórios (Fase 8), rateio/depreciação contábil (análise operacional apenas), cadastro genérico de fornecedores (oficina da Fase 3 + texto livre).
 
-## FASE FINAL — Inteligência, automação, relatórios e integração (em andamento desde 2026-10-05)
+## FASE FINAL — Inteligência, automação, relatórios e integração (concluída em 2026-10-05)
 Pedida pelo usuário como a última fase planejada, reunindo as intenções das Fases 7–10 e um assistente de IA (ADR-045). Entregue em etapas, cada uma com quality gates e commit:
 - **A — concluída (2026-10-05)**: motor de automação, alertas persistidos, notificações no app, "Requer atenção" e painel executivo.
 - **B — concluída (2026-10-05)**: relatórios cruzados, exportação (CSV/Excel/PDF), busca global, linha do tempo com filtro por área e por permissão, saúde do veículo, comparação e benchmarking interno, tendências e destaques.
 - **C — concluída (2026-10-05)**: assistente da frota (modo calculado + Claude opcional; números sempre calculados pelo sistema).
 - **D — concluída (2026-10-05)**: base de rastreamento/GPS (provedor, dispositivo, instalação, posição), API de recebimento, mapa OpenStreetMap, localização do veículo e página de integrações.
-- E — revisão final de segurança, desempenho e UX; manual completo; documentação e skill.
+- **E — concluída (2026-10-05)**: revisão final de segurança, desempenho e UX; manual completo; documentação e skill.
+
+Esta foi a última fase planejada. Nenhuma fase nova começa automaticamente.
 
 ## FASE 7 — Rastreamento
+**Base entregue na fase final (etapa D)**: rastreadores, recebimento, mapa e rota. Fora: cercas eletrônicas, telemetria de condução.
 Integração com rastreadores/telemetria, posição, cercas eletrônicas e telemetria de condução.
 
 ## FASE 8 — Relatórios
+**Entregue na fase final (etapa B)**: relatórios cruzados, exportação CSV/Excel/PDF, KPIs e destaques no painel.
 Relatórios gerenciais, exportação (Excel/PDF) e KPIs de frota no dashboard (disponibilidade, custo/km, consumo).
 
 ## FASE 9 — Automação
+**Entregue na fase final (etapa A)** com notificações só no app; e-mail/push/WhatsApp e preferências por usuário ficam como ações futuras das regras.
 Notificações por e-mail, push e WhatsApp a partir dos `OperationalEvents` (outbox já existente: `DocumentExpiring`, `DocumentExpired`, `ChecklistFailed`, `OccurrenceCreated`, `MileageAnomalyDetected`, `FuelingMarkedForReview`, `FuelConsumptionAnomalyDetected`, `TireTreadLow`, `TireInspectionFailed`, `TireAnomalyDetected`…), preferências por usuário e regras configuráveis.
 
 ## FASE 10 — Integrações
+**Arquitetura entregue na fase final (etapa D)** (portas/adaptadores e página de integrações); integrações com terceiros não implementadas.
 ERP, WhatsApp, consulta de CEP, CNPJ e placa em serviços externos, SSO, API pública para parceiros e reset de senha por e-mail.
 
 ## Backlog transversal (quando houver necessidade real)

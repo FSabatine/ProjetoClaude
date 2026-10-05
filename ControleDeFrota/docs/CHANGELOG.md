@@ -2,6 +2,22 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). Datas no padrão AAAA-MM-DD.
 
+## [0.7.0] — 2026-10-05 — Fase final concluída (etapa E: revisão de segurança, desempenho, UX, manual e documentação)
+
+### Corrigido (revisão de segurança)
+- Limite do recebimento de posições por IP (antes contornável inventando chaves), corpo limitado a 256 KB, erro 500 do assistente com veículo de outra empresa, `alerts.view` na ferramenta de pneus do assistente, histórico de auditoria das entidades novas, documentos de veículo na linha do tempo para quem não vê motoristas.
+
+### Alterado (revisão de desempenho — ADR-052)
+- Última posição de cada rastreador materializada (`TrackingDeviceLastPositions`, migration `TrackingLastPosition`); mapa, rastreadores e integrações sem varrer o histórico.
+- Cache curto no painel (destaques 5 min, "Requer atenção" e alertas prioritários 1 min); avaliação de manutenção compartilhada entre as duas regras na verificação horária.
+- Cabeçalho em telas estreitas: nome do sistema e botão de tema dão lugar aos ícones (tema continua no menu do usuário).
+
+### Adicionado (manual)
+- Central de Ajuda completa: "Por onde começar", papéis atualizados com as novas permissões, "Permissões que protegem informação sensível", 4 perguntas frequentes novas, categorias **Problemas comuns** (6) e **Glossário** (17 termos). Total da fase final: 6 categorias novas.
+
+### Testes
+- Domain 349, Application 433, HTTP 107, frontend 92 — todos passando; consultas novas executadas no SQL Server (LocalDB).
+
 ## [0.7.0-d] — 2026-10-05 — Fase final, etapa D: rastreamento e integrações
 
 ### Adicionado

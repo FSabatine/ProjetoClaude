@@ -1,6 +1,6 @@
 ---
 name: fleet-development
-description: Padrões obrigatórios do projeto ControleDeFrota (gestão de frotas .NET 8 + React/Mantine). Use SEMPRE que for criar, alterar ou revisar código, banco, testes, telas ou documentação do ControleDeFrota — novos módulos (manutenção, abastecimento, viagens…), entidades, endpoints, migrations, permissões, formulários, listas ou regras de negócio de veículos, motoristas, implementos, empresas e usuários.
+description: Padrões obrigatórios do projeto ControleDeFrota (gestão de frotas .NET 8 + React/Mantine, produto completo — cadastros, operação, manutenção, combustível, pneus, financeiro, alertas/automação, relatórios, assistente de IA, rastreamento). Use SEMPRE que for criar, alterar ou revisar código, banco, testes, telas, manual ou documentação do ControleDeFrota — funcionalidades novas, entidades, endpoints, migrations, permissões, alertas, relatórios, perguntas do assistente, integrações ou regras de negócio.
 ---
 
 # fleet-development
@@ -9,9 +9,18 @@ Regras para manter o ControleDeFrota consistente. A fonte da verdade é `Control
 
 Prioridades: Clareza > Esperteza · Manutenibilidade > Complexidade · UX > Nº de features · Segurança > Conveniência · Testabilidade > Acoplamento.
 
+## O produto já está completo — reutilize, não duplique
+
+Todas as fases planejadas foram entregues (ver `docs/ROADMAP.md`). **Antes de criar entidade, serviço, tela, job ou tabela, procure o que já existe** — a tabela "Produto completo: reutilize antes de criar" em `docs/DEVELOPMENT_GUIDELINES.md` lista o ponto de extensão de cada necessidade. Em especial, **nunca crie**:
+- um segundo módulo de custo, de alerta, de notificação, de relatório, de busca, de histórico ou de exportação;
+- uma tabela que copie valores de outro módulo (custos, hodômetro, consumo);
+- um cálculo de métrica por veículo fora do `VehicleMetricsService`;
+- um caminho para a IA consultar dados fora do `AssistantToolbox`.
+Se parecer necessário, pare e explique ao usuário por que o existente não serve.
+
 ## Antes de começar
 
-1. Confirme que a tarefa pertence à fase atual (`docs/ROADMAP.md`). Não adiante módulos futuros; apenas deixe o ponto de extensão.
+1. Confirme o escopo com `docs/ROADMAP.md`. Viagens/composição (Fase 2.5) e app do motorista **não existem** por decisão do usuário; não implemente sem pedido explícito — deixe o ponto de extensão.
 2. Se a decisão afeta arquitetura, modelo de dados de forma difícil de reverter, segurança ou regra de negócio não especificada, **pare e pergunte**. Decisões pequenas e reversíveis: siga a boa prática e registre-as.
 3. Siga o fluxo: Requisito → Domínio → Regras → Backend → Testes → Frontend → Revisão de UX → Quality gates → Docs.
 
@@ -94,6 +103,16 @@ Detalhes em `docs/UX_UI.md`. O mínimo obrigatório de toda tela:
 - Linguagem neutra em alertas: "requer revisão", "revisão recomendada" — nunca "fraude", "erro do motorista" ou ranking de pessoas; toda comparação nomeia a medida e o período. Número ausente é explicado ("primeiro tanque cheio…"), nunca mostrado como zero.
 - Gráficos: leia o skill de dataviz antes; use `components/ColumnChart` (uma série, cor validada, tooltip no hover e no foco, botão "Ver tabela"). Nunca dois eixos.
 - **Toda funcionalidade nova visível ao usuário final ganha um artigo na Central de Ajuda** (`frontend/src/features/help/content/<categoria>.ts`, aberta pelo `?` no cabeçalho) — pt-BR, linguagem de negócio, só do que já está implementado. Atualize também `context.ts` (ajuda contextual da rota/aba nova, com teste em `context.test.ts`), "Novidades" (`whatsNew.ts`) e ponha `[?]` (`InfoHint`) ao lado de métricas calculadas. É **diferente** de `docs/` (técnico, para quem desenvolve). Ver docs/DECISIONS.md (ADR-029/030).
+
+## Checklist de funcionalidade nova no produto completo
+
+- Permissões e empresa respeitadas em **todo** caminho: tela, API, alerta, notificação, busca, exportação, histórico, destaque e assistente.
+- Valores sempre calculados pelo sistema (determinísticos); a IA só explica, e só recebe o que o usuário já veria.
+- Se a novidade gera algo que alguém precisa saber: evento operacional e/ou detector de alerta — não um aviso solto na tela.
+- Se a novidade é um número por veículo: campo no `VehicleMetricsService` (aparece em relatórios, comparação e assistente).
+- Manual do usuário (Central de Ajuda: artigo, ajuda contextual, "Novidades", e FAQ/Problemas comuns/Glossário quando couber) e `docs/` no mesmo trabalho.
+- Testes: regra, permissão (inclusive campo oculto), isolamento de empresa e, se agrega dados, consulta executada no SQL Server.
+- UX: os mesmos componentes (`PageHeader`, `DataTable`, `ReportTable`, `EmptyState`, selos com texto, `InfoHint`), responsivo até 375 px.
 
 ## Quality gates (antes de dizer "pronto")
 

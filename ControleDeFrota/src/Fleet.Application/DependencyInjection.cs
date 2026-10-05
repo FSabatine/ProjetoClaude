@@ -103,11 +103,12 @@ public static class DependencyInjection
 
         // Final phase — alerts and automation (ADR-045). One detector per scheduled trigger.
         services.AddScoped<SystemExecutionContext>();
+        services.AddScoped<MaintenanceScheduleSnapshot>();
         services.AddScoped<IAlertDetector>(sp => new MaintenanceDueDetector(
-            sp.GetRequiredService<IFleetDbContext>(), sp.GetRequiredService<IClock>(), sp.GetRequiredService<MaintenanceScheduleService>(),
+            sp.GetRequiredService<IFleetDbContext>(), sp.GetRequiredService<IClock>(), sp.GetRequiredService<MaintenanceScheduleSnapshot>(),
             AutomationTrigger.MaintenanceOverdue));
         services.AddScoped<IAlertDetector>(sp => new MaintenanceDueDetector(
-            sp.GetRequiredService<IFleetDbContext>(), sp.GetRequiredService<IClock>(), sp.GetRequiredService<MaintenanceScheduleService>(),
+            sp.GetRequiredService<IFleetDbContext>(), sp.GetRequiredService<IClock>(), sp.GetRequiredService<MaintenanceScheduleSnapshot>(),
             AutomationTrigger.MaintenanceDueSoon));
         services.AddScoped<IAlertDetector, FuelConsumptionDetector>();
         services.AddScoped<IAlertDetector, VehicleCostDetector>();
